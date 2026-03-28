@@ -4,24 +4,25 @@ import { updateRecipeIngredient } from './routes/recipe-ingredients'
 import { NotionError } from './notion'
 import type { Env } from './types'
 
-// Only the GitHub Pages origin is allowed to call this worker.
-const ALLOWED_ORIGIN = 'https://bernieprd.github.io'
+const DEFAULT_ORIGIN = 'https://bernieprd.github.io'
 
-const CORS_HEADERS: HeadersInit = {
-  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-  'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Max-Age': '86400',
+function corsHeaders(origin: string): HeadersInit {
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400',
+  }
 }
 
-function withCors(res: Response): Response {
+function withCors(res: Response, origin: string): Response {
   const next = new Response(res.body, res)
-  for (const [k, v] of Object.entries(CORS_HEADERS)) next.headers.set(k, v)
+  for (const [k, v] of Object.entries(corsHeaders(origin))) next.headers.set(k, v)
   return next
 }
 
-function err(status: number, message: string): Response {
-  return withCors(Response.json({ error: message }, { status }))
+function err(status: number, message: string, origin: string): Response {
+  return withCors(Response.json({ error: message }, { status }), origin)
 }
 
 // ── Route table ───────────────────────────────────────────────────────────────
@@ -48,9 +49,11 @@ const routes: Array<[string, URLPattern, Handler]> = [
 
 export default {
   async fetch(req: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
+    const origin = env.ALLOWED_ORIGIN ?? DEFAULT_ORIGIN
+
     // CORS preflight
     if (req.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS_HEADERS })
+      return new Response(null, { status: 204, headers: corsHeaders(origin) })
     }
 
     try {
@@ -63,16 +66,16 @@ export default {
         // Collect pathname groups in declaration order
         const groups = Object.values(match.pathname.groups).map(v => v ?? '')
         const res = await handler(req, env, ...groups)
-        return withCors(res)
+        return withCors(res, origin)
       }
 
-      return err(404, 'Not found')
+      return err(404, 'Not found', origin)
     } catch (e) {
       if (e instanceof NotionError) {
-        return err(e.status >= 400 && e.status < 500 ? e.status : 502, e.message)
+        return err(e.status >= 400 && e.status < 500 ? e.status : 502, e.message, origin)
       }
       console.error(e)
-      return err(500, 'Internal server error')
+      return err(500, 'Internal server error', origin)
     }
   },
 } satisfies ExportedHandler<Env>

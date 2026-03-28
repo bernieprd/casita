@@ -98,4 +98,7 @@ export interface Env {
   NOTION_SHOPPING_LIST_DB: string
   NOTION_RECIPES_DB: string
   NOTION_RECIPE_INGREDIENT_DB: string
+  // Set in wrangler.toml [vars] or .dev.vars to override the default.
+  // Defaults to the GitHub Pages origin in production.
+  ALLOWED_ORIGIN?: string
 }
