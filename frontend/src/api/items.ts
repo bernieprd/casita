@@ -56,7 +56,18 @@ export function useDeleteItem() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => itemsApi.delete(id),
-    onSuccess: () => {
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: itemKeys.all })
+      const previous = qc.getQueryData<Item[]>(itemKeys.all)
+      qc.setQueryData<Item[]>(itemKeys.all, old => old?.filter(i => i.id !== id))
+      qc.setQueryData<Item[]>(itemKeys.shopping, old => old?.filter(i => i.id !== id))
+      return { previous }
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous !== undefined)
+        qc.setQueryData(itemKeys.all, context.previous)
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: itemKeys.all })
       qc.invalidateQueries({ queryKey: itemKeys.shopping })
     },

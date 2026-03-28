@@ -1,51 +1,155 @@
-import { useItems, useToggleShoppingList } from '../api'
+import { useState } from 'react'
+import Box from '@mui/material/Box'
+import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
+import ListItemText from '@mui/material/ListItemText'
+import ListItemButton from '@mui/material/ListItemButton'
+import Typography from '@mui/material/Typography'
+import IconButton from '@mui/material/IconButton'
+import Chip from '@mui/material/Chip'
+import Fab from '@mui/material/Fab'
+import Divider from '@mui/material/Divider'
+import CircularProgress from '@mui/material/CircularProgress'
+import Collapse from '@mui/material/Collapse'
+import ExpandLess from '@mui/icons-material/ExpandLess'
+import ExpandMore from '@mui/icons-material/ExpandMore'
+import EditIcon from '@mui/icons-material/Edit'
+import DeleteIcon from '@mui/icons-material/Delete'
+import AddIcon from '@mui/icons-material/Add'
+import { useItems, useDeleteItem } from '../api'
+import type { Item } from '../api'
+import ItemFormDialog from './ItemFormDialog'
+
+// ── Category section ──────────────────────────────────────────────────────────
+
+interface CategorySectionProps {
+  category: string
+  items: Item[]
+  onEdit: (item: Item) => void
+  onDelete: (id: string) => void
+}
+
+function CategorySection({ category, items, onEdit, onDelete }: CategorySectionProps) {
+  const [open, setOpen] = useState(true)
+
+  return (
+    <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,.06)', mb: 1 }}>
+      <ListItemButton onClick={() => setOpen(o => !o)} sx={{ px: 2, py: 1 }}>
+        <ListItemText
+          primary={
+            <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1, letterSpacing: '.08em' }}>
+              {category}
+            </Typography>
+          }
+        />
+        <Typography variant="caption" color="text.disabled" sx={{ mr: 1 }}>{items.length}</Typography>
+        {open
+          ? <ExpandLess fontSize="small" sx={{ color: 'text.disabled' }} />
+          : <ExpandMore fontSize="small" sx={{ color: 'text.disabled' }} />}
+      </ListItemButton>
+
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <Divider />
+        <List disablePadding>
+          {items.map((item, idx) => (
+            <span key={item.id}>
+              {idx > 0 && <Divider component="li" sx={{ ml: 2 }} />}
+              <ListItem
+                disablePadding
+                secondaryAction={
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <IconButton size="small" edge="end" onClick={() => onEdit(item)}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" edge="end" onClick={() => onDelete(item.id)}
+                      sx={{ color: 'error.light' }}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                }
+              >
+                <ListItemButton sx={{ pl: 2, pr: 12 }}>
+                  <ListItemText
+                    primary={item.name}
+                    secondary={
+                      <Box component="span" sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                        {item.category && (
+                          <Chip label={item.category} size="small" variant="outlined"
+                            sx={{ fontSize: 11, height: 20 }} />
+                        )}
+                        {item.supermarkets.map(s => (
+                          <Chip key={s} label={s} size="small"
+                            sx={{ fontSize: 11, height: 20, bgcolor: 'action.hover' }} />
+                        ))}
+                      </Box>
+                    }
+                    secondaryTypographyProps={{ component: 'span' }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            </span>
+          ))}
+        </List>
+      </Collapse>
+    </Box>
+  )
+}
+
+// ── Items ─────────────────────────────────────────────────────────────────────
 
 export default function Items() {
   const { data: items, isLoading, error } = useItems()
-  const toggle = useToggleShoppingList()
+  const deleteItem = useDeleteItem()
 
-  if (isLoading) return <p className="loading">Loading…</p>
-  if (error) return <p className="error">Failed to load items.</p>
-  if (!items?.length) return <p className="empty">No items found.</p>
+  const [editTarget, setEditTarget] = useState<Item | null>(null)
+  const [creating, setCreating] = useState(false)
 
-  const byCategory = items.reduce<Record<string, typeof items>>((acc, item) => {
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 6 }}>
+        <CircularProgress color="primary" />
+      </Box>
+    )
+  }
+
+  if (error) {
+    return <Typography color="error" sx={{ p: 2 }}>Failed to load items.</Typography>
+  }
+
+  const byCategory = (items ?? []).reduce<Record<string, Item[]>>((acc, item) => {
     const cat = item.category ?? 'Other'
     ;(acc[cat] ??= []).push(item)
     return acc
   }, {})
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {Object.entries(byCategory).sort(([a], [b]) => a.localeCompare(b)).map(([cat, catItems]) => (
-        <section key={cat}>
-          <p className="section-title">{cat} <span style={{ fontWeight: 400 }}>({catItems.length})</span></p>
-          <div className="item-list">
-            {catItems.map(item => (
-              <div key={item.id} className="item-row">
-                <input
-                  type="checkbox"
-                  checked={item.onShoppingList}
-                  title={item.onShoppingList ? 'Remove from shopping list' : 'Add to shopping list'}
-                  onChange={e =>
-                    toggle.mutate({ id: item.id, onShoppingList: e.target.checked })
-                  }
-                />
-                <div className="item-info">
-                  <span className={`item-name${item.onShoppingList ? ' checked' : ''}`}>
-                    {item.name}
-                  </span>
-                  <div className="item-meta">
-                    {item.supermarkets.length > 0 && <span>{item.supermarkets.join(', ')}</span>}
-                    {item.tags.map(tag => (
-                      <span key={tag} className="tag">{tag}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
-    </div>
+    <Box sx={{ pb: 10 }}>
+      {Object.entries(byCategory)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([cat, catItems]) => (
+          <CategorySection
+            key={cat}
+            category={cat}
+            items={catItems}
+            onEdit={setEditTarget}
+            onDelete={id => deleteItem.mutate(id)}
+          />
+        ))}
+
+      <Fab
+        color="primary"
+        aria-label="Add item"
+        onClick={() => setCreating(true)}
+        sx={{ position: 'fixed', bottom: 24, right: 24 }}
+      >
+        <AddIcon />
+      </Fab>
+
+      <ItemFormDialog
+        open={creating || editTarget !== null}
+        item={editTarget}
+        onClose={() => { setCreating(false); setEditTarget(null) }}
+      />
+    </Box>
   )
 }

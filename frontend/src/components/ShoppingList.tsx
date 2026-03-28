@@ -1,5 +1,8 @@
 import { useState, useCallback } from 'react'
+import Fab from '@mui/material/Fab'
+import AddIcon from '@mui/icons-material/Add'
 import Box from '@mui/material/Box'
+import QuickAddDialog from './QuickAddDialog'
 import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
@@ -98,6 +101,7 @@ export default function ShoppingList() {
   // rendered inside <Collapse in={false}> so the exit animation plays before
   // the React Query cache update removes them from `items`.
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
 
   const handleRemove = useCallback((id: string) => {
     setRemovingIds(prev => new Set(prev).add(id))
@@ -146,7 +150,7 @@ export default function ShoppingList() {
   }
 
   return (
-    <Box>
+    <Box sx={{ pb: 10 }}>
       {categories.map(([cat, catItems]) => (
         <CategorySection
           key={cat}
@@ -156,6 +160,17 @@ export default function ShoppingList() {
           onRemove={handleRemove}
         />
       ))}
+
+      <Fab
+        color="primary"
+        aria-label="Add to shopping list"
+        onClick={() => setQuickAddOpen(true)}
+        sx={{ position: 'fixed', bottom: 24, right: 24 }}
+      >
+        <AddIcon />
+      </Fab>
+
+      <QuickAddDialog open={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
     </Box>
   )
 }
