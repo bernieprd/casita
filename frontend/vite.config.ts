@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon.svg', 'icon-512.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Casita',
         short_name: 'Casita',
@@ -20,7 +20,8 @@ export default defineConfig(({ mode }) => ({
         orientation: 'portrait',
         start_url: '.',
         icons: [
-          { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: 'apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
         ],
       },
       workbox: {

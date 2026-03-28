@@ -28,7 +28,7 @@ export default function App() {
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, pt: 2, pb: 10 }}>
+      <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, pt: 2, paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
         {tab === 'shopping' && <ShoppingList />}
         {tab === 'items'    && <Items />}
         {tab === 'recipes'  && <Recipes />}
@@ -36,7 +36,7 @@ export default function App() {
 
       <Paper
         elevation={3}
-        sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100 }}
+        sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100, paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <BottomNavigation
           value={tab}
