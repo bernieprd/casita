@@ -1,0 +1,23 @@
+{
+  "name": "casita",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:worker": "pnpm --filter worker dev",
+    "build": "pnpm -r build",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:worker": "pnpm --filter worker build",
+    "deploy": "pnpm -r deploy",
+    "deploy:frontend": "pnpm --filter frontend deploy",
+    "deploy:worker": "pnpm --filter worker deploy",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "sharp", "workerd"]
+  }
+}
