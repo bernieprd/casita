@@ -1,6 +1,6 @@
 import { getItems, createItem, updateItem, deleteItem } from './routes/items'
-import { getRecipes, getRecipe, getRecipeIngredients } from './routes/recipes'
-import { updateRecipeIngredient } from './routes/recipe-ingredients'
+import { createRecipe, getRecipes, getRecipe, updateRecipe, getRecipeIngredients } from './routes/recipes'
+import { updateRecipeIngredient, createRecipeIngredient, deleteRecipeIngredient } from './routes/recipe-ingredients'
 import { NotionError } from './notion'
 import type { Env } from './types'
 
@@ -45,10 +45,14 @@ const routes: Array<[string, URLPattern, Handler]> = [
   ['POST',   new URLPattern({ pathname: '/items' }),                          createItem],
   ['PATCH',  new URLPattern({ pathname: '/items/:id' }),                      updateItem],
   ['DELETE', new URLPattern({ pathname: '/items/:id' }),                      deleteItem],
+  ['POST',   new URLPattern({ pathname: '/recipes' }),                        createRecipe],
   ['GET',    new URLPattern({ pathname: '/recipes' }),                        getRecipes],
   ['GET',    new URLPattern({ pathname: '/recipes/:id' }),                    getRecipe],
+  ['PATCH',  new URLPattern({ pathname: '/recipes/:id' }),                    updateRecipe],
   ['GET',    new URLPattern({ pathname: '/recipes/:id/ingredients' }),        getRecipeIngredients],
+  ['POST',   new URLPattern({ pathname: '/recipe-ingredients' }),             createRecipeIngredient],
   ['PATCH',  new URLPattern({ pathname: '/recipe-ingredients/:id' }),         updateRecipeIngredient],
+  ['DELETE', new URLPattern({ pathname: '/recipe-ingredients/:id' }),         deleteRecipeIngredient],
 ]
 
 // ── Entry point ───────────────────────────────────────────────────────────────

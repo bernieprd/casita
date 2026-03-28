@@ -12,6 +12,7 @@ export interface Recipe {
   name: string
   type: string | null
   day: string | null
+  url: string | null
   coverPhotoUrl: string | null
 }
 
@@ -31,5 +32,6 @@ export interface RecipeIngredient {
   itemId: string
   itemName: string
   quantity: string | null
+  section: string | null
   needsShopping: boolean
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
@@ -9,10 +9,19 @@ import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import ListItemText from '@mui/material/ListItemText'
 import IconButton from '@mui/material/IconButton'
+import TextField from '@mui/material/TextField'
+import InputAdornment from '@mui/material/InputAdornment'
+import Fab from '@mui/material/Fab'
+import Snackbar from '@mui/material/Snackbar'
+import Alert from '@mui/material/Alert'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import EditIcon from '@mui/icons-material/Edit'
+import AddIcon from '@mui/icons-material/Add'
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
+import SearchIcon from '@mui/icons-material/Search'
 import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping } from '../api'
-import type { Block } from '../api'
+import type { Block, RecipeWithBlocks, RecipeIngredient } from '../api'
+import RecipeFormSheet from './RecipeFormSheet'
 
 // ── Block renderer ────────────────────────────────────────────────────────────
 
@@ -60,67 +69,302 @@ function RecipeGridSkeleton() {
 
 function RecipeGrid({ onSelect }: { onSelect: (id: string) => void }) {
   const { data: recipes, isLoading, error } = useRecipes()
+  const [search, setSearch] = useState('')
+  const [selectedType, setSelectedType] = useState<string | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const [scrollToId, setScrollToId] = useState<string | null>(null)
+
+  const typeOptions = useMemo(
+    () => [...new Set((recipes ?? []).map(r => r.type).filter(Boolean) as string[])].sort(),
+    [recipes],
+  )
+
+  const filtered = useMemo(() => {
+    if (!recipes) return []
+    const q = search.trim().toLowerCase()
+    return recipes.filter(r => {
+      const matchesSearch = !q || r.name.toLowerCase().includes(q)
+      const matchesType = !selectedType || r.type === selectedType
+      return matchesSearch && matchesType
+    })
+  }, [recipes, search, selectedType])
+
+  // Scroll to newly created recipe once it appears in the rendered list
+  useMemo(() => {
+    if (!scrollToId || !filtered.length) return
+    const card = document.getElementById(`recipe-card-${scrollToId}`)
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      setScrollToId(null)
+    }
+  }, [scrollToId, filtered])
+
+  const isFiltering = search.trim() !== '' || selectedType !== null
+
+  // Shared elements rendered across all non-loading/error paths
+  const fab = (
+    <Fab
+      color="primary"
+      aria-label="New recipe"
+      onClick={() => setCreateOpen(true)}
+      sx={{ position: 'fixed', bottom: 80, right: 24 }}
+    >
+      <AddIcon />
+    </Fab>
+  )
+
+  const sheet = (
+    <RecipeFormSheet
+      open={createOpen}
+      onClose={() => setCreateOpen(false)}
+      onSaved={id => { setToastMsg('Recipe created'); if (id) setScrollToId(id) }}
+    />
+  )
+
+  const toast = (
+    <Snackbar
+      open={!!toastMsg}
+      autoHideDuration={3000}
+      onClose={() => setToastMsg(null)}
+      anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+    >
+      <Alert severity="success" onClose={() => setToastMsg(null)} sx={{ width: '100%' }}>
+        {toastMsg}
+      </Alert>
+    </Snackbar>
+  )
 
   if (isLoading) return <RecipeGridSkeleton />
   if (error) return <Typography color="error" sx={{ p: 2 }}>Failed to load recipes.</Typography>
+
   if (!recipes?.length) {
     return (
-      <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
-        <Box sx={{ fontSize: 52, mb: 2, opacity: 0.35 }}>🍽</Box>
-        <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
-          No recipes yet
-        </Typography>
-        <Typography variant="body2" color="text.disabled">
-          Add recipes to your Notion database to see them here
-        </Typography>
-      </Box>
+      <>
+        <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
+          <Box sx={{ fontSize: 52, mb: 2, opacity: 0.35 }}>🍽</Box>
+          <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
+            No recipes yet
+          </Typography>
+          <Typography variant="body2" color="text.disabled">
+            Tap + to add your first recipe
+          </Typography>
+        </Box>
+        {fab}{sheet}{toast}
+      </>
     )
   }
 
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
-      {recipes.map(recipe => (
-        <Box
-          key={recipe.id}
-          onClick={() => onSelect(recipe.id)}
-          sx={{
-            cursor: 'pointer',
-            borderRadius: 2,
-            overflow: 'hidden',
-            bgcolor: 'background.paper',
-            boxShadow: '0 1px 3px rgba(0,0,0,.08)',
-            transition: 'opacity .15s',
-            '&:active': { opacity: 0.75 },
-          }}
-        >
-          {recipe.coverPhotoUrl ? (
-            <Box
-              component="img"
-              src={recipe.coverPhotoUrl}
-              alt={recipe.name}
-              loading="lazy"
-              sx={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover', display: 'block' }}
+    <Box>
+      {/* Search bar */}
+      <TextField
+        fullWidth
+        size="small"
+        placeholder="Search recipes…"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+              </InputAdornment>
+            ),
+          },
+        }}
+        sx={{ mb: 1.5 }}
+      />
+
+      {/* Type filter chips */}
+      {typeOptions.length > 0 && (
+        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 1.5 }}>
+          {typeOptions.map(type => (
+            <Chip
+              key={type}
+              label={type}
+              size="small"
+              color={selectedType === type ? 'primary' : 'default'}
+              variant={selectedType === type ? 'filled' : 'outlined'}
+              onClick={() => setSelectedType(prev => prev === type ? null : type)}
+              sx={{ cursor: 'pointer' }}
             />
-          ) : (
-            <Box sx={{ width: '100%', aspectRatio: '4/3', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>
-              🍽
+          ))}
+        </Box>
+      )}
+
+      {/* Result count */}
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+        {isFiltering
+          ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''}`
+          : `${recipes.length} recipe${recipes.length !== 1 ? 's' : ''}`}
+      </Typography>
+
+      {/* Empty state (filter miss) */}
+      {filtered.length === 0 ? (
+        <Box sx={{ pt: 8, textAlign: 'center', px: 4 }}>
+          <Box sx={{ fontSize: 52, mb: 2, opacity: 0.35 }}>🔍</Box>
+          <Typography variant="body1" fontWeight={500} color="text.secondary">
+            No recipes match
+          </Typography>
+        </Box>
+      ) : (
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
+          {filtered.map(recipe => (
+            <Box
+              key={recipe.id}
+              id={`recipe-card-${recipe.id}`}
+              onClick={() => onSelect(recipe.id)}
+              sx={{
+                cursor: 'pointer',
+                borderRadius: 2,
+                overflow: 'hidden',
+                bgcolor: 'background.paper',
+                boxShadow: '0 1px 3px rgba(0,0,0,.08)',
+                transition: 'opacity .15s',
+                '&:active': { opacity: 0.75 },
+              }}
+            >
+              <Box sx={{ position: 'relative', width: '100%', aspectRatio: '4/3' }}>
+                {/* Emoji fallback — always behind; shows when there's no URL or the image errors */}
+                <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>
+                  🍽
+                </Box>
+                {recipe.coverPhotoUrl && (
+                  <>
+                    <Skeleton
+                      variant="rectangular"
+                      sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1 }}
+                    />
+                    <Box
+                      component="img"
+                      src={recipe.coverPhotoUrl}
+                      alt={recipe.name}
+                      loading="lazy"
+                      decoding="async"
+                      sx={{
+                        position: 'absolute', inset: 0,
+                        width: '100%', height: '100%',
+                        objectFit: 'cover', display: 'block',
+                        opacity: 0, transition: 'opacity .25s', zIndex: 2,
+                      }}
+                      onLoad={e => {
+                        const img = e.target as HTMLImageElement
+                        img.style.opacity = '1';
+                        (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
+                      }}
+                      onError={e => {
+                        const img = e.target as HTMLImageElement;
+                        (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
+                      }}
+                    />
+                  </>
+                )}
+              </Box>
+              <Box sx={{ p: 1.25 }}>
+                <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3, mb: 0.75 }}>
+                  {recipe.name}
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {recipe.type && (
+                    <Chip label={recipe.type} size="small" color="primary" variant="filled"
+                      sx={{ fontSize: 10, height: 18 }} />
+                  )}
+                  {recipe.day && (
+                    <Chip label={recipe.day} size="small" variant="outlined"
+                      sx={{ fontSize: 10, height: 18 }} />
+                  )}
+                </Box>
+              </Box>
             </Box>
-          )}
-          <Box sx={{ p: 1.25 }}>
-            <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3, mb: 0.75 }}>
-              {recipe.name}
+          ))}
+        </Box>
+      )}
+
+      {fab}{sheet}{toast}
+    </Box>
+  )
+}
+
+// ── Ingredient groups ─────────────────────────────────────────────────────────
+
+type ToggleMutation = ReturnType<typeof useToggleNeedsShopping>
+
+function IngredientGroups({
+  ingredients,
+  toggle,
+}: {
+  ingredients: RecipeIngredient[]
+  toggle: ToggleMutation
+}) {
+  // Group: null/empty section first, then named sections in order of first appearance
+  const groups = useMemo(() => {
+    const order: Array<string | null> = []
+    const map = new Map<string | null, RecipeIngredient[]>()
+
+    for (const ing of ingredients) {
+      const key = ing.section || null
+      if (!map.has(key)) {
+        order.push(key)
+        map.set(key, [])
+      }
+      map.get(key)!.push(ing)
+    }
+
+    // Ensure null (no section) is always first
+    const sorted = [null, ...order.filter(k => k !== null)]
+    return sorted.filter(k => map.has(k)).map(k => ({ section: k, items: map.get(k)! }))
+  }, [ingredients])
+
+  return (
+    <Box sx={{ mb: 3 }}>
+      {groups.map(({ section, items }, groupIdx) => (
+        <Box key={section ?? '__none__'}>
+          {groupIdx > 0 && <Divider sx={{ mt: 2, mb: 2 }} />}
+          {section && (
+            <Typography
+              variant="overline"
+              color="text.secondary"
+              sx={{ display: 'block', mb: 0.25, fontSize: 10, letterSpacing: '.1em' }}
+            >
+              {section}
             </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-              {recipe.type && (
-                <Chip label={recipe.type} size="small" color="primary" variant="filled"
-                  sx={{ fontSize: 10, height: 18 }} />
-              )}
-              {recipe.day && (
-                <Chip label={recipe.day} size="small" variant="outlined"
-                  sx={{ fontSize: 10, height: 18 }} />
-              )}
-            </Box>
-          </Box>
+          )}
+          <List disablePadding dense>
+            {items.map((ing, idx) => (
+              <span key={ing.id}>
+                {idx > 0 && <Divider component="li" />}
+                <ListItem
+                  disableGutters
+                  secondaryAction={
+                    <IconButton
+                      size="small"
+                      edge="end"
+                      onClick={() => toggle.mutate({
+                        id: ing.id,
+                        needsShopping: !ing.needsShopping,
+                        itemId: ing.itemId,
+                        itemName: ing.itemName,
+                      })}
+                      color={ing.needsShopping ? 'primary' : 'default'}
+                      sx={{ opacity: ing.needsShopping ? 1 : 0.35 }}
+                    >
+                      <ShoppingCartIcon fontSize="small" />
+                    </IconButton>
+                  }
+                >
+                  <ListItemText
+                    primary={ing.itemName}
+                    secondary={ing.quantity ?? undefined}
+                    primaryTypographyProps={{ variant: 'body2' }}
+                    secondaryTypographyProps={{ variant: 'caption' }}
+                    sx={{ pr: 5 }}
+                  />
+                </ListItem>
+              </span>
+            ))}
+          </List>
+          {groupIdx < groups.length - 1 && <Divider sx={{ mt: 0.5 }} />}
         </Box>
       ))}
     </Box>
@@ -133,10 +377,12 @@ function RecipeDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const { data: recipe, isLoading: recipeLoading } = useRecipe(id)
   const { data: ingredients, isLoading: ingredientsLoading } = useRecipeIngredients(id)
   const toggle = useToggleNeedsShopping(id)
+  const [editOpen, setEditOpen] = useState(false)
+  const [toastOpen, setToastOpen] = useState(false)
 
   return (
     <Box sx={{ pb: 10 }}>
-      {/* Back nav */}
+      {/* Back nav + edit button */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2, mx: -0.5 }}>
         <IconButton onClick={onBack} size="small">
           <ArrowBackIcon fontSize="small" />
@@ -145,10 +391,13 @@ function RecipeDetail({ id, onBack }: { id: string; onBack: () => void }) {
           variant="body2"
           color="text.secondary"
           onClick={onBack}
-          sx={{ cursor: 'pointer' }}
+          sx={{ cursor: 'pointer', flex: 1 }}
         >
           Recipes
         </Typography>
+        <IconButton size="small" onClick={() => setEditOpen(true)}>
+          <EditIcon fontSize="small" />
+        </IconButton>
       </Box>
 
       {recipeLoading && !recipe ? (
@@ -167,12 +416,33 @@ function RecipeDetail({ id, onBack }: { id: string; onBack: () => void }) {
         <>
           {/* Cover */}
           {recipe.coverPhotoUrl && (
-            <Box
-              component="img"
-              src={recipe.coverPhotoUrl}
-              alt={recipe.name}
-              sx={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', borderRadius: 2, display: 'block', mb: 2 }}
-            />
+            <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 2, overflow: 'hidden', mb: 2 }}>
+              <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 52 }}>
+                🍽
+              </Box>
+              <Skeleton variant="rectangular" sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1 }} />
+              <Box
+                component="img"
+                src={recipe.coverPhotoUrl}
+                alt={recipe.name}
+                decoding="async"
+                sx={{
+                  position: 'absolute', inset: 0,
+                  width: '100%', height: '100%',
+                  objectFit: 'cover', display: 'block',
+                  opacity: 0, transition: 'opacity .25s', zIndex: 2,
+                }}
+                onLoad={e => {
+                  const img = e.target as HTMLImageElement
+                  img.style.opacity = '1';
+                  (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
+                }}
+                onError={e => {
+                  const img = e.target as HTMLImageElement;
+                  (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
+                }}
+              />
+            </Box>
           )}
 
           {/* Title + badges */}
@@ -201,40 +471,7 @@ function RecipeDetail({ id, onBack }: { id: string; onBack: () => void }) {
               No ingredients listed.
             </Typography>
           ) : (
-            <List disablePadding dense sx={{ mb: 3 }}>
-              {(ingredients ?? []).map((ing, idx) => (
-                <span key={ing.id}>
-                  {idx > 0 && <Divider component="li" />}
-                  <ListItem
-                    disableGutters
-                    secondaryAction={
-                      <IconButton
-                        size="small"
-                        edge="end"
-                        onClick={() => toggle.mutate({
-                          id: ing.id,
-                          needsShopping: !ing.needsShopping,
-                          itemId: ing.itemId,
-                          itemName: ing.itemName,
-                        })}
-                        color={ing.needsShopping ? 'primary' : 'default'}
-                        sx={{ opacity: ing.needsShopping ? 1 : 0.35 }}
-                      >
-                        <ShoppingCartIcon fontSize="small" />
-                      </IconButton>
-                    }
-                  >
-                    <ListItemText
-                      primary={ing.itemName}
-                      secondary={ing.quantity ?? undefined}
-                      primaryTypographyProps={{ variant: 'body2' }}
-                      secondaryTypographyProps={{ variant: 'caption' }}
-                      sx={{ pr: 5 }}
-                    />
-                  </ListItem>
-                </span>
-              ))}
-            </List>
+            <IngredientGroups ingredients={ingredients ?? []} toggle={toggle} />
           )}
 
           {/* Instructions */}
@@ -253,6 +490,31 @@ function RecipeDetail({ id, onBack }: { id: string; onBack: () => void }) {
           )}
         </>
       )}
+
+      {/* Edit sheet — only mount when we have full data */}
+      {recipe && (
+        <RecipeFormSheet
+          open={editOpen}
+          recipeId={id}
+          initialData={{
+            recipe: recipe as RecipeWithBlocks,
+            ingredients: ingredients ?? [] as RecipeIngredient[],
+          }}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => setToastOpen(true)}
+        />
+      )}
+
+      <Snackbar
+        open={toastOpen}
+        autoHideDuration={3000}
+        onClose={() => setToastOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert severity="success" onClose={() => setToastOpen(false)} sx={{ width: '100%' }}>
+          Recipe saved
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }

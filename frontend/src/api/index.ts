@@ -1,5 +1,6 @@
 export type { Item, Recipe, RecipeWithBlocks, Block, RecipeIngredient } from './types'
 export type { PaginatedItems } from './items'
 export { itemKeys, itemsApi, flatItems, useItems, useShoppingList, useCreateItem, useUpdateItem, useDeleteItem, useToggleShoppingList } from './items'
-export { recipeKeys, recipesApi, useRecipes, useRecipe } from './recipes'
+export { recipeKeys, recipesApi, useRecipes, useRecipe, useCreateRecipe, useEditRecipe } from './recipes'
+export type { RecipeBody, CreateRecipeVars, EditRecipeVars } from './recipes'
 export { recipeIngredientsApi, useRecipeIngredients, useToggleNeedsShopping } from './recipe-ingredients'

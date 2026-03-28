@@ -115,25 +115,52 @@ export async function updatePage(
   token: string,
   pageId: string,
   properties: Record<string, unknown>,
+  cover?: { type: 'external'; external: { url: string } } | null,
 ): Promise<NotionPage> {
+  const body: Record<string, unknown> = { properties }
+  if (cover !== undefined) body.cover = cover
   const res = await fetch(`${NOTION_API}/pages/${pageId}`, {
     method: 'PATCH',
     headers: headers(token),
-    body: JSON.stringify({ properties }),
+    body: JSON.stringify(body),
   })
   await assertOk(res)
   return res.json()
+}
+
+export async function deleteBlock(token: string, blockId: string): Promise<void> {
+  const res = await fetch(`${NOTION_API}/blocks/${blockId}`, {
+    method: 'DELETE',
+    headers: headers(token),
+  })
+  await assertOk(res)
+}
+
+export async function appendBlockChildren(
+  token: string,
+  blockId: string,
+  children: unknown[],
+): Promise<void> {
+  const res = await fetch(`${NOTION_API}/blocks/${blockId}/children`, {
+    method: 'PATCH',
+    headers: headers(token),
+    body: JSON.stringify({ children }),
+  })
+  await assertOk(res)
 }
 
 export async function createPage(
   token: string,
   databaseId: string,
   properties: Record<string, unknown>,
+  cover?: { type: 'external'; external: { url: string } },
 ): Promise<NotionPage> {
+  const body: Record<string, unknown> = { parent: { database_id: databaseId }, properties }
+  if (cover) body.cover = cover
   const res = await fetch(`${NOTION_API}/pages`, {
     method: 'POST',
     headers: headers(token),
-    body: JSON.stringify({ parent: { database_id: databaseId }, properties }),
+    body: JSON.stringify(body),
   })
   await assertOk(res)
   return res.json()
