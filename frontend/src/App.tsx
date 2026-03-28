@@ -2,9 +2,13 @@ import { useState } from 'react'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
-import Tabs from '@mui/material/Tabs'
-import Tab from '@mui/material/Tab'
+import BottomNavigation from '@mui/material/BottomNavigation'
+import BottomNavigationAction from '@mui/material/BottomNavigationAction'
+import Paper from '@mui/material/Paper'
 import Box from '@mui/material/Box'
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
+import StorefrontIcon from '@mui/icons-material/Storefront'
+import MenuBookIcon from '@mui/icons-material/MenuBook'
 import ShoppingList from './components/ShoppingList'
 import Items from './components/Items'
 import Recipes from './components/Recipes'
@@ -22,23 +26,40 @@ export default function App() {
             Casita
           </Typography>
         </Toolbar>
-        <Tabs
-          value={tab}
-          onChange={(_, v: TabId) => setTab(v)}
-          sx={{ px: 2, minHeight: 40 }}
-          TabIndicatorProps={{ style: { height: 3 } }}
-        >
-          <Tab label="Shopping list" value="shopping" sx={{ minHeight: 40 }} />
-          <Tab label="All items"     value="items"    sx={{ minHeight: 40 }} />
-          <Tab label="Recipes"       value="recipes"  sx={{ minHeight: 40 }} />
-        </Tabs>
       </AppBar>
 
-      <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, py: 2 }}>
+      <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, pt: 2, pb: 10 }}>
         {tab === 'shopping' && <ShoppingList />}
         {tab === 'items'    && <Items />}
         {tab === 'recipes'  && <Recipes />}
       </Box>
+
+      <Paper
+        elevation={3}
+        sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100 }}
+      >
+        <BottomNavigation
+          value={tab}
+          onChange={(_, v: TabId) => setTab(v)}
+          sx={{ maxWidth: 600, mx: 'auto' }}
+        >
+          <BottomNavigationAction
+            label="Shopping"
+            value="shopping"
+            icon={<ShoppingCartIcon />}
+          />
+          <BottomNavigationAction
+            label="Inventory"
+            value="items"
+            icon={<StorefrontIcon />}
+          />
+          <BottomNavigationAction
+            label="Recipes"
+            value="recipes"
+            icon={<MenuBookIcon />}
+          />
+        </BottomNavigation>
+      </Paper>
     </Box>
   )
 }

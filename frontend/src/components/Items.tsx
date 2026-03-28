@@ -9,6 +9,7 @@ import Chip from '@mui/material/Chip'
 import Fab from '@mui/material/Fab'
 import Divider from '@mui/material/Divider'
 import CircularProgress from '@mui/material/CircularProgress'
+import Skeleton from '@mui/material/Skeleton'
 import Collapse from '@mui/material/Collapse'
 import Button from '@mui/material/Button'
 import Drawer from '@mui/material/Drawer'
@@ -157,6 +158,38 @@ function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
   )
 }
 
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
+function ItemsSkeleton() {
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+        <Skeleton width={220} height={32} sx={{ borderRadius: 1 }} />
+      </Box>
+      {[5, 3].map((rows, gi) => (
+        <Box key={gi} sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,.06)', mb: 1 }}>
+          <Box sx={{ px: 2, py: 1 }}>
+            <Skeleton width={100} height={14} />
+          </Box>
+          <Divider />
+          {Array.from({ length: rows }).map((_, i) => (
+            <Box key={i}>
+              {i > 0 && <Divider sx={{ ml: 2 }} />}
+              <Box sx={{ px: 2, py: 1.25 }}>
+                <Skeleton width="50%" height={16} />
+                <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+                  <Skeleton width={64} height={20} sx={{ borderRadius: 10 }} />
+                  <Skeleton width={72} height={20} sx={{ borderRadius: 10 }} />
+                </Box>
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      ))}
+    </Box>
+  )
+}
+
 // ── Items ─────────────────────────────────────────────────────────────────────
 
 export default function Items() {
@@ -168,19 +201,41 @@ export default function Items() {
   const [groupBy, setGroupBy] = useState<GroupBy>('category')
   const [sortGroups, setSortGroups] = useState<'alpha' | 'count'>('alpha')
 
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 6 }}>
-        <CircularProgress color="primary" />
-      </Box>
-    )
-  }
+  if (isLoading) return <ItemsSkeleton />
 
   if (error) {
     return <Typography color="error" sx={{ p: 2 }}>Failed to load items.</Typography>
   }
 
   const allItems = flatItems(data)
+
+  if (allItems.length === 0) {
+    return (
+      <>
+        <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
+          <Box sx={{ fontSize: 52, mb: 2, opacity: 0.35 }}>📦</Box>
+          <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
+            No items yet
+          </Typography>
+          <Typography variant="body2" color="text.disabled">
+            Tap + to add your first inventory item
+          </Typography>
+        </Box>
+        <Fab color="primary" aria-label="Add item" onClick={() => setCreating(true)}
+          sx={{ position: 'fixed', bottom: 80, right: 24 }}>
+          <AddIcon />
+        </Fab>
+        <ItemFormDialog
+          open={creating || editTarget !== null}
+          item={editTarget}
+          onClose={() => { setCreating(false); setEditTarget(null) }}
+          onDeleteRequest={editTarget ? handleDeleteRequest : undefined}
+        />
+        <DeleteConfirm item={deleteTarget} onConfirm={handleDeleteConfirm} onCancel={() => setDeleteTarget(null)} />
+      </>
+    )
+  }
+
   const byName = (a: Item, b: Item) => a.name.localeCompare(b.name)
 
   let groups: Array<[string, Item[]]>
@@ -301,7 +356,7 @@ export default function Items() {
         color="primary"
         aria-label="Add item"
         onClick={() => setCreating(true)}
-        sx={{ position: 'fixed', bottom: 24, right: 24 }}
+        sx={{ position: 'fixed', bottom: 80, right: 24 }}
       >
         <AddIcon />
       </Fab>

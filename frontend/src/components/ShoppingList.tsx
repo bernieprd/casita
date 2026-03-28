@@ -14,7 +14,7 @@ import Checkbox from '@mui/material/Checkbox'
 import Collapse from '@mui/material/Collapse'
 import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
-import CircularProgress from '@mui/material/CircularProgress'
+import Skeleton from '@mui/material/Skeleton'
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import { useShoppingList, useToggleShoppingList } from '../api'
@@ -162,6 +162,35 @@ function GroupSection({ label, items, removingIds, onRemove, onEdit, groupBy }: 
   )
 }
 
+// ── Skeleton ──────────────────────────────────────────────────────────────────
+
+function ShoppingListSkeleton() {
+  return (
+    <Box>
+      {[3, 2].map((rows, gi) => (
+        <Box key={gi} sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,.06)', mb: 1 }}>
+          <Box sx={{ px: 2, py: 1.25 }}>
+            <Skeleton width={90} height={14} />
+          </Box>
+          <Divider />
+          {Array.from({ length: rows }).map((_, i) => (
+            <Box key={i}>
+              {i > 0 && <Divider sx={{ ml: 7 }} />}
+              <Box sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Skeleton variant="circular" width={20} height={20} />
+                <Box sx={{ flex: 1 }}>
+                  <Skeleton width="55%" height={16} />
+                  <Skeleton width="28%" height={12} sx={{ mt: 0.5 }} />
+                </Box>
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      ))}
+    </Box>
+  )
+}
+
 // ── ShoppingList ──────────────────────────────────────────────────────────────
 
 export default function ShoppingList() {
@@ -181,32 +210,47 @@ export default function ShoppingList() {
     }, EXIT_DURATION_MS + 50)
   }, [toggle])
 
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 6 }}>
-        <CircularProgress color="primary" />
-      </Box>
-    )
-  }
+  if (isLoading) return <ShoppingListSkeleton />
 
   if (error) {
-    return (
-      <Typography color="error" sx={{ p: 2 }}>
-        Failed to load shopping list.
-      </Typography>
-    )
+    return <Typography color="error" sx={{ p: 2 }}>Failed to load shopping list.</Typography>
   }
 
   const allItems = items ?? []
   const totalVisible = allItems.filter(i => !removingIds.has(i.id)).length
 
-  if (totalVisible === 0 && !isLoading) {
+  if (totalVisible === 0) {
     return (
-      <Box sx={{ pt: 8, textAlign: 'center' }}>
-        <Typography variant="body2" color="text.secondary">
-          Nothing on the shopping list.
-        </Typography>
-      </Box>
+      <>
+        <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
+          <Box sx={{ fontSize: 52, mb: 2, opacity: 0.35 }}>🛒</Box>
+          <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
+            Your list is empty
+          </Typography>
+          <Typography variant="body2" color="text.disabled">
+            Tap + to add items from your inventory
+          </Typography>
+        </Box>
+        <Fab
+          color="primary"
+          aria-label="Add to shopping list"
+          onClick={() => setQuickAddOpen(true)}
+          sx={{ position: 'fixed', bottom: 80, right: 24 }}
+        >
+          <AddIcon />
+        </Fab>
+        <QuickAddDialog
+          open={quickAddOpen}
+          onClose={() => setQuickAddOpen(false)}
+          onCreated={item => setEditItem(item)}
+        />
+        <ItemFormDialog
+          open={editItem !== null}
+          item={editItem}
+          onClose={() => setEditItem(null)}
+          onDeleteRequest={editItem ? () => setEditItem(null) : undefined}
+        />
+      </>
     )
   }
 
@@ -312,7 +356,7 @@ export default function ShoppingList() {
         color="primary"
         aria-label="Add to shopping list"
         onClick={() => setQuickAddOpen(true)}
-        sx={{ position: 'fixed', bottom: 24, right: 24 }}
+        sx={{ position: 'fixed', bottom: 80, right: 24 }}
       >
         <AddIcon />
       </Fab>
