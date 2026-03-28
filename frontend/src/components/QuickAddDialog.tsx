@@ -14,7 +14,7 @@ import IconButton from '@mui/material/IconButton'
 import SearchIcon from '@mui/icons-material/Search'
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import CloseIcon from '@mui/icons-material/Close'
-import { useItems, useToggleShoppingList, useCreateItem } from '../api'
+import { useItems, useToggleShoppingList, useCreateItem, flatItems } from '../api'
 
 interface Props {
   open: boolean
@@ -23,7 +23,8 @@ interface Props {
 
 export default function QuickAddDialog({ open, onClose }: Props) {
   const [query, setQuery] = useState('')
-  const { data: allItems } = useItems()
+  const { data: infiniteData } = useItems()
+  const allItems = flatItems(infiniteData)
   const toggle = useToggleShoppingList()
   const create = useCreateItem()
 

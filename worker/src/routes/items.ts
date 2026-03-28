@@ -1,16 +1,27 @@
-import { queryDatabase, updatePage, createPage, archivePage } from '../notion'
+import { queryDatabase, queryDatabasePage, updatePage, createPage, archivePage } from '../notion'
 import { normalizeItem, itemToProps } from '../normalize'
 import type { Env } from '../types'
 
 export async function getItems(req: Request, env: Env): Promise<Response> {
-  const shopping = new URL(req.url).searchParams.get('shopping')
-  const filter =
-    shopping === 'true'
-      ? { property: 'Shopping List', checkbox: { equals: true } }
-      : undefined
+  const url = new URL(req.url)
+  const shopping = url.searchParams.get('shopping')
 
-  const pages = await queryDatabase(env.NOTION_TOKEN, env.NOTION_SHOPPING_LIST_DB, filter)
-  return Response.json(pages.map(normalizeItem))
+  // Shopping list: always small, return flat array.
+  if (shopping === 'true') {
+    const filter = { property: 'Shopping List', checkbox: { equals: true } }
+    const pages = await queryDatabase(env.NOTION_TOKEN, env.NOTION_SHOPPING_LIST_DB, filter)
+    return Response.json(pages.map(normalizeItem))
+  }
+
+  // Inventory: paginated — one Notion round-trip per request.
+  const cursor = url.searchParams.get('cursor') ?? undefined
+  const { results, nextCursor } = await queryDatabasePage(
+    env.NOTION_TOKEN,
+    env.NOTION_SHOPPING_LIST_DB,
+    { cursor, pageSize: 100 },
+  )
+
+  return Response.json({ items: results.map(normalizeItem), nextCursor })
 }
 
 export async function createItem(req: Request, env: Env): Promise<Response> {

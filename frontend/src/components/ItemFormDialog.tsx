@@ -7,7 +7,7 @@ import TextField from '@mui/material/TextField'
 import Autocomplete from '@mui/material/Autocomplete'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
-import { useItems, useCreateItem, useUpdateItem } from '../api'
+import { useItems, useCreateItem, useUpdateItem, flatItems } from '../api'
 import type { Item } from '../api'
 
 interface Props {
@@ -17,7 +17,8 @@ interface Props {
 }
 
 export default function ItemFormDialog({ open, item, onClose }: Props) {
-  const { data: allItems } = useItems()
+  const { data: infiniteData } = useItems()
+  const allItems = flatItems(infiniteData)
   const create = useCreateItem()
   const update = useUpdateItem()
 

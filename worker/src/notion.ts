@@ -22,6 +22,37 @@ async function assertOk(res: Response): Promise<void> {
   if (!res.ok) throw new NotionError(res.status, await res.text())
 }
 
+// Fetches a single page from a database (no auto-pagination).
+export async function queryDatabasePage(
+  token: string,
+  databaseId: string,
+  options: {
+    filter?: unknown
+    sorts?: unknown
+    pageSize?: number
+    cursor?: string
+  } = {},
+): Promise<{ results: NotionPage[]; nextCursor: string | null }> {
+  const body: Record<string, unknown> = {}
+  if (options.filter) body.filter = options.filter
+  if (options.sorts) body.sorts = options.sorts
+  if (options.pageSize) body.page_size = options.pageSize
+  if (options.cursor) body.start_cursor = options.cursor
+
+  const res = await fetch(`${NOTION_API}/databases/${databaseId}/query`, {
+    method: 'POST',
+    headers: headers(token),
+    body: JSON.stringify(body),
+  })
+  await assertOk(res)
+
+  const data: NotionQueryResponse = await res.json()
+  return {
+    results: data.results.filter(p => !p.archived),
+    nextCursor: data.has_more && data.next_cursor ? data.next_cursor : null,
+  }
+}
+
 // Fetches all pages from a database, following pagination automatically.
 export async function queryDatabase(
   token: string,

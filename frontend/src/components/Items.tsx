@@ -11,12 +11,13 @@ import Fab from '@mui/material/Fab'
 import Divider from '@mui/material/Divider'
 import CircularProgress from '@mui/material/CircularProgress'
 import Collapse from '@mui/material/Collapse'
+import Button from '@mui/material/Button'
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import AddIcon from '@mui/icons-material/Add'
-import { useItems, useDeleteItem } from '../api'
+import { useItems, useDeleteItem, flatItems } from '../api'
 import type { Item } from '../api'
 import ItemFormDialog from './ItemFormDialog'
 
@@ -98,7 +99,7 @@ function CategorySection({ category, items, onEdit, onDelete }: CategorySectionP
 // ── Items ─────────────────────────────────────────────────────────────────────
 
 export default function Items() {
-  const { data: items, isLoading, error } = useItems()
+  const { data, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useItems()
   const deleteItem = useDeleteItem()
 
   const [editTarget, setEditTarget] = useState<Item | null>(null)
@@ -116,7 +117,8 @@ export default function Items() {
     return <Typography color="error" sx={{ p: 2 }}>Failed to load items.</Typography>
   }
 
-  const byCategory = (items ?? []).reduce<Record<string, Item[]>>((acc, item) => {
+  const items = flatItems(data)
+  const byCategory = items.reduce<Record<string, Item[]>>((acc, item) => {
     const cat = item.category ?? 'Other'
     ;(acc[cat] ??= []).push(item)
     return acc
@@ -135,6 +137,19 @@ export default function Items() {
             onDelete={id => deleteItem.mutate(id)}
           />
         ))}
+
+      {hasNextPage && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            startIcon={isFetchingNextPage ? <CircularProgress size={14} color="inherit" /> : undefined}
+          >
+            {isFetchingNextPage ? 'Loading…' : 'Load more'}
+          </Button>
+        </Box>
+      )}
 
       <Fab
         color="primary"
