@@ -3,10 +3,17 @@ import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
+import Drawer from '@mui/material/Drawer'
+import Box from '@mui/material/Box'
 import TextField from '@mui/material/TextField'
 import Autocomplete from '@mui/material/Autocomplete'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
+import Typography from '@mui/material/Typography'
+import IconButton from '@mui/material/IconButton'
+import CloseIcon from '@mui/icons-material/Close'
+import { useTheme } from '@mui/material/styles'
+import useMediaQuery from '@mui/material/useMediaQuery'
 import { useItems, useCreateItem, useUpdateItem, flatItems } from '../api'
 import type { Item } from '../api'
 
@@ -14,19 +21,21 @@ interface Props {
   open: boolean
   item?: Item | null   // null/undefined = create mode
   onClose: () => void
+  onDeleteRequest?: () => void  // called when user taps Delete in edit mode
 }
 
-export default function ItemFormDialog({ open, item, onClose }: Props) {
+export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }: Props) {
   const { data: infiniteData } = useItems()
   const allItems = flatItems(infiniteData)
   const create = useCreateItem()
   const update = useUpdateItem()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [name, setName] = useState('')
   const [category, setCategory] = useState<string | null>(null)
   const [supermarkets, setSupermarkets] = useState<string[]>([])
 
-  // Reset form whenever the dialog opens or the target item changes.
   useEffect(() => {
     if (open) {
       setName(item?.name ?? '')
@@ -35,7 +44,6 @@ export default function ItemFormDialog({ open, item, onClose }: Props) {
     }
   }, [open, item])
 
-  // Derive option lists from the cached inventory.
   const categoryOptions = useMemo(() =>
     [...new Set(allItems?.map(i => i.category).filter((c): c is string => !!c))].sort()
   , [allItems])
@@ -57,55 +65,103 @@ export default function ItemFormDialog({ open, item, onClose }: Props) {
     }
   }
 
+  const formContent = (
+    <Stack spacing={2}>
+      <TextField
+        autoFocus
+        label="Name"
+        fullWidth
+        value={name}
+        onChange={e => setName(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && canSubmit && handleSubmit()}
+        size="small"
+      />
+      <Autocomplete
+        freeSolo
+        options={categoryOptions}
+        value={category}
+        onChange={(_, v) => setCategory(v)}
+        onInputChange={(_, v, reason) => {
+          if (reason === 'input') setCategory(v || null)
+        }}
+        renderInput={params => (
+          <TextField {...params} label="Category" size="small" />
+        )}
+      />
+      <Autocomplete
+        multiple
+        freeSolo
+        options={supermarketOptions}
+        value={supermarkets}
+        onChange={(_, v) => setSupermarkets(v as string[])}
+        renderInput={params => (
+          <TextField {...params} label="Supermarkets" size="small" />
+        )}
+      />
+    </Stack>
+  )
+
+  const actions = (
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+      {isEdit && onDeleteRequest
+        ? <Button color="error" onClick={onDeleteRequest}>Delete</Button>
+        : <span />
+      }
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <Button onClick={onClose} color="inherit">Cancel</Button>
+        <Button variant="contained" disabled={!canSubmit} onClick={handleSubmit}>
+          {isEdit ? 'Save' : 'Create'}
+        </Button>
+      </Box>
+    </Box>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer
+        anchor="bottom"
+        open={open}
+        onClose={onClose}
+        PaperProps={{
+          sx: {
+            borderRadius: '16px 16px 0 0',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+          },
+        }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5, flexShrink: 0 }}>
+          <Box sx={{ width: 32, height: 4, borderRadius: 2, bgcolor: 'divider' }} />
+        </Box>
+        <Box sx={{ px: 2, pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+            {isEdit ? 'Edit item' : 'New item'}
+          </Typography>
+          <IconButton size="small" onClick={onClose}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </Box>
+        <Box sx={{ px: 2, pb: 1, overflow: 'auto', flex: 1 }}>
+          {formContent}
+        </Box>
+        <Box sx={{ px: 2, py: 2, flexShrink: 0, borderTop: '1px solid', borderColor: 'divider' }}>
+          {actions}
+        </Box>
+      </Drawer>
+    )
+  }
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
       <DialogTitle>{isEdit ? 'Edit item' : 'New item'}</DialogTitle>
       <DialogContent>
-        <Stack spacing={2} sx={{ pt: 0.5 }}>
-          <TextField
-            autoFocus
-            label="Name"
-            fullWidth
-            value={name}
-            onChange={e => setName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && canSubmit && handleSubmit()}
-            size="small"
-          />
-
-          <Autocomplete
-            freeSolo
-            options={categoryOptions}
-            value={category}
-            onChange={(_, v) => setCategory(v)}
-            onInputChange={(_, v, reason) => {
-              if (reason === 'input') setCategory(v || null)
-            }}
-            renderInput={params => (
-              <TextField {...params} label="Category" size="small" />
-            )}
-          />
-
-          <Autocomplete
-            multiple
-            freeSolo
-            options={supermarketOptions}
-            value={supermarkets}
-            onChange={(_, v) => setSupermarkets(v as string[])}
-            renderInput={params => (
-              <TextField {...params} label="Supermarkets" size="small" />
-            )}
-          />
-        </Stack>
+        <Box sx={{ pt: 0.5 }}>
+          {formContent}
+        </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} color="inherit">Cancel</Button>
-        <Button
-          variant="contained"
-          disabled={!canSubmit}
-          onClick={handleSubmit}
-        >
-          {isEdit ? 'Save' : 'Create'}
-        </Button>
+        {actions}
       </DialogActions>
     </Dialog>
   )

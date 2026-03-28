@@ -5,6 +5,12 @@ import { NotionError } from './notion'
 import type { Env } from './types'
 
 const DEFAULT_ORIGIN = 'https://bernieprd.github.io'
+const DEV_ORIGINS = ['http://localhost:5173', 'http://localhost:5174']
+
+function resolveOrigin(req: Request, allowedOrigin: string): string {
+  const reqOrigin = req.headers.get('Origin') ?? ''
+  return DEV_ORIGINS.includes(reqOrigin) ? reqOrigin : allowedOrigin
+}
 
 function corsHeaders(origin: string): HeadersInit {
   return {
@@ -49,7 +55,7 @@ const routes: Array<[string, URLPattern, Handler]> = [
 
 export default {
   async fetch(req: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
-    const origin = env.ALLOWED_ORIGIN ?? DEFAULT_ORIGIN
+    const origin = resolveOrigin(req, env.ALLOWED_ORIGIN ?? DEFAULT_ORIGIN)
 
     // CORS preflight
     if (req.method === 'OPTIONS') {

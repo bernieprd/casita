@@ -1,8 +1,11 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import Fab from '@mui/material/Fab'
 import AddIcon from '@mui/icons-material/Add'
 import Box from '@mui/material/Box'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import QuickAddDialog from './QuickAddDialog'
+import ItemFormDialog from './ItemFormDialog'
 import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
@@ -20,19 +23,105 @@ import type { Item } from '../api'
 // How long the Collapse exit animation plays before mutate fires.
 const EXIT_DURATION_MS = 220
 
-// ── Category section ──────────────────────────────────────────────────────────
+type GroupBy = 'category' | 'supermarket' | 'none'
 
-interface CategorySectionProps {
-  category: string
+// ── Long press hook ───────────────────────────────────────────────────────────
+
+function useLongPress(onLongPress: () => void, delay = 500) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const startPos = useRef<{ x: number; y: number } | null>(null)
+  const fired = useRef(false)
+
+  function start(e: React.PointerEvent) {
+    startPos.current = { x: e.clientX, y: e.clientY }
+    fired.current = false
+    timer.current = setTimeout(() => {
+      fired.current = true
+      onLongPress()
+    }, delay)
+  }
+
+  function cancel() {
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = null
+  }
+
+  function move(e: React.PointerEvent) {
+    if (!startPos.current) return
+    const dx = Math.abs(e.clientX - startPos.current.x)
+    const dy = Math.abs(e.clientY - startPos.current.y)
+    if (dx > 10 || dy > 10) cancel()
+  }
+
+  return {
+    handlers: {
+      onPointerDown: start,
+      onPointerUp: cancel,
+      onPointerLeave: cancel,
+      onPointerMove: move,
+    },
+    didFire: () => fired.current,
+  }
+}
+
+// ── Shopping item row ─────────────────────────────────────────────────────────
+
+interface ShoppingItemRowProps {
+  item: Item
+  removing: boolean
+  groupBy: GroupBy
+  onRemove: (id: string) => void
+  onEdit: (item: Item) => void
+}
+
+function ShoppingItemRow({ item, removing, groupBy, onRemove, onEdit }: ShoppingItemRowProps) {
+  const { handlers, didFire } = useLongPress(() => onEdit(item))
+
+  return (
+    <Collapse in={!removing} timeout={EXIT_DURATION_MS} unmountOnExit>
+      <ListItemButton
+        {...handlers}
+        onClick={() => { if (!didFire()) onRemove(item.id) }}
+        sx={{ px: 2, py: 1, userSelect: 'none' }}
+      >
+        <ListItemIcon sx={{ minWidth: 40 }}>
+          <Checkbox
+            edge="start"
+            checked
+            color="primary"
+            tabIndex={-1}
+            inputProps={{ 'aria-label': `Remove ${item.name} from shopping list` }}
+          />
+        </ListItemIcon>
+        <ListItemText
+          primary={item.name}
+          secondary={
+            groupBy === 'category'
+              ? (item.supermarkets.length ? item.supermarkets.join(', ') : undefined)
+              : (item.category ?? undefined)
+          }
+          primaryTypographyProps={{ variant: 'body1' }}
+          secondaryTypographyProps={{ variant: 'caption' }}
+        />
+      </ListItemButton>
+    </Collapse>
+  )
+}
+
+// ── Group section ─────────────────────────────────────────────────────────────
+
+interface GroupSectionProps {
+  label: string
   items: Item[]
   removingIds: Set<string>
   onRemove: (id: string) => void
+  onEdit: (item: Item) => void
+  groupBy: GroupBy
 }
 
-function CategorySection({ category, items, removingIds, onRemove }: CategorySectionProps) {
+function GroupSection({ label, items, removingIds, onRemove, onEdit, groupBy }: GroupSectionProps) {
   const [open, setOpen] = useState(true)
 
-  // Count only items not yet being removed for the badge
   const visibleCount = items.filter(i => !removingIds.has(i.id)).length
 
   return (
@@ -41,7 +130,7 @@ function CategorySection({ category, items, removingIds, onRemove }: CategorySec
         <ListItemText
           primary={
             <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1, letterSpacing: '.08em' }}>
-              {category}
+              {label}
             </Typography>
           }
         />
@@ -56,34 +145,16 @@ function CategorySection({ category, items, removingIds, onRemove }: CategorySec
         <Divider />
         <List disablePadding>
           {items.map((item, idx) => (
-            <Collapse
-              key={item.id}
-              in={!removingIds.has(item.id)}
-              timeout={EXIT_DURATION_MS}
-              unmountOnExit
-            >
+            <span key={item.id}>
               {idx > 0 && <Divider component="li" sx={{ ml: 7 }} />}
-              <ListItemButton
-                onClick={() => onRemove(item.id)}
-                sx={{ px: 2, py: 1 }}
-              >
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <Checkbox
-                    edge="start"
-                    checked
-                    color="primary"
-                    tabIndex={-1}
-                    inputProps={{ 'aria-label': `Remove ${item.name} from shopping list` }}
-                  />
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.name}
-                  secondary={item.supermarkets.length ? item.supermarkets.join(', ') : undefined}
-                  primaryTypographyProps={{ variant: 'body1' }}
-                  secondaryTypographyProps={{ variant: 'caption' }}
-                />
-              </ListItemButton>
-            </Collapse>
+              <ShoppingItemRow
+                item={item}
+                removing={removingIds.has(item.id)}
+                groupBy={groupBy}
+                onRemove={onRemove}
+                onEdit={onEdit}
+              />
+            </span>
           ))}
         </List>
       </Collapse>
@@ -96,17 +167,14 @@ function CategorySection({ category, items, removingIds, onRemove }: CategorySec
 export default function ShoppingList() {
   const { data: items, isLoading, error } = useShoppingList()
   const toggle = useToggleShoppingList()
-
-  // IDs currently mid-exit-animation. Removed from the visible count but still
-  // rendered inside <Collapse in={false}> so the exit animation plays before
-  // the React Query cache update removes them from `items`.
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
   const [quickAddOpen, setQuickAddOpen] = useState(false)
+  const [editItem, setEditItem] = useState<Item | null>(null)
+  const [groupBy, setGroupBy] = useState<GroupBy>('category')
+  const [sortGroups, setSortGroups] = useState<'alpha' | 'count'>('alpha')
 
   const handleRemove = useCallback((id: string) => {
     setRemovingIds(prev => new Set(prev).add(id))
-    // Fire the mutation after the exit animation so the item collapses first,
-    // then React Query removes it from the cache cleanly.
     setTimeout(() => {
       toggle.mutate({ id, onShoppingList: false })
       setRemovingIds(prev => { const s = new Set(prev); s.delete(id); return s })
@@ -129,15 +197,8 @@ export default function ShoppingList() {
     )
   }
 
-  // Include removing items in byCategory so their Collapse exit animation plays
-  const byCategory = (items ?? []).reduce<Record<string, Item[]>>((acc, item) => {
-    const cat = item.category ?? 'Other'
-    ;(acc[cat] ??= []).push(item)
-    return acc
-  }, {})
-
-  const categories = Object.entries(byCategory).sort(([a], [b]) => a.localeCompare(b))
-  const totalVisible = (items ?? []).filter(i => !removingIds.has(i.id)).length
+  const allItems = items ?? []
+  const totalVisible = allItems.filter(i => !removingIds.has(i.id)).length
 
   if (totalVisible === 0 && !isLoading) {
     return (
@@ -149,17 +210,103 @@ export default function ShoppingList() {
     )
   }
 
+  const byName = (a: Item, b: Item) => a.name.localeCompare(b.name)
+
+  let groups: Array<[string, Item[]]>
+
+  if (groupBy === 'none') {
+    groups = [['', [...allItems].sort(byName)]]
+  } else {
+    const groupMap: Record<string, Item[]> = {}
+    for (const item of allItems) {
+      if (groupBy === 'category') {
+        const key = item.category ?? 'Other'
+        ;(groupMap[key] ??= []).push(item)
+      } else {
+        const markets = item.supermarkets.length ? item.supermarkets : ['Other']
+        for (const market of markets) {
+          ;(groupMap[market] ??= []).push(item)
+        }
+      }
+    }
+    groups = Object.entries(groupMap)
+      .sort(([a, ai], [b, bi]) => {
+        if (a === 'Other') return 1
+        if (b === 'Other') return -1
+        return sortGroups === 'count' ? bi.length - ai.length : a.localeCompare(b)
+      })
+      .map(([label, groupItems]) => [label, [...groupItems].sort(byName)])
+  }
+
   return (
     <Box sx={{ pb: 10 }}>
-      {categories.map(([cat, catItems]) => (
-        <CategorySection
-          key={cat}
-          category={cat}
-          items={catItems}
-          removingIds={removingIds}
-          onRemove={handleRemove}
-        />
-      ))}
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 1.5 }}>
+        {groupBy !== 'none' && (
+          <ToggleButtonGroup
+            value={sortGroups}
+            exclusive
+            size="small"
+            onChange={(_, val) => { if (val) setSortGroups(val) }}
+            aria-label="Sort groups by"
+          >
+            <ToggleButton value="alpha" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
+              A–Z
+            </ToggleButton>
+            <ToggleButton value="count" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
+              Count
+            </ToggleButton>
+          </ToggleButtonGroup>
+        )}
+        <ToggleButtonGroup
+          value={groupBy}
+          exclusive
+          size="small"
+          onChange={(_, val) => { if (val) setGroupBy(val) }}
+          aria-label="Group shopping list by"
+        >
+          <ToggleButton value="none" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
+            None
+          </ToggleButton>
+          <ToggleButton value="category" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
+            Category
+          </ToggleButton>
+          <ToggleButton value="supermarket" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
+            Supermarket
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
+      {groupBy === 'none'
+        ? (
+          <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,.06)' }}>
+            <List disablePadding>
+              {groups[0][1].map((item, idx) => (
+                <span key={item.id}>
+                  {idx > 0 && <Divider component="li" sx={{ ml: 7 }} />}
+                  <ShoppingItemRow
+                    item={item}
+                    removing={removingIds.has(item.id)}
+                    groupBy={groupBy}
+                    onRemove={handleRemove}
+                    onEdit={setEditItem}
+                  />
+                </span>
+              ))}
+            </List>
+          </Box>
+        )
+        : groups.map(([label, groupItems]) => (
+          <GroupSection
+            key={label}
+            label={label}
+            items={groupItems}
+            removingIds={removingIds}
+            onRemove={handleRemove}
+            onEdit={setEditItem}
+            groupBy={groupBy}
+          />
+        ))
+      }
 
       <Fab
         color="primary"
@@ -170,7 +317,17 @@ export default function ShoppingList() {
         <AddIcon />
       </Fab>
 
-      <QuickAddDialog open={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
+      <QuickAddDialog
+        open={quickAddOpen}
+        onClose={() => setQuickAddOpen(false)}
+        onCreated={item => setEditItem(item)}
+      />
+      <ItemFormDialog
+        open={editItem !== null}
+        item={editItem}
+        onClose={() => setEditItem(null)}
+        onDeleteRequest={editItem ? () => setEditItem(null) : undefined}
+      />
     </Box>
   )
 }
