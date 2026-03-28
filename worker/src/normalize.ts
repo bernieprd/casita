@@ -58,9 +58,9 @@ export function normalizeItem(page: NotionPage): Item {
   const p = page.properties
   return {
     id: page.id,
-    name: title(p['Name']),
+    name: title(p['Item']),
     category: select(p['Category']),
-    supermarkets: multiSelect(p['Supermarkets']),
+    supermarkets: multiSelect(p['Supermarket']),
     tags: multiSelect(p['Tags']),
     onShoppingList: checkbox(p['Shopping List']),
   }
@@ -70,7 +70,7 @@ export function normalizeRecipe(page: NotionPage): Recipe {
   const p = page.properties
   return {
     id: page.id,
-    name: title(p['Name']),
+    name: title(p['Recipes']),
     type: select(p['Type']),
     day: select(p['Day']),
     coverPhotoUrl: coverUrl(page.cover),
@@ -86,10 +86,10 @@ export function normalizeRecipeIngredient(page: NotionPage, itemName: string): R
   return {
     id: page.id,
     recipeId: relation(p['Recipe'])[0] ?? '',
-    itemId: relation(p['Item'])[0] ?? '',
+    itemId: relation(p['Ingredient'])[0] ?? '',
     itemName,
     quantity: richText(p['Quantity']),
-    needsShopping: checkbox(p['Needs Shopping']),
+    needsShopping: checkbox(p['Add to list']),
   }
 }
 
@@ -100,11 +100,11 @@ type NotionProps = Record<string, unknown>
 export function itemToProps(fields: Partial<Omit<Item, 'id'>>): NotionProps {
   const props: NotionProps = {}
   if (fields.name !== undefined)
-    props['Name'] = { title: [{ text: { content: fields.name } }] }
+    props['Item'] = { title: [{ text: { content: fields.name } }] }
   if (fields.category !== undefined)
     props['Category'] = fields.category ? { select: { name: fields.category } } : { select: null }
   if (fields.supermarkets !== undefined)
-    props['Supermarkets'] = { multi_select: fields.supermarkets.map(name => ({ name })) }
+    props['Supermarket'] = { multi_select: fields.supermarkets.map(name => ({ name })) }
   if (fields.tags !== undefined)
     props['Tags'] = { multi_select: fields.tags.map(name => ({ name })) }
   if (fields.onShoppingList !== undefined)
@@ -117,6 +117,6 @@ export function recipeIngredientToProps(
 ): NotionProps {
   const props: NotionProps = {}
   if (fields.needsShopping !== undefined)
-    props['Needs Shopping'] = { checkbox: fields.needsShopping }
+    props['Add to list'] = { checkbox: fields.needsShopping }
   return props
 }

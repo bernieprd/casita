@@ -35,7 +35,7 @@ export async function getRecipeIngredients(
   // Resolve each related Item page in parallel to get the item name.
   const ingredients = await Promise.all(
     ingredientPages.map(async page => {
-      const relation = page.properties['Item']
+      const relation = page.properties['Ingredient']
       const itemId =
         relation?.type === 'relation' ? (relation.relation[0]?.id ?? '') : ''
 
