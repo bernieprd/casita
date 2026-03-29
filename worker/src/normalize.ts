@@ -7,6 +7,7 @@ import type {
   Recipe,
   Block,
   RecipeIngredient,
+  Todo,
 } from './types'
 
 // ── Property readers ──────────────────────────────────────────────────────────
@@ -170,5 +171,36 @@ export function recipeIngredientCreateProps(fields: {
     props['Quantity'] = { rich_text: [{ type: 'text', text: { content: fields.quantity } }] }
   if (fields.section)
     props['Section'] = { rich_text: [{ type: 'text', text: { content: fields.section } }] }
+  return props
+}
+
+// ── Todos ─────────────────────────────────────────────────────────────────────
+
+function date(prop: NotionProperty | undefined): string | null {
+  if (!prop || prop.type !== 'date') return null
+  return prop.date?.start ?? null
+}
+
+export function normalizeTodo(page: NotionPage): Todo {
+  const p = page.properties
+  return {
+    id: page.id,
+    name: title(p['Name']),
+    done: checkbox(p['Done']),
+    priority: select(p['Priority']),
+    due: date(p['Due']),
+  }
+}
+
+export function todoToProps(fields: Partial<{ name: string; done: boolean; priority: string | null; due: string | null }>): NotionProps {
+  const props: NotionProps = {}
+  if (fields.name !== undefined)
+    props['Name'] = { title: [{ text: { content: fields.name } }] }
+  if (fields.done !== undefined)
+    props['Done'] = { checkbox: fields.done }
+  if ('priority' in fields)
+    props['Priority'] = fields.priority ? { select: { name: fields.priority } } : { select: null }
+  if ('due' in fields)
+    props['Due'] = fields.due ? { date: { start: fields.due, end: null } } : { date: null }
   return props
 }

@@ -38,6 +38,22 @@ export interface RecipeIngredient {
   needsShopping: boolean
 }
 
+export interface Todo {
+  id: string
+  name: string
+  done: boolean
+  priority: string | null
+  due: string | null
+}
+
+export interface CalendarEvent {
+  id: string
+  title: string
+  start: string
+  end: string
+  color: string | null
+}
+
 // ── Notion raw types ──────────────────────────────────────────────────────────
 
 export interface NotionPage {
@@ -58,6 +74,7 @@ export type NotionProperty =
   | { type: 'number'; number: number | null }
   | { type: 'files'; files: NotionFileRef[] }
   | { type: 'url'; url: string | null }
+  | { type: 'date'; date: { start: string; end: string | null } | null }
 
 export interface NotionRichText {
   plain_text: string
@@ -100,6 +117,7 @@ export interface Env {
   NOTION_SHOPPING_LIST_DB: string
   NOTION_RECIPES_DB: string
   NOTION_RECIPE_INGREDIENT_DB: string
+  NOTION_TODOS_DB: string
   // Set in wrangler.toml [vars] or .dev.vars to override the default.
   // Defaults to the GitHub Pages origin in production.
   ALLOWED_ORIGIN?: string

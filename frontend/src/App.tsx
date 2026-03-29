@@ -6,32 +6,70 @@ import BottomNavigation from '@mui/material/BottomNavigation'
 import BottomNavigationAction from '@mui/material/BottomNavigationAction'
 import Paper from '@mui/material/Paper'
 import Box from '@mui/material/Box'
+import IconButton from '@mui/material/IconButton'
+import RefreshIcon from '@mui/icons-material/Refresh'
+import HomeIcon from '@mui/icons-material/Home'
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
+import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
-import StorefrontIcon from '@mui/icons-material/Storefront'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
-import ShoppingList from './components/ShoppingList'
-import Items from './components/Items'
+import { useQueryClient } from '@tanstack/react-query'
+import { itemKeys, recipeKeys } from './api'
+import Home from './components/Home'
+import Calendar from './components/Calendar'
+import Todos from './components/Todos'
+import Shopping from './components/Shopping'
 import Recipes from './components/Recipes'
 
-type TabId = 'shopping' | 'items' | 'recipes'
+export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
 
 export default function App() {
-  const [tab, setTab] = useState<TabId>('shopping')
+  const [tab, setTab] = useState<TabId>('home')
+  const [recipeDeepLink, setRecipeDeepLink] = useState<string | null>(null)
+  const qc = useQueryClient()
+
+  function handleNavigate(nextTab: TabId, recipeId?: string) {
+    if (recipeId) setRecipeDeepLink(recipeId)
+    setTab(nextTab)
+  }
+
+  function handleRefresh() {
+    if (tab === 'shopping') {
+      qc.invalidateQueries({ queryKey: itemKeys.shopping })
+      qc.invalidateQueries({ queryKey: itemKeys.all })
+    } else if (tab === 'recipes') {
+      qc.invalidateQueries({ queryKey: recipeKeys.all })
+    }
+  }
+
+  const canRefresh = tab === 'shopping' || tab === 'recipes'
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="sticky" color="inherit" sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Toolbar sx={{ px: { xs: 2 } }}>
-          <Typography variant="h6" fontWeight={700} color="text.primary">
+          <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ flex: 1 }}>
             Casita
           </Typography>
+          {canRefresh && (
+            <IconButton onClick={handleRefresh} size="small" color="inherit">
+              <RefreshIcon />
+            </IconButton>
+          )}
         </Toolbar>
       </AppBar>
 
       <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, pt: 2, paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
-        {tab === 'shopping' && <ShoppingList />}
-        {tab === 'items'    && <Items />}
-        {tab === 'recipes'  && <Recipes />}
+        {tab === 'home'     && <Home onNavigate={handleNavigate} />}
+        {tab === 'calendar' && <Calendar />}
+        {tab === 'todos'    && <Todos />}
+        {tab === 'shopping' && <Shopping />}
+        {tab === 'recipes'  && (
+          <Recipes
+            initialRecipeId={recipeDeepLink}
+            onInitialRecipeIdConsumed={() => setRecipeDeepLink(null)}
+          />
+        )}
       </Box>
 
       <Paper
@@ -43,21 +81,11 @@ export default function App() {
           onChange={(_, v: TabId) => setTab(v)}
           sx={{ maxWidth: 600, mx: 'auto' }}
         >
-          <BottomNavigationAction
-            label="Shopping"
-            value="shopping"
-            icon={<ShoppingCartIcon />}
-          />
-          <BottomNavigationAction
-            label="Inventory"
-            value="items"
-            icon={<StorefrontIcon />}
-          />
-          <BottomNavigationAction
-            label="Recipes"
-            value="recipes"
-            icon={<MenuBookIcon />}
-          />
+          <BottomNavigationAction label="Home"     value="home"     icon={<HomeIcon />} />
+          <BottomNavigationAction label="Calendar" value="calendar" icon={<CalendarMonthIcon />} />
+          <BottomNavigationAction label="Todos"    value="todos"    icon={<CheckBoxIcon />} />
+          <BottomNavigationAction label="Shopping" value="shopping" icon={<ShoppingCartIcon />} />
+          <BottomNavigationAction label="Recipes"  value="recipes"  icon={<MenuBookIcon />} />
         </BottomNavigation>
       </Paper>
     </Box>

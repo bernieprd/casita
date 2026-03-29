@@ -7,3 +7,4 @@ compatibility_flags = ["nodejs_compat"]
 # Add non-secret environment variables here.
 # Secrets (e.g. NOTION_TOKEN) must be set via:
 #   wrangler secret put NOTION_TOKEN
+NOTION_TODOS_DB = "332332846c00806480fdfd6be9f5ffa0"

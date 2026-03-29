@@ -521,8 +521,19 @@ function RecipeDetail({ id, onBack }: { id: string; onBack: () => void }) {
 
 // ── Recipes ───────────────────────────────────────────────────────────────────
 
-export default function Recipes() {
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+export default function Recipes({
+  initialRecipeId,
+  onInitialRecipeIdConsumed,
+}: {
+  initialRecipeId?: string | null
+  onInitialRecipeIdConsumed?: () => void
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(initialRecipeId ?? null)
+
+  // Tell the parent the deep-link was consumed so it won't reuse it on next mount
+  useState(() => {
+    if (initialRecipeId) onInitialRecipeIdConsumed?.()
+  })
 
   if (selectedId) {
     return <RecipeDetail id={selectedId} onBack={() => setSelectedId(null)} />

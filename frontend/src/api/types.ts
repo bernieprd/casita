@@ -26,6 +26,22 @@ export interface RecipeWithBlocks extends Recipe {
   blocks: Block[]
 }
 
+export interface Todo {
+  id: string
+  name: string
+  done: boolean
+  priority: string | null
+  due: string | null
+}
+
+export interface CalendarEvent {
+  id: string
+  title: string
+  start: string
+  end: string
+  color: string | null
+}
+
 export interface RecipeIngredient {
   id: string
   recipeId: string
