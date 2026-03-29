@@ -1,0 +1,18 @@
+# env
+.env
+.env.local
+.env.*.local
+worker/.dev.vars
+
+# dependencies
+node_modules/
+
+# build output
+dist/
+.wrangler/
+
+# pnpm
+.pnpm-store/
+
+# macOS
+.DS_Store
