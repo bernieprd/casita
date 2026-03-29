@@ -1,4 +1,4 @@
-import { getItems, createItem, updateItem, deleteItem } from './routes/items'
+import { getItems, createItem, updateItem, deleteItem, mergeItem } from './routes/items'
 import { createRecipe, getRecipes, getRecipe, updateRecipe, getRecipeIngredients } from './routes/recipes'
 import { updateRecipeIngredient, createRecipeIngredient, deleteRecipeIngredient } from './routes/recipe-ingredients'
 import { getTodos, createTodo, updateTodo, deleteTodo } from './routes/todos'
@@ -46,6 +46,7 @@ const routes: Array<[string, URLPattern, Handler]> = [
   ['POST',   new URLPattern({ pathname: '/items' }),                          createItem],
   ['PATCH',  new URLPattern({ pathname: '/items/:id' }),                      updateItem],
   ['DELETE', new URLPattern({ pathname: '/items/:id' }),                      deleteItem],
+  ['POST',   new URLPattern({ pathname: '/items/:id/merge' }),                mergeItem],
   ['POST',   new URLPattern({ pathname: '/recipes' }),                        createRecipe],
   ['GET',    new URLPattern({ pathname: '/recipes' }),                        getRecipes],
   ['GET',    new URLPattern({ pathname: '/recipes/:id' }),                    getRecipe],

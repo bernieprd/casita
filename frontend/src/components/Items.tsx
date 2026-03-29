@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Box from '@mui/material/Box'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
@@ -8,7 +8,6 @@ import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import Fab from '@mui/material/Fab'
 import Divider from '@mui/material/Divider'
-import CircularProgress from '@mui/material/CircularProgress'
 import Skeleton from '@mui/material/Skeleton'
 import Collapse from '@mui/material/Collapse'
 import Button from '@mui/material/Button'
@@ -24,9 +23,10 @@ import ExpandMore from '@mui/icons-material/ExpandMore'
 import AddIcon from '@mui/icons-material/Add'
 import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
-import { useItems, useDeleteItem, flatItems } from '../api'
+import { useItems, useDeleteItem } from '../api'
 import type { Item } from '../api'
 import ItemFormDialog from './ItemFormDialog'
+import MergeDuplicatesSheet from './MergeDuplicatesSheet'
 
 type GroupBy = 'category' | 'supermarket' | 'none'
 
@@ -193,13 +193,14 @@ function ItemsSkeleton() {
 // ── Items ─────────────────────────────────────────────────────────────────────
 
 export default function Items() {
-  const { data, isLoading, error, hasNextPage, fetchNextPage, isFetchingNextPage } = useItems()
+  const { data, isLoading, error } = useItems()
   const deleteItem = useDeleteItem()
   const [editTarget, setEditTarget] = useState<Item | null>(null)
   const [creating, setCreating] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Item | null>(null)
   const [groupBy, setGroupBy] = useState<GroupBy>('category')
   const [sortGroups, setSortGroups] = useState<'alpha' | 'count'>('alpha')
+  const [mergeSheetOpen, setMergeSheetOpen] = useState(false)
 
   if (isLoading) return <ItemsSkeleton />
 
@@ -207,7 +208,18 @@ export default function Items() {
     return <Typography color="error" sx={{ p: 2 }}>Failed to load items.</Typography>
   }
 
-  const allItems = flatItems(data)
+  const allItems = data ?? []
+
+  const duplicateGroups = useMemo(() => {
+    const map = new Map<string, typeof allItems>()
+    for (const item of allItems) {
+      const key = item.name.toLowerCase().trim()
+      const group = map.get(key) ?? []
+      group.push(item)
+      map.set(key, group)
+    }
+    return Array.from(map.values()).filter(g => g.length > 1)
+  }, [allItems])
 
   if (allItems.length === 0) {
     return (
@@ -222,7 +234,7 @@ export default function Items() {
           </Typography>
         </Box>
         <Fab color="primary" aria-label="Add item" onClick={() => setCreating(true)}
-          sx={{ position: 'fixed', bottom: 80, right: 24 }}>
+          sx={{ position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', right: 24 }}>
           <AddIcon />
         </Fab>
         <ItemFormDialog
@@ -280,6 +292,26 @@ export default function Items() {
 
   return (
     <Box sx={{ pb: 10 }}>
+      {duplicateGroups.length > 0 && (
+        <Box sx={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          bgcolor: 'warning.main', color: 'warning.contrastText',
+          borderRadius: 2, px: 2, py: 1, mb: 1.5, opacity: 0.9,
+        }}>
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {duplicateGroups.length === 1
+              ? '1 duplicate name found'
+              : `${duplicateGroups.length} duplicate names found`}
+          </Typography>
+          <Button
+            size="small"
+            sx={{ color: 'warning.contrastText', fontWeight: 600, ml: 1 }}
+            onClick={() => setMergeSheetOpen(true)}
+          >
+            Review
+          </Button>
+        </Box>
+      )}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 1.5 }}>
         {groupBy !== 'none' && (
           <ToggleButtonGroup
@@ -339,24 +371,11 @@ export default function Items() {
         ))
       }
 
-      {hasNextPage && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-          <Button
-            variant="outlined"
-            onClick={() => fetchNextPage()}
-            disabled={isFetchingNextPage}
-            startIcon={isFetchingNextPage ? <CircularProgress size={14} color="inherit" /> : undefined}
-          >
-            {isFetchingNextPage ? 'Loading…' : 'Load more'}
-          </Button>
-        </Box>
-      )}
-
       <Fab
         color="primary"
         aria-label="Add item"
         onClick={() => setCreating(true)}
-        sx={{ position: 'fixed', bottom: 80, right: 24 }}
+        sx={{ position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', right: 24 }}
       >
         <AddIcon />
       </Fab>
@@ -372,6 +391,12 @@ export default function Items() {
         item={deleteTarget}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteTarget(null)}
+      />
+
+      <MergeDuplicatesSheet
+        open={mergeSheetOpen}
+        groups={duplicateGroups}
+        onClose={() => setMergeSheetOpen(false)}
       />
     </Box>
   )

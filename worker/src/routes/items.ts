@@ -1,4 +1,4 @@
-import { queryDatabase, queryDatabasePage, updatePage, createPage, archivePage } from '../notion'
+import { queryDatabase, updatePage, createPage, archivePage, getPage } from '../notion'
 import { normalizeItem, itemToProps } from '../normalize'
 import type { Env } from '../types'
 
@@ -13,15 +13,9 @@ export async function getItems(req: Request, env: Env): Promise<Response> {
     return Response.json(pages.map(normalizeItem))
   }
 
-  // Inventory: paginated — one Notion round-trip per request.
-  const cursor = url.searchParams.get('cursor') ?? undefined
-  const { results, nextCursor } = await queryDatabasePage(
-    env.NOTION_TOKEN,
-    env.NOTION_SHOPPING_LIST_DB,
-    { cursor, pageSize: 100 },
-  )
-
-  return Response.json({ items: results.map(normalizeItem), nextCursor })
+  // Inventory: fetch all pages.
+  const pages = await queryDatabase(env.NOTION_TOKEN, env.NOTION_SHOPPING_LIST_DB)
+  return Response.json(pages.map(normalizeItem))
 }
 
 export async function createItem(req: Request, env: Env): Promise<Response> {
@@ -41,4 +35,25 @@ export async function updateItem(req: Request, env: Env, id: string): Promise<Re
 export async function deleteItem(_req: Request, env: Env, id: string): Promise<Response> {
   await archivePage(env.NOTION_TOKEN, id)
   return new Response(null, { status: 204 })
+}
+
+export async function mergeItem(req: Request, env: Env, id: string): Promise<Response> {
+  const { keepId } = await req.json<{ keepId: string }>()
+
+  // Find all recipe-ingredients that reference the item being discarded
+  const filter = { property: 'Ingredient', relation: { contains: id } }
+  const ingredients = await queryDatabase(env.NOTION_TOKEN, env.NOTION_RECIPE_INGREDIENT_DB, filter)
+
+  // Re-point each ingredient to the keeper
+  await Promise.all(
+    ingredients.map(ing =>
+      updatePage(env.NOTION_TOKEN, ing.id, { Ingredient: { relation: [{ id: keepId }] } }),
+    ),
+  )
+
+  // Archive the discarded item
+  await archivePage(env.NOTION_TOKEN, id)
+
+  const keptPage = await getPage(env.NOTION_TOKEN, keepId)
+  return Response.json(normalizeItem(keptPage))
 }
