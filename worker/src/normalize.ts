@@ -186,18 +186,18 @@ export function normalizeTodo(page: NotionPage): Todo {
   return {
     id: page.id,
     name: title(p['Name']),
-    done: checkbox(p['Done']),
+    status: select(p['Done']) ?? 'Todo',
     priority: select(p['Priority']),
     due: date(p['Due']),
   }
 }
 
-export function todoToProps(fields: Partial<{ name: string; done: boolean; priority: string | null; due: string | null }>): NotionProps {
+export function todoToProps(fields: Partial<{ name: string; status: string | null; priority: string | null; due: string | null }>): NotionProps {
   const props: NotionProps = {}
   if (fields.name !== undefined)
     props['Name'] = { title: [{ text: { content: fields.name } }] }
-  if (fields.done !== undefined)
-    props['Done'] = { checkbox: fields.done }
+  if ('status' in fields)
+    props['Done'] = fields.status ? { select: { name: fields.status } } : { select: { name: 'Todo' } }
   if ('priority' in fields)
     props['Priority'] = fields.priority ? { select: { name: fields.priority } } : { select: null }
   if ('due' in fields)

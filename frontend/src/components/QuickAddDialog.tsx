@@ -19,7 +19,7 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import CloseIcon from '@mui/icons-material/Close'
 import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
-import { useItems, useToggleShoppingList, useCreateItem, flatItems } from '../api'
+import { useItems, useToggleShoppingList, useCreateItem } from '../api'
 import type { Item } from '../api'
 
 interface Props {
@@ -30,8 +30,7 @@ interface Props {
 
 export default function QuickAddDialog({ open, onClose, onCreated }: Props) {
   const [query, setQuery] = useState('')
-  const { data: infiniteData } = useItems()
-  const allItems = flatItems(infiniteData)
+  const { data: allItems = [] } = useItems()
   const toggle = useToggleShoppingList()
   const create = useCreateItem()
   const theme = useTheme()

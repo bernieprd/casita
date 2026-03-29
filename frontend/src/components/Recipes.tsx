@@ -108,7 +108,7 @@ function RecipeGrid({ onSelect }: { onSelect: (id: string) => void }) {
       color="primary"
       aria-label="New recipe"
       onClick={() => setCreateOpen(true)}
-      sx={{ position: 'fixed', bottom: 80, right: 24 }}
+      sx={{ position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', right: 24 }}
     >
       <AddIcon />
     </Fab>
@@ -157,24 +157,40 @@ function RecipeGrid({ onSelect }: { onSelect: (id: string) => void }) {
 
   return (
     <Box>
-      {/* Search bar */}
-      <TextField
-        fullWidth
-        size="small"
-        placeholder="Search recipes…"
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        slotProps={{
-          input: {
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: 'text.disabled' }} />
-              </InputAdornment>
-            ),
-          },
+      {/* Sticky search bar — flush with AppBar, full viewport width */}
+      <Box
+        sx={{
+          position: 'sticky',
+          top: '56px',
+          ml: 'calc(50% - 50vw)',
+          width: '100vw',
+          mt: -2,
+          zIndex: 10,
+          mb: 1.5,
+          bgcolor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         }}
-        sx={{ mb: 1.5 }}
-      />
+      >
+        <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, py: 1.5 }}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Search recipes…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+        </Box>
+      </Box>
 
       {/* Type filter chips */}
       {typeOptions.length > 0 && (

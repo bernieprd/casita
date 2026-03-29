@@ -73,8 +73,8 @@ export default function App() {
       </Box>
 
       <Paper
-        elevation={3}
-        sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100, paddingBottom: 'env(safe-area-inset-bottom)' }}
+        elevation={0}
+        sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100, paddingBottom: 'env(safe-area-inset-bottom)', borderTop: '1px solid', borderColor: 'divider' }}
       >
         <BottomNavigation
           value={tab}

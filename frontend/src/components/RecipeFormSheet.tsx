@@ -7,10 +7,12 @@ import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
 import Stack from '@mui/material/Stack'
 import Divider from '@mui/material/Divider'
-import Drawer from '@mui/material/Drawer'
 import Dialog from '@mui/material/Dialog'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
+import AppBar from '@mui/material/AppBar'
+import Toolbar from '@mui/material/Toolbar'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
@@ -30,8 +32,8 @@ import {
   useDraggable,
 } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
-import { useItems, flatItems, useRecipes, useCreateRecipe, useEditRecipe } from '../api'
-import type { RecipeWithBlocks, RecipeIngredient } from '../api'
+import { useItems, useRecipes, useCreateRecipe, useEditRecipe } from '../api'
+import type { Item, RecipeWithBlocks, RecipeIngredient } from '../api'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -102,7 +104,7 @@ function IngredientRowForm({
   isDragOverlay = false,
 }: {
   row: IngRow
-  allItems: ReturnType<typeof flatItems>
+  allItems: Item[]
   onUpdate: (changes: Partial<IngRow>) => void
   onRemove: () => void
   isDragOverlay?: boolean
@@ -307,8 +309,7 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
 
   const isEdit = !!recipeId && !!initialData
 
-  const { data: itemsData } = useItems()
-  const allItems = useMemo(() => flatItems(itemsData), [itemsData])
+  const { data: allItems = [] } = useItems()
 
   const { data: recipes } = useRecipes()
   const typeOptions = useMemo(() => {
@@ -408,7 +409,11 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
     if (!event.over) return
     const rowKey = event.active.id as string
     const targetSection = event.over.id === '__none__' ? '' : (event.over.id as string)
-    setRows(prev => prev.map(r => r.key === rowKey ? { ...r, section: targetSection } : r))
+    setRows(prev => {
+      const next = prev.map(r => r.key === rowKey ? { ...r, section: targetSection } : r)
+      setSectionOrder(order => order.filter(s => next.some(r => r.section === s)))
+      return next
+    })
   }
 
   // ── Row helpers ──────────────────────────────────────────────────────────────
@@ -422,7 +427,11 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
 
   function removeRow(key: string, id?: string) {
     if (id) setRemovedIds(prev => [...prev, id])
-    setRows(prev => prev.filter(r => r.key !== key))
+    setRows(prev => {
+      const next = prev.filter(r => r.key !== key)
+      setSectionOrder(order => order.filter(s => next.some(r => r.section === s)))
+      return next
+    })
   }
 
   function updateRow(key: string, changes: Partial<IngRow>) {
@@ -458,6 +467,9 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
       setNameError(true)
       return
     }
+
+    // Drop sections that never got any ingredients
+    setSectionOrder(prev => prev.filter(s => rows.some(r => r.section === s)))
 
     const recipeBody = {
       name: name.trim(),
@@ -681,58 +693,28 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
     </Box>
   )
 
-  // ── Mobile drawer ────────────────────────────────────────────────────────────
+  // ── Mobile full-screen ───────────────────────────────────────────────────────
 
   if (isMobile) {
     return (
-      <Drawer
-        anchor="bottom"
-        open={open}
-        onClose={onClose}
-        PaperProps={{
-          sx: {
-            borderRadius: '16px 16px 0 0',
-            maxHeight: '95vh',
-            display: 'flex',
-            flexDirection: 'column',
-          },
-        }}
-      >
-        <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5, flexShrink: 0 }}>
-          <Box sx={{ width: 32, height: 4, borderRadius: 2, bgcolor: 'divider' }} />
-        </Box>
-        <Box
-          sx={{
-            px: 2,
-            pb: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexShrink: 0,
-          }}
-        >
-          <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
-            {title}
-          </Typography>
-          <IconButton size="small" onClick={onClose} disabled={isPending}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </Box>
-        <Box sx={{ px: 2, overflow: 'auto', flex: 1 }}>
+      <Dialog open={open} onClose={isPending ? undefined : onClose} fullScreen>
+        <AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Toolbar sx={{ px: 2 }}>
+            <IconButton edge="start" size="small" onClick={onClose} disabled={isPending} sx={{ mr: 1 }}>
+              <ArrowBackIcon fontSize="small" />
+            </IconButton>
+            <Typography variant="h6" sx={{ flex: 1, fontSize: '1rem', fontWeight: 600 }}>
+              {title}
+            </Typography>
+            <Button variant="contained" disableElevation disabled={!canSubmit} onClick={handleSubmit} size="small">
+              {isPending ? (isEdit ? 'Saving…' : 'Creating…') : (isEdit ? 'Save' : 'Create')}
+            </Button>
+          </Toolbar>
+        </AppBar>
+        <Box sx={{ px: 2, py: 2, overflowY: 'auto' }}>
           {formBody}
         </Box>
-        <Box
-          sx={{
-            px: 2,
-            py: 2,
-            flexShrink: 0,
-            borderTop: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          {actions}
-        </Box>
-      </Drawer>
+      </Dialog>
     )
   }
 

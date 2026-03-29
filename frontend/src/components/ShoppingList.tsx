@@ -235,7 +235,7 @@ export default function ShoppingList() {
           color="primary"
           aria-label="Add to shopping list"
           onClick={() => setQuickAddOpen(true)}
-          sx={{ position: 'fixed', bottom: 80, right: 24 }}
+          sx={{ position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', right: 24 }}
         >
           <AddIcon />
         </Fab>
@@ -356,7 +356,7 @@ export default function ShoppingList() {
         color="primary"
         aria-label="Add to shopping list"
         onClick={() => setQuickAddOpen(true)}
-        sx={{ position: 'fixed', bottom: 80, right: 24 }}
+        sx={{ position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', right: 24 }}
       >
         <AddIcon />
       </Fab>

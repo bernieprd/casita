@@ -10,23 +10,20 @@ export async function getTodos(
     env.NOTION_TOKEN,
     env.NOTION_TODOS_DB,
     undefined,
-    [
-      { property: 'Done',  direction: 'ascending' },
-      { property: 'Due',   direction: 'ascending' },
-    ],
+    [{ property: 'Due', direction: 'ascending' }],
   )
   return Response.json(pages.map(normalizeTodo))
 }
 
 export async function createTodo(req: Request, env: Env): Promise<Response> {
-  const body = await req.json<{ name: string; done?: boolean; priority?: string | null; due?: string | null }>()
-  const props = todoToProps(body)
+  const body = await req.json<{ name: string; status?: string | null; priority?: string | null; due?: string | null }>()
+  const props = todoToProps({ status: 'Todo', ...body })
   const page = await createPage(env.NOTION_TOKEN, env.NOTION_TODOS_DB, props)
   return Response.json(normalizeTodo(page), { status: 201 })
 }
 
 export async function updateTodo(req: Request, env: Env, id: string): Promise<Response> {
-  const body = await req.json<{ name?: string; done?: boolean; priority?: string | null; due?: string | null }>()
+  const body = await req.json<{ name?: string; status?: string | null; priority?: string | null; due?: string | null }>()
   const props = todoToProps(body)
   const page = await updatePage(env.NOTION_TOKEN, id, props)
   return Response.json(normalizeTodo(page))

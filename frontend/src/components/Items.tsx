@@ -202,12 +202,6 @@ export default function Items() {
   const [sortGroups, setSortGroups] = useState<'alpha' | 'count'>('alpha')
   const [mergeSheetOpen, setMergeSheetOpen] = useState(false)
 
-  if (isLoading) return <ItemsSkeleton />
-
-  if (error) {
-    return <Typography color="error" sx={{ p: 2 }}>Failed to load items.</Typography>
-  }
-
   const allItems = data ?? []
 
   const duplicateGroups = useMemo(() => {
@@ -220,6 +214,12 @@ export default function Items() {
     }
     return Array.from(map.values()).filter(g => g.length > 1)
   }, [allItems])
+
+  if (isLoading) return <ItemsSkeleton />
+
+  if (error) {
+    return <Typography color="error" sx={{ p: 2 }}>Failed to load items.</Typography>
+  }
 
   if (allItems.length === 0) {
     return (

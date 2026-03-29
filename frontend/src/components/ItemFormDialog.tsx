@@ -14,7 +14,7 @@ import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/Close'
 import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
-import { useItems, useCreateItem, useUpdateItem, flatItems } from '../api'
+import { useItems, useCreateItem, useUpdateItem } from '../api'
 import type { Item } from '../api'
 
 interface Props {
@@ -25,8 +25,7 @@ interface Props {
 }
 
 export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }: Props) {
-  const { data: infiniteData } = useItems()
-  const allItems = flatItems(infiniteData)
+  const { data: allItems = [] } = useItems()
   const create = useCreateItem()
   const update = useUpdateItem()
   const theme = useTheme()

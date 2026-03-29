@@ -41,7 +41,7 @@ export interface RecipeIngredient {
 export interface Todo {
   id: string
   name: string
-  done: boolean
+  status: string | null
   priority: string | null
   due: string | null
 }
