@@ -139,7 +139,7 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
   const { topTodos, remaining } = useMemo(() => {
     if (!todos) return { topTodos: [], remaining: 0 }
     const incomplete = todos
-      .filter(t => !t.done)
+      .filter(t => t.status !== 'Done')
       .sort((a, b) => {
         const pa = a.priority ? (PRIORITY_ORDER[a.priority] ?? 3) : 3
         const pb = b.priority ? (PRIORITY_ORDER[b.priority] ?? 3) : 3
@@ -194,8 +194,8 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
               >
                 <Checkbox
                   size="small"
-                  checked={todo.done}
-                  onChange={() => updateTodo.mutate({ id: todo.id, done: true })}
+                  checked={todo.status === 'Done'}
+                  onChange={() => updateTodo.mutate({ id: todo.id, status: 'Done' })}
                   sx={{ p: 0.75 }}
                 />
                 <Typography variant="body2" noWrap sx={{ flex: 1 }}>{todo.name}</Typography>
