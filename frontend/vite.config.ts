@@ -9,23 +9,25 @@ export default defineConfig(({ mode }) => ({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg', 'icon-512.png', 'apple-touch-icon.png'],
+      includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Casita',
         short_name: 'Casita',
         description: 'Home shopping & recipes',
-        theme_color: '#2d6a4f',
-        background_color: '#f5f5f0',
+        theme_color: '#fef9c3',
+        background_color: '#fef9c3',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '.',
         icons: [
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
           { src: 'apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
         ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        globIgnores: ['casita.png'], // 3.5 MB — too large to precache
         runtimeCaching: [
           {
             // Cache all worker API calls — shopping list available offline.

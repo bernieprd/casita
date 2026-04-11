@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
@@ -6,15 +6,19 @@ import BottomNavigation from '@mui/material/BottomNavigation'
 import BottomNavigationAction from '@mui/material/BottomNavigationAction'
 import Paper from '@mui/material/Paper'
 import Box from '@mui/material/Box'
+import Alert from '@mui/material/Alert'
 import IconButton from '@mui/material/IconButton'
 import RefreshIcon from '@mui/icons-material/Refresh'
+import WifiOffIcon from '@mui/icons-material/WifiOff'
 import HomeIcon from '@mui/icons-material/Home'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
 import { useQueryClient } from '@tanstack/react-query'
-import { itemKeys, recipeKeys } from './api'
+import { itemKeys, itemsApi, todoKeys, todosApi, recipeKeys } from './api'
+import { useOnlineStatus } from './useOnlineStatus'
+import { TabErrorBoundary } from './components/TabErrorBoundary'
 import Home from './components/Home'
 import Calendar from './components/Calendar'
 import Todos from './components/Todos'
@@ -27,6 +31,14 @@ export default function App() {
   const [tab, setTab] = useState<TabId>('home')
   const [recipeDeepLink, setRecipeDeepLink] = useState<string | null>(null)
   const qc = useQueryClient()
+  const isOnline = useOnlineStatus()
+
+  // Prime the Workbox cache on first load so shopping list + todos are
+  // available offline even before the user visits those tabs.
+  useEffect(() => {
+    qc.prefetchQuery({ queryKey: itemKeys.shopping, queryFn: itemsApi.listShopping })
+    qc.prefetchQuery({ queryKey: todoKeys.all,      queryFn: todosApi.list })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleNavigate(nextTab: TabId, recipeId?: string) {
     if (recipeId) setRecipeDeepLink(recipeId)
@@ -59,16 +71,28 @@ export default function App() {
         </Toolbar>
       </AppBar>
 
+      {!isOnline && (
+        <Alert
+          severity="warning"
+          icon={<WifiOffIcon fontSize="small" />}
+          sx={{ borderRadius: 0, py: 0.5 }}
+        >
+          Offline — showing cached data
+        </Alert>
+      )}
+
       <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, pt: 2, paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
-        {tab === 'home'     && <Home onNavigate={handleNavigate} />}
-        {tab === 'calendar' && <Calendar />}
-        {tab === 'todos'    && <Todos />}
-        {tab === 'shopping' && <Shopping />}
+        {tab === 'home'     && <TabErrorBoundary key="home">    <Home onNavigate={handleNavigate} /></TabErrorBoundary>}
+        {tab === 'calendar' && <TabErrorBoundary key="calendar"><Calendar /></TabErrorBoundary>}
+        {tab === 'todos'    && <TabErrorBoundary key="todos">   <Todos /></TabErrorBoundary>}
+        {tab === 'shopping' && <TabErrorBoundary key="shopping"><Shopping /></TabErrorBoundary>}
         {tab === 'recipes'  && (
-          <Recipes
-            initialRecipeId={recipeDeepLink}
-            onInitialRecipeIdConsumed={() => setRecipeDeepLink(null)}
-          />
+          <TabErrorBoundary key="recipes">
+            <Recipes
+              initialRecipeId={recipeDeepLink}
+              onInitialRecipeIdConsumed={() => setRecipeDeepLink(null)}
+            />
+          </TabErrorBoundary>
         )}
       </Box>
 

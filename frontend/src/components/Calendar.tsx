@@ -224,8 +224,14 @@ export default function Calendar() {
       {isLoading ? (
         <AgendaSkeleton />
       ) : dayGroups.length === 0 ? (
-        <Box sx={{ py: 6, textAlign: 'center' }}>
-          <Typography color="text.disabled">Nothing coming up</Typography>
+        <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
+          <Box component="img" src="/casita.png" alt="" sx={{ width: 80, mb: 2, opacity: 0.7 }} />
+          <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
+            Nothing coming up
+          </Typography>
+          <Typography variant="body2" color="text.disabled">
+            Enjoy the quiet
+          </Typography>
         </Box>
       ) : (
         dayGroups.map(({ dateKey, events: evs }) => (

@@ -225,7 +225,7 @@ export default function Items() {
     return (
       <>
         <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
-          <Box sx={{ fontSize: 52, mb: 2, opacity: 0.35 }}>📦</Box>
+          <Box component="img" src="/casita.png" alt="" sx={{ width: 80, mb: 2, opacity: 0.7 }} />
           <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
             No items yet
           </Typography>

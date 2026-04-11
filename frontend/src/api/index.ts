@@ -3,5 +3,5 @@ export { itemKeys, itemsApi, useItems, useShoppingList, useCreateItem, useUpdate
 export { recipeKeys, recipesApi, useRecipes, useRecipe, useCreateRecipe, useEditRecipe } from './recipes'
 export type { RecipeBody, CreateRecipeVars, EditRecipeVars } from './recipes'
 export { recipeIngredientsApi, useRecipeIngredients, useToggleNeedsShopping } from './recipe-ingredients'
-export { todoKeys, useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from './todos'
+export { todoKeys, todosApi, useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from './todos'
 export { calendarKeys, useCalendarEvents } from './calendar'

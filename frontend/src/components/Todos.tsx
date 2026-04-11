@@ -301,7 +301,19 @@ export default function Todos() {
           </Typography>
         )}
 
-        {!isLoading && !error && STATUSES.map(status => (
+        {!isLoading && !error && todos?.length === 0 && (
+          <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
+            <Box component="img" src="/casita.png" alt="" sx={{ width: 80, mb: 2, opacity: 0.7 }} />
+            <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
+              All caught up
+            </Typography>
+            <Typography variant="body2" color="text.disabled">
+              Add a to-do below to get started
+            </Typography>
+          </Box>
+        )}
+
+        {!isLoading && !error && !!todos?.length && STATUSES.map(status => (
           <Section
             key={status}
             status={status}

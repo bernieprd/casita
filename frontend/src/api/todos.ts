@@ -6,8 +6,12 @@ export const todoKeys = {
   all: ['todos'] as const,
 }
 
+export const todosApi = {
+  list: () => api.get<Todo[]>('/todos'),
+}
+
 export function useTodos() {
-  return useQuery({ queryKey: todoKeys.all, queryFn: () => api.get<Todo[]>('/todos') })
+  return useQuery({ queryKey: todoKeys.all, queryFn: todosApi.list })
 }
 
 export function useCreateTodo() {
