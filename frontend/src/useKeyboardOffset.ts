@@ -14,7 +14,7 @@ export function useKeyboardOffset(): number {
     if (!vv) return
 
     const update = () => {
-      const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop
+      const keyboardHeight = window.innerHeight - vv.height
       setOffset(Math.max(0, keyboardHeight))
     }
 

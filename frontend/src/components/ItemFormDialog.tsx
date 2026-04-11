@@ -123,6 +123,7 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
         anchor="bottom"
         open={open}
         onClose={onClose}
+        ModalProps={{ disableScrollLock: true }}
         PaperProps={{
           sx: {
             borderRadius: '16px 16px 0 0',

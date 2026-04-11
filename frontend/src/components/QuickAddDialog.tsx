@@ -168,6 +168,7 @@ export default function QuickAddDialog({ open, onClose, onCreated }: Props) {
         anchor="bottom"
         open={open}
         onClose={handleClose}
+        ModalProps={{ disableScrollLock: true }}
         PaperProps={{
           sx: {
             borderRadius: '16px 16px 0 0',

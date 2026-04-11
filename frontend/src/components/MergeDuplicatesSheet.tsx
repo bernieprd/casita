@@ -56,6 +56,7 @@ export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
       anchor="bottom"
       open={open}
       onClose={merging ? undefined : onClose}
+      ModalProps={{ disableScrollLock: true }}
       PaperProps={{ sx: { borderRadius: '16px 16px 0 0', maxHeight: '80vh', display: 'flex', flexDirection: 'column', bottom: keyboardOffset, transition: 'bottom 150ms ease-out' } }}
     >
       {/* Handle */}
