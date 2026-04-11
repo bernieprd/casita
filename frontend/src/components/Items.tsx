@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import Box from '@mui/material/Box'
 import List from '@mui/material/List'
-import ListItem from '@mui/material/ListItem'
 import ListItemText from '@mui/material/ListItemText'
 import ListItemButton from '@mui/material/ListItemButton'
 import Typography from '@mui/material/Typography'
@@ -16,8 +15,6 @@ import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
-import ToggleButton from '@mui/material/ToggleButton'
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import AddIcon from '@mui/icons-material/Add'
@@ -27,33 +24,20 @@ import { useItems, useDeleteItem } from '../api'
 import type { Item } from '../api'
 import ItemFormDialog from './ItemFormDialog'
 import MergeDuplicatesSheet from './MergeDuplicatesSheet'
-
-type GroupBy = 'category' | 'supermarket' | 'none'
+import IncompleteItemsSheet from './IncompleteItemsSheet'
 
 // ── Item row ──────────────────────────────────────────────────────────────────
 
 function ItemRow({ item, onEdit }: { item: Item; onEdit: (i: Item) => void }) {
   return (
-    <ListItem disablePadding>
-      <ListItemButton sx={{ pl: 2, pr: 2 }} onClick={() => onEdit(item)}>
-        <ListItemText
-          primary={item.name}
-          secondary={
-            <Box component="span" sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-              {item.category && (
-                <Chip label={item.category} size="small" variant="outlined"
-                  sx={{ fontSize: 11, height: 20 }} />
-              )}
-              {item.supermarkets.map(s => (
-                <Chip key={s} label={s} size="small"
-                  sx={{ fontSize: 11, height: 20, bgcolor: 'action.hover' }} />
-              ))}
-            </Box>
-          }
-          secondaryTypographyProps={{ component: 'span' }}
-        />
-      </ListItemButton>
-    </ListItem>
+    <ListItemButton sx={{ px: 2, py: 1 }} onClick={() => onEdit(item)}>
+      <ListItemText
+        primary={item.name}
+        secondary={item.supermarkets.length ? item.supermarkets.join(', ') : undefined}
+        primaryTypographyProps={{ variant: 'body1' }}
+        secondaryTypographyProps={{ variant: 'caption' }}
+      />
+    </ListItemButton>
   )
 }
 
@@ -89,7 +73,7 @@ function GroupSection({ label, items, onEdit }: GroupSectionProps) {
         <List disablePadding>
           {items.map((item, idx) => (
             <span key={item.id}>
-              {idx > 0 && <Divider component="li" sx={{ ml: 2 }} />}
+              {idx > 0 && <Divider sx={{ ml: 2 }} />}
               <ItemRow item={item} onEdit={onEdit} />
             </span>
           ))}
@@ -163,7 +147,7 @@ function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
 function ItemsSkeleton() {
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+      <Box sx={{ display: 'flex', mb: 1.5 }}>
         <Skeleton width={220} height={32} sx={{ borderRadius: 1 }} />
       </Box>
       {[5, 3].map((rows, gi) => (
@@ -198,9 +182,9 @@ export default function Items() {
   const [editTarget, setEditTarget] = useState<Item | null>(null)
   const [creating, setCreating] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Item | null>(null)
-  const [groupBy, setGroupBy] = useState<GroupBy>('category')
-  const [sortGroups, setSortGroups] = useState<'alpha' | 'count'>('alpha')
   const [mergeSheetOpen, setMergeSheetOpen] = useState(false)
+  const [selectedSupermarkets, setSelectedSupermarkets] = useState<Set<string>>(new Set())
+  const [incompleteSheetOpen, setIncompleteSheetOpen] = useState(false)
 
   const allItems = data ?? []
 
@@ -214,6 +198,14 @@ export default function Items() {
     }
     return Array.from(map.values()).filter(g => g.length > 1)
   }, [allItems])
+
+  const allSupermarkets = useMemo(() =>
+    [...new Set(allItems.flatMap(i => i.supermarkets))].sort(),
+  [allItems])
+
+  const incompleteItems = useMemo(() =>
+    allItems.filter(i => i.category === null || i.supermarkets.length === 0),
+  [allItems])
 
   if (isLoading) return <ItemsSkeleton />
 
@@ -250,31 +242,18 @@ export default function Items() {
 
   const byName = (a: Item, b: Item) => a.name.localeCompare(b.name)
 
-  let groups: Array<[string, Item[]]>
+  const visibleItems = selectedSupermarkets.size === 0
+    ? allItems
+    : allItems.filter(i => i.supermarkets.some(s => selectedSupermarkets.has(s)))
 
-  if (groupBy === 'none') {
-    groups = [['', [...allItems].sort(byName)]]
-  } else {
-    const groupMap: Record<string, Item[]> = {}
-    for (const item of allItems) {
-      if (groupBy === 'category') {
-        const key = item.category ?? 'Other'
-        ;(groupMap[key] ??= []).push(item)
-      } else {
-        const markets = item.supermarkets.length ? item.supermarkets : ['Other']
-        for (const market of markets) {
-          ;(groupMap[market] ??= []).push(item)
-        }
-      }
-    }
-    groups = Object.entries(groupMap)
-      .sort(([a, ai], [b, bi]) => {
-        if (a === 'Other') return 1
-        if (b === 'Other') return -1
-        return sortGroups === 'count' ? bi.length - ai.length : a.localeCompare(b)
-      })
-      .map(([label, groupItems]) => [label, [...groupItems].sort(byName)])
+  const groupMap: Record<string, Item[]> = {}
+  for (const item of visibleItems) {
+    const key = item.category ?? 'Other'
+    ;(groupMap[key] ??= []).push(item)
   }
+  const groups: Array<[string, Item[]]> = Object.entries(groupMap)
+    .sort(([a], [b]) => a === 'Other' ? 1 : b === 'Other' ? -1 : a.localeCompare(b))
+    .map(([label, groupItems]) => [label, [...groupItems].sort(byName)])
 
   function handleDeleteRequest() {
     // Close edit first, then open confirm sheet
@@ -312,56 +291,58 @@ export default function Items() {
           </Button>
         </Box>
       )}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 1.5 }}>
-        {groupBy !== 'none' && (
-          <ToggleButtonGroup
-            value={sortGroups}
-            exclusive
-            size="small"
-            onChange={(_, val) => { if (val) setSortGroups(val) }}
-            aria-label="Sort groups by"
-          >
-            <ToggleButton value="alpha" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
-              A–Z
-            </ToggleButton>
-            <ToggleButton value="count" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
-              Count
-            </ToggleButton>
-          </ToggleButtonGroup>
-        )}
-        <ToggleButtonGroup
-          value={groupBy}
-          exclusive
-          size="small"
-          onChange={(_, val) => { if (val) setGroupBy(val) }}
-          aria-label="Group items by"
-        >
-          <ToggleButton value="none" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
-            None
-          </ToggleButton>
-          <ToggleButton value="category" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
-            Category
-          </ToggleButton>
-          <ToggleButton value="supermarket" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
-            Supermarket
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
 
-      {groupBy === 'none'
-        ? (
-          <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,.06)' }}>
-            <List disablePadding>
-              {groups[0][1].map((item, idx) => (
-                <span key={item.id}>
-                  {idx > 0 && <Divider component="li" sx={{ ml: 2 }} />}
-                  <ItemRow item={item} onEdit={setEditTarget} />
-                </span>
-              ))}
-            </List>
-          </Box>
-        )
-        : groups.map(([label, groupItems]) => (
+      {incompleteItems.length > 0 && (
+        <Box sx={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          bgcolor: 'warning.main', color: 'warning.contrastText',
+          borderRadius: 2, px: 2, py: 1, mb: 1.5, opacity: 0.9,
+        }}>
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {incompleteItems.length === 1
+              ? '1 item missing category or supermarket'
+              : `${incompleteItems.length} items missing category or supermarket`}
+          </Typography>
+          <Button
+            size="small"
+            sx={{ color: 'warning.contrastText', fontWeight: 600, ml: 1 }}
+            onClick={() => setIncompleteSheetOpen(true)}
+          >
+            Review
+          </Button>
+        </Box>
+      )}
+
+      {allSupermarkets.length > 0 && (
+        <Box sx={{
+          display: 'flex', gap: 1, overflowX: 'auto', pb: 0.5, mb: 1.5,
+          scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' },
+        }}>
+          {allSupermarkets.map(s => (
+            <Chip
+              key={s}
+              label={s}
+              clickable
+              color={selectedSupermarkets.has(s) ? 'primary' : 'default'}
+              variant={selectedSupermarkets.has(s) ? 'filled' : 'outlined'}
+              size="small"
+              onClick={() => setSelectedSupermarkets(prev => {
+                const next = new Set(prev)
+                next.has(s) ? next.delete(s) : next.add(s)
+                return next
+              })}
+              sx={{ flexShrink: 0 }}
+            />
+          ))}
+        </Box>
+      )}
+
+      {groups.length === 0 ? (
+        <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', mt: 4 }}>
+          No items for selected supermarket(s)
+        </Typography>
+      ) : (
+        groups.map(([label, groupItems]) => (
           <GroupSection
             key={label}
             label={label}
@@ -369,7 +350,7 @@ export default function Items() {
             onEdit={setEditTarget}
           />
         ))
-      }
+      )}
 
       <Fab
         color="primary"
@@ -397,6 +378,13 @@ export default function Items() {
         open={mergeSheetOpen}
         groups={duplicateGroups}
         onClose={() => setMergeSheetOpen(false)}
+      />
+
+      <IncompleteItemsSheet
+        open={incompleteSheetOpen}
+        items={incompleteItems}
+        onClose={() => setIncompleteSheetOpen(false)}
+        onEdit={item => { setEditTarget(item) }}
       />
     </Box>
   )

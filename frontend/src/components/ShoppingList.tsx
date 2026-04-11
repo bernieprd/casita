@@ -1,11 +1,12 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import Fab from '@mui/material/Fab'
 import AddIcon from '@mui/icons-material/Add'
 import Box from '@mui/material/Box'
-import ToggleButton from '@mui/material/ToggleButton'
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
 import QuickAddDialog from './QuickAddDialog'
 import ItemFormDialog from './ItemFormDialog'
+import IncompleteItemsSheet from './IncompleteItemsSheet'
 import List from '@mui/material/List'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemText from '@mui/material/ListItemText'
@@ -22,8 +23,6 @@ import type { Item } from '../api'
 
 // How long the Collapse exit animation plays before mutate fires.
 const EXIT_DURATION_MS = 220
-
-type GroupBy = 'category' | 'supermarket' | 'none'
 
 // ── Long press hook ───────────────────────────────────────────────────────────
 
@@ -69,12 +68,11 @@ function useLongPress(onLongPress: () => void, delay = 500) {
 interface ShoppingItemRowProps {
   item: Item
   removing: boolean
-  groupBy: GroupBy
   onRemove: (id: string) => void
   onEdit: (item: Item) => void
 }
 
-function ShoppingItemRow({ item, removing, groupBy, onRemove, onEdit }: ShoppingItemRowProps) {
+function ShoppingItemRow({ item, removing, onRemove, onEdit }: ShoppingItemRowProps) {
   const { handlers, didFire } = useLongPress(() => onEdit(item))
 
   return (
@@ -95,11 +93,7 @@ function ShoppingItemRow({ item, removing, groupBy, onRemove, onEdit }: Shopping
         </ListItemIcon>
         <ListItemText
           primary={item.name}
-          secondary={
-            groupBy === 'category'
-              ? (item.supermarkets.length ? item.supermarkets.join(', ') : undefined)
-              : (item.category ?? undefined)
-          }
+          secondary={item.supermarkets.length ? item.supermarkets.join(', ') : undefined}
           primaryTypographyProps={{ variant: 'body1' }}
           secondaryTypographyProps={{ variant: 'caption' }}
         />
@@ -116,10 +110,9 @@ interface GroupSectionProps {
   removingIds: Set<string>
   onRemove: (id: string) => void
   onEdit: (item: Item) => void
-  groupBy: GroupBy
 }
 
-function GroupSection({ label, items, removingIds, onRemove, onEdit, groupBy }: GroupSectionProps) {
+function GroupSection({ label, items, removingIds, onRemove, onEdit }: GroupSectionProps) {
   const [open, setOpen] = useState(true)
 
   const visibleCount = items.filter(i => !removingIds.has(i.id)).length
@@ -150,7 +143,6 @@ function GroupSection({ label, items, removingIds, onRemove, onEdit, groupBy }: 
               <ShoppingItemRow
                 item={item}
                 removing={removingIds.has(item.id)}
-                groupBy={groupBy}
                 onRemove={onRemove}
                 onEdit={onEdit}
               />
@@ -199,8 +191,18 @@ export default function ShoppingList() {
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [editItem, setEditItem] = useState<Item | null>(null)
-  const [groupBy, setGroupBy] = useState<GroupBy>('category')
-  const [sortGroups, setSortGroups] = useState<'alpha' | 'count'>('alpha')
+  const [selectedSupermarkets, setSelectedSupermarkets] = useState<Set<string>>(new Set())
+  const [incompleteSheetOpen, setIncompleteSheetOpen] = useState(false)
+
+  const allItems = items ?? []
+
+  const allSupermarkets = useMemo(() =>
+    [...new Set(allItems.flatMap(i => i.supermarkets))].sort(),
+  [allItems])
+
+  const incompleteItems = useMemo(() =>
+    allItems.filter(i => i.category === null || i.supermarkets.length === 0),
+  [allItems])
 
   const handleRemove = useCallback((id: string) => {
     setRemovingIds(prev => new Set(prev).add(id))
@@ -216,7 +218,6 @@ export default function ShoppingList() {
     return <Typography color="error" sx={{ p: 2 }}>Failed to load shopping list.</Typography>
   }
 
-  const allItems = items ?? []
   const totalVisible = allItems.filter(i => !removingIds.has(i.id)).length
 
   if (totalVisible === 0) {
@@ -256,90 +257,72 @@ export default function ShoppingList() {
 
   const byName = (a: Item, b: Item) => a.name.localeCompare(b.name)
 
-  let groups: Array<[string, Item[]]>
+  const visibleItems = selectedSupermarkets.size === 0
+    ? allItems
+    : allItems.filter(i => i.supermarkets.some(s => selectedSupermarkets.has(s)))
 
-  if (groupBy === 'none') {
-    groups = [['', [...allItems].sort(byName)]]
-  } else {
-    const groupMap: Record<string, Item[]> = {}
-    for (const item of allItems) {
-      if (groupBy === 'category') {
-        const key = item.category ?? 'Other'
-        ;(groupMap[key] ??= []).push(item)
-      } else {
-        const markets = item.supermarkets.length ? item.supermarkets : ['Other']
-        for (const market of markets) {
-          ;(groupMap[market] ??= []).push(item)
-        }
-      }
-    }
-    groups = Object.entries(groupMap)
-      .sort(([a, ai], [b, bi]) => {
-        if (a === 'Other') return 1
-        if (b === 'Other') return -1
-        return sortGroups === 'count' ? bi.length - ai.length : a.localeCompare(b)
-      })
-      .map(([label, groupItems]) => [label, [...groupItems].sort(byName)])
+  const groupMap: Record<string, Item[]> = {}
+  for (const item of visibleItems) {
+    const key = item.category ?? 'Other'
+    ;(groupMap[key] ??= []).push(item)
   }
+  const groups: Array<[string, Item[]]> = Object.entries(groupMap)
+    .sort(([a], [b]) => a === 'Other' ? 1 : b === 'Other' ? -1 : a.localeCompare(b))
+    .map(([label, groupItems]) => [label, [...groupItems].sort(byName)])
 
   return (
     <Box sx={{ pb: 10 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 1.5 }}>
-        {groupBy !== 'none' && (
-          <ToggleButtonGroup
-            value={sortGroups}
-            exclusive
+      {incompleteItems.length > 0 && (
+        <Box sx={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          bgcolor: 'warning.main', color: 'warning.contrastText',
+          borderRadius: 2, px: 2, py: 1, mb: 1.5, opacity: 0.9,
+        }}>
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {incompleteItems.length === 1
+              ? '1 item missing category or supermarket'
+              : `${incompleteItems.length} items missing category or supermarket`}
+          </Typography>
+          <Button
             size="small"
-            onChange={(_, val) => { if (val) setSortGroups(val) }}
-            aria-label="Sort groups by"
+            sx={{ color: 'warning.contrastText', fontWeight: 600, ml: 1 }}
+            onClick={() => setIncompleteSheetOpen(true)}
           >
-            <ToggleButton value="alpha" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
-              A–Z
-            </ToggleButton>
-            <ToggleButton value="count" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
-              Count
-            </ToggleButton>
-          </ToggleButtonGroup>
-        )}
-        <ToggleButtonGroup
-          value={groupBy}
-          exclusive
-          size="small"
-          onChange={(_, val) => { if (val) setGroupBy(val) }}
-          aria-label="Group shopping list by"
-        >
-          <ToggleButton value="none" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
-            None
-          </ToggleButton>
-          <ToggleButton value="category" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
-            Category
-          </ToggleButton>
-          <ToggleButton value="supermarket" sx={{ px: 1.5, py: 0.5, textTransform: 'none', fontSize: 12 }}>
-            Supermarket
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </Box>
+            Review
+          </Button>
+        </Box>
+      )}
 
-      {groupBy === 'none'
-        ? (
-          <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,.06)' }}>
-            <List disablePadding>
-              {groups[0][1].map((item, idx) => (
-                <span key={item.id}>
-                  {idx > 0 && <Divider component="li" sx={{ ml: 7 }} />}
-                  <ShoppingItemRow
-                    item={item}
-                    removing={removingIds.has(item.id)}
-                    groupBy={groupBy}
-                    onRemove={handleRemove}
-                    onEdit={setEditItem}
-                  />
-                </span>
-              ))}
-            </List>
-          </Box>
-        )
-        : groups.map(([label, groupItems]) => (
+      {allSupermarkets.length > 0 && (
+        <Box sx={{
+          display: 'flex', gap: 1, overflowX: 'auto', pb: 0.5, mb: 1.5,
+          scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' },
+        }}>
+          {allSupermarkets.map(s => (
+            <Chip
+              key={s}
+              label={s}
+              clickable
+              color={selectedSupermarkets.has(s) ? 'primary' : 'default'}
+              variant={selectedSupermarkets.has(s) ? 'filled' : 'outlined'}
+              size="small"
+              onClick={() => setSelectedSupermarkets(prev => {
+                const next = new Set(prev)
+                next.has(s) ? next.delete(s) : next.add(s)
+                return next
+              })}
+              sx={{ flexShrink: 0 }}
+            />
+          ))}
+        </Box>
+      )}
+
+      {groups.length === 0 ? (
+        <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', mt: 4 }}>
+          No items for selected supermarket(s)
+        </Typography>
+      ) : (
+        groups.map(([label, groupItems]) => (
           <GroupSection
             key={label}
             label={label}
@@ -347,10 +330,9 @@ export default function ShoppingList() {
             removingIds={removingIds}
             onRemove={handleRemove}
             onEdit={setEditItem}
-            groupBy={groupBy}
           />
         ))
-      }
+      )}
 
       <Fab
         color="primary"
@@ -371,6 +353,12 @@ export default function ShoppingList() {
         item={editItem}
         onClose={() => setEditItem(null)}
         onDeleteRequest={editItem ? () => setEditItem(null) : undefined}
+      />
+      <IncompleteItemsSheet
+        open={incompleteSheetOpen}
+        items={incompleteItems}
+        onClose={() => setIncompleteSheetOpen(false)}
+        onEdit={item => setEditItem(item)}
       />
     </Box>
   )
