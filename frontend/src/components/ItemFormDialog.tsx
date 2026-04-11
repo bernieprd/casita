@@ -127,9 +127,10 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
         PaperProps={{
           sx: {
             borderRadius: '16px 16px 0 0',
-            maxHeight: '90vh',
+            maxHeight: Math.min(window.innerHeight * 0.90, window.innerHeight - keyboardOffset - 8),
             display: 'flex',
             flexDirection: 'column',
+            bgcolor: 'background.paper',
             bottom: keyboardOffset,
             transition: 'bottom 150ms ease-out',
           },

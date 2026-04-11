@@ -57,7 +57,7 @@ export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
       open={open}
       onClose={merging ? undefined : onClose}
       ModalProps={{ disableScrollLock: true }}
-      PaperProps={{ sx: { borderRadius: '16px 16px 0 0', maxHeight: '80vh', display: 'flex', flexDirection: 'column', bottom: keyboardOffset, transition: 'bottom 150ms ease-out' } }}
+      PaperProps={{ sx: { borderRadius: '16px 16px 0 0', maxHeight: Math.min(window.innerHeight * 0.80, window.innerHeight - keyboardOffset - 8), display: 'flex', flexDirection: 'column', bgcolor: 'background.paper', bottom: keyboardOffset, transition: 'bottom 150ms ease-out' } }}
     >
       {/* Handle */}
       <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5, flexShrink: 0 }}>

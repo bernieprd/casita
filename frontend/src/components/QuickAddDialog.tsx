@@ -172,9 +172,10 @@ export default function QuickAddDialog({ open, onClose, onCreated }: Props) {
         PaperProps={{
           sx: {
             borderRadius: '16px 16px 0 0',
-            maxHeight: '85vh',
+            maxHeight: Math.min(window.innerHeight * 0.85, window.innerHeight - keyboardOffset - 8),
             display: 'flex',
             flexDirection: 'column',
+            bgcolor: 'background.paper',
             bottom: keyboardOffset,
             transition: 'bottom 150ms ease-out',
           },
