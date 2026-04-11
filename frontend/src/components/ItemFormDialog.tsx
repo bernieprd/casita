@@ -16,6 +16,7 @@ import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useItems, useCreateItem, useUpdateItem } from '../api'
 import type { Item } from '../api'
+import { useKeyboardOffset } from '../useKeyboardOffset'
 
 interface Props {
   open: boolean
@@ -30,6 +31,7 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
   const update = useUpdateItem()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const keyboardOffset = useKeyboardOffset()
 
   const [name, setName] = useState('')
   const [category, setCategory] = useState<string | null>(null)
@@ -127,6 +129,8 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
             maxHeight: '90vh',
             display: 'flex',
             flexDirection: 'column',
+            bottom: keyboardOffset,
+            transition: 'bottom 150ms ease-out',
           },
         }}
       >

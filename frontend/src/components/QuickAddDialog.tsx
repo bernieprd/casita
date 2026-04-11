@@ -21,6 +21,7 @@ import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useItems, useToggleShoppingList, useCreateItem } from '../api'
 import type { Item } from '../api'
+import { useKeyboardOffset } from '../useKeyboardOffset'
 
 interface Props {
   open: boolean
@@ -35,6 +36,7 @@ export default function QuickAddDialog({ open, onClose, onCreated }: Props) {
   const create = useCreateItem()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const keyboardOffset = useKeyboardOffset()
 
   const q = query.trim().toLowerCase()
 
@@ -172,6 +174,8 @@ export default function QuickAddDialog({ open, onClose, onCreated }: Props) {
             maxHeight: '85vh',
             display: 'flex',
             flexDirection: 'column',
+            bottom: keyboardOffset,
+            transition: 'bottom 150ms ease-out',
           },
         }}
       >

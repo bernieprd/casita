@@ -12,6 +12,7 @@ import Typography from '@mui/material/Typography'
 import MergeTypeIcon from '@mui/icons-material/MergeType'
 import { useMergeItems } from '../api'
 import type { Item } from '../api'
+import { useKeyboardOffset } from '../useKeyboardOffset'
 
 interface Props {
   open: boolean
@@ -24,6 +25,7 @@ export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
   const [keepers, setKeepers] = useState<Record<number, string>>({})
   const [merging, setMerging] = useState(false)
   const mergeItems = useMergeItems()
+  const keyboardOffset = useKeyboardOffset()
 
   useEffect(() => {
     if (open) {
@@ -54,7 +56,7 @@ export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
       anchor="bottom"
       open={open}
       onClose={merging ? undefined : onClose}
-      PaperProps={{ sx: { borderRadius: '16px 16px 0 0', maxHeight: '80vh', display: 'flex', flexDirection: 'column' } }}
+      PaperProps={{ sx: { borderRadius: '16px 16px 0 0', maxHeight: '80vh', display: 'flex', flexDirection: 'column', bottom: keyboardOffset, transition: 'bottom 150ms ease-out' } }}
     >
       {/* Handle */}
       <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5, flexShrink: 0 }}>
