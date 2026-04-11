@@ -2,6 +2,7 @@ import { getItems, createItem, updateItem, deleteItem, mergeItem } from './route
 import { createRecipe, getRecipes, getRecipe, updateRecipe, getRecipeIngredients } from './routes/recipes'
 import { updateRecipeIngredient, createRecipeIngredient, deleteRecipeIngredient } from './routes/recipe-ingredients'
 import { getTodos, createTodo, updateTodo, deleteTodo } from './routes/todos'
+import { getCalendarEvents } from './routes/calendar'
 import { NotionError } from './notion'
 import type { Env } from './types'
 
@@ -59,7 +60,7 @@ const routes: Array<[string, URLPattern, Handler]> = [
   ['POST',   new URLPattern({ pathname: '/todos' }),                          createTodo],
   ['PATCH',  new URLPattern({ pathname: '/todos/:id' }),                      updateTodo],
   ['DELETE', new URLPattern({ pathname: '/todos/:id' }),                      deleteTodo],
-  ['GET',    new URLPattern({ pathname: '/calendar' }),                       () => Promise.resolve(Response.json([]))],
+  ['GET',    new URLPattern({ pathname: '/calendar' }),                       getCalendarEvents],
 ]
 
 // ── Entry point ───────────────────────────────────────────────────────────────

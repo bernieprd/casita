@@ -6,7 +6,6 @@ import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import RefreshIcon from '@mui/icons-material/Refresh'
-import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import { useShoppingList, useRecipes, useTodos, useUpdateTodo, useCalendarEvents } from '../api'
 import type { TabId } from '../App'
 
@@ -66,7 +65,14 @@ function timeLabel(dateStr: string): string | null {
 }
 
 function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
-  const { data: events, isLoading } = useCalendarEvents()
+  const timeMin = useMemo(() => new Date().toISOString(), [])
+  const timeMax = useMemo(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 14)
+    return d.toISOString()
+  }, [])
+
+  const { data: events, isLoading } = useCalendarEvents(timeMin, timeMax)
 
   const upcoming = useMemo(() => {
     if (!events) return []
@@ -82,12 +88,18 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
       <SectionHeader
         label="Coming up"
         action={
-          <IconButton size="small" onClick={onNavigate} sx={{ color: 'text.disabled', mr: -0.5 }}>
-            <ChevronRightIcon fontSize="small" />
-          </IconButton>
+          <Typography
+            variant="caption"
+            color="primary.main"
+            fontWeight={600}
+            onClick={onNavigate}
+            sx={{ cursor: 'pointer' }}
+          >
+            See all
+          </Typography>
         }
       />
-      <SectionCard onClick={onNavigate}>
+      <SectionCard>
         {isLoading ? (
           <Box sx={{ px: 2, py: 1.5 }}>
             {[0, 1, 2].map(i => (
@@ -255,12 +267,18 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
       <SectionHeader
         label="Shopping list"
         action={
-          <IconButton size="small" onClick={onNavigate} sx={{ color: 'text.disabled', mr: -0.5 }}>
-            <ChevronRightIcon fontSize="small" />
-          </IconButton>
+          <Typography
+            variant="caption"
+            color="primary.main"
+            fontWeight={600}
+            onClick={onNavigate}
+            sx={{ cursor: 'pointer' }}
+          >
+            See all
+          </Typography>
         }
       />
-      <SectionCard onClick={onNavigate}>
+      <SectionCard>
         {isLoading ? (
           <Box sx={{ px: 2, py: 1.75 }}>
             <Skeleton width={110} height={18} sx={{ mb: 0.75 }} />

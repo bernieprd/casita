@@ -51,6 +51,7 @@ export interface CalendarEvent {
   title: string
   start: string
   end: string
+  allDay: boolean
   color: string | null
 }
 
@@ -118,6 +119,9 @@ export interface Env {
   NOTION_RECIPES_DB: string
   NOTION_RECIPE_INGREDIENT_DB: string
   NOTION_TODOS_DB: string
+  GCAL_CALENDAR_ID: string
+  GCAL_CLIENT_EMAIL: string
+  GCAL_PRIVATE_KEY: string
   // Set in wrangler.toml [vars] or .dev.vars to override the default.
   // Defaults to the GitHub Pages origin in production.
   ALLOWED_ORIGIN?: string
