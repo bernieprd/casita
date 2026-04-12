@@ -2,11 +2,10 @@ import { useState, useMemo } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Skeleton from '@mui/material/Skeleton'
-import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import RefreshIcon from '@mui/icons-material/Refresh'
-import { useShoppingList, useRecipes, useTodos, useUpdateTodo, useCalendarEvents } from '../api'
+import { useShoppingList, useRecipes, useTodos, useCalendarEvents } from '../api'
 import type { TabId } from '../App'
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
@@ -49,13 +48,14 @@ function EmptyState({ text }: { text: string }) {
 
 // ── Calendar preview ──────────────────────────────────────────────────────────
 
-function dayLabel(dateStr: string): string {
-  const d = new Date(dateStr)
-  const today = new Date()
-  const tomorrow = new Date(today)
-  tomorrow.setDate(today.getDate() + 1)
+function dayLabel(dateStr: string, includeDatePart = false): string {
+  const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00')
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
   if (d.toDateString() === today.toDateString()) return 'Today'
   if (d.toDateString() === tomorrow.toDateString()) return 'Tomorrow'
+  if (includeDatePart)
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
   return d.toLocaleDateString('en-US', { weekday: 'short' })
 }
 
@@ -101,12 +101,12 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
       />
       <SectionCard>
         {isLoading ? (
-          <Box sx={{ px: 2, py: 1.5 }}>
+          <Box sx={{ px: 2 }}>
             {[0, 1, 2].map(i => (
-              <Box key={i} sx={{ display: 'flex', gap: 2, alignItems: 'center', py: 0.75 }}>
-                <Skeleton width={44} height={14} />
+              <Box key={i} sx={{ display: 'flex', gap: 1.5, alignItems: 'center', py: 1.25, borderTop: i > 0 ? '1px solid' : 'none', borderColor: 'divider' }}>
                 <Skeleton width="55%" height={14} />
-                <Skeleton width={40} height={14} sx={{ ml: 'auto' }} />
+                <Skeleton width={32} height={14} sx={{ ml: 'auto' }} />
+                <Skeleton width={40} height={14} />
               </Box>
             ))}
           </Box>
@@ -118,15 +118,15 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
               key={event.id}
               sx={{
                 px: 2, py: 1.25,
-                display: 'flex', alignItems: 'center', gap: 2,
+                display: 'flex', alignItems: 'center', gap: 1.5,
                 borderTop: i > 0 ? '1px solid' : 'none',
                 borderColor: 'divider',
               }}
             >
-              <Typography variant="caption" color="primary.main" fontWeight={600} sx={{ minWidth: 44 }}>
+              <Typography variant="body2" sx={{ flex: 1 }} noWrap>{event.title}</Typography>
+              <Typography variant="caption" color="primary.main" fontWeight={600} sx={{ whiteSpace: 'nowrap' }}>
                 {dayLabel(event.start)}
               </Typography>
-              <Typography variant="body2" sx={{ flex: 1 }} noWrap>{event.title}</Typography>
               {timeLabel(event.start) && (
                 <Typography variant="caption" color="text.disabled" sx={{ whiteSpace: 'nowrap' }}>
                   {timeLabel(event.start)}
@@ -146,7 +146,6 @@ const PRIORITY_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 }
 
 function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
   const { data: todos, isLoading } = useTodos()
-  const updateTodo = useUpdateTodo()
 
   const { topTodos, remaining } = useMemo(() => {
     if (!todos) return { topTodos: [], remaining: 0 }
@@ -182,11 +181,11 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
       />
       <SectionCard>
         {isLoading ? (
-          <Box sx={{ px: 1, py: 1 }}>
+          <Box sx={{ px: 2 }}>
             {[0, 1, 2].map(i => (
-              <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5 }}>
-                <Skeleton variant="circular" width={20} height={20} sx={{ ml: 0.75 }} />
-                <Skeleton width="60%" height={16} />
+              <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.25, borderTop: i > 0 ? '1px solid' : 'none', borderColor: 'divider' }}>
+                <Skeleton width="55%" height={16} />
+                <Skeleton width={40} height={16} sx={{ ml: 'auto' }} />
               </Box>
             ))}
           </Box>
@@ -198,30 +197,24 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
               <Box
                 key={todo.id}
                 sx={{
-                  px: 1, py: 0.5,
-                  display: 'flex', alignItems: 'center',
+                  px: 2, py: 1.25,
+                  display: 'flex', alignItems: 'center', gap: 1.5,
                   borderTop: i > 0 ? '1px solid' : 'none',
                   borderColor: 'divider',
                 }}
               >
-                <Checkbox
-                  size="small"
-                  checked={todo.status === 'Done'}
-                  onChange={() => updateTodo.mutate({ id: todo.id, status: 'Done' })}
-                  sx={{ p: 0.75 }}
-                />
                 <Typography variant="body2" noWrap sx={{ flex: 1 }}>{todo.name}</Typography>
                 {todo.priority && (
                   <Chip
                     label={todo.priority}
                     size="small"
                     color={todo.priority === 'High' ? 'error' : todo.priority === 'Medium' ? 'warning' : 'default'}
-                    sx={{ fontSize: 10, height: 18, ml: 1 }}
+                    sx={{ fontSize: 10, height: 18, flexShrink: 0 }}
                   />
                 )}
                 {todo.due && (
-                  <Typography variant="caption" color="text.disabled" sx={{ ml: 1, whiteSpace: 'nowrap' }}>
-                    {new Date(todo.due).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  <Typography variant="caption" color="primary.main" fontWeight={600} sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    {dayLabel(todo.due, true)}
                   </Typography>
                 )}
               </Box>
@@ -246,21 +239,27 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
 function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
   const { data: items, isLoading } = useShoppingList()
 
-  const preview = useMemo(() => {
-    if (!items?.length) return { count: 0, groups: [] }
-    const groupMap: Record<string, string[]> = {}
-    let taken = 0
+  const storeBreakdown = useMemo(() => {
+    if (!items?.length) return { count: 0, stores: [], unassigned: 0 }
+    const countMap: Record<string, number> = {}
+    let unassigned = 0
     for (const item of items) {
-      if (taken >= 4) break
-      const key = item.category ?? 'Other'
-      ;(groupMap[key] ??= []).push(item.name)
-      taken++
+      if (item.supermarkets.length === 0) {
+        unassigned++
+      } else {
+        for (const s of item.supermarkets) {
+          countMap[s] = (countMap[s] ?? 0) + 1
+        }
+      }
     }
-    return {
-      count: items.length,
-      groups: Object.entries(groupMap).map(([cat, names]) => `${cat}: ${names.join(', ')}`),
-    }
+    const stores = Object.entries(countMap)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3)
+    return { count: items.length, stores, unassigned }
   }, [items])
+
+  const allUnassigned = storeBreakdown.count > 0 && storeBreakdown.stores.length === 0
 
   return (
     <Box sx={{ mb: 3 }}>
@@ -282,19 +281,53 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
         {isLoading ? (
           <Box sx={{ px: 2, py: 1.75 }}>
             <Skeleton width={110} height={18} sx={{ mb: 0.75 }} />
-            <Skeleton width="75%" height={14} />
+            <Skeleton width="80%" height={14} sx={{ mb: 0.5 }} />
+            <Skeleton width="60%" height={14} />
           </Box>
         ) : (
           <Box sx={{ px: 2, py: 1.75 }}>
-            <Typography variant="body2" fontWeight={600} sx={{ mb: preview.groups.length ? 0.5 : 0 }}>
-              {preview.count === 0
+            <Typography variant="body2" fontWeight={600} sx={{ mb: storeBreakdown.count ? 1 : 0 }}>
+              {storeBreakdown.count === 0
                 ? 'Nothing on the list'
-                : `${preview.count} item${preview.count !== 1 ? 's' : ''} to buy`}
+                : `${storeBreakdown.count} item${storeBreakdown.count !== 1 ? 's' : ''} to buy`}
             </Typography>
-            {preview.groups.length > 0 && (
-              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                {preview.groups.join(' · ')}
+            {allUnassigned && (
+              <Typography variant="caption" color="text.secondary">
+                Add stores to your items for guidance
               </Typography>
+            )}
+            {storeBreakdown.stores.map((store, i) => (
+              <Box
+                key={store.name}
+                sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}
+              >
+                <Typography
+                  variant="caption"
+                  fontWeight={i === 0 ? 700 : 400}
+                  color={i === 0 ? 'primary.main' : 'text.primary'}
+                  sx={{ flex: 1 }}
+                >
+                  {i === 0 ? '★ ' : ''}
+                  {store.name}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  fontWeight={i === 0 ? 700 : 400}
+                  color={i === 0 ? 'primary.main' : 'text.secondary'}
+                >
+                  {store.count}
+                </Typography>
+              </Box>
+            ))}
+            {storeBreakdown.unassigned > 0 && storeBreakdown.stores.length > 0 && (
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography variant="caption" color="text.disabled" sx={{ flex: 1 }}>
+                  Not assigned
+                </Typography>
+                <Typography variant="caption" color="text.disabled">
+                  {storeBreakdown.unassigned}
+                </Typography>
+              </Box>
             )}
           </Box>
         )}

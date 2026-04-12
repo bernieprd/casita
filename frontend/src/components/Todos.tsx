@@ -4,32 +4,45 @@ import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import List from '@mui/material/List'
-import ListItem from '@mui/material/ListItem'
 import ListItemButton from '@mui/material/ListItemButton'
-import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
-import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
-import IconButton from '@mui/material/IconButton'
 import Collapse from '@mui/material/Collapse'
 import Divider from '@mui/material/Divider'
 import Snackbar from '@mui/material/Snackbar'
 import Alert from '@mui/material/Alert'
 import Skeleton from '@mui/material/Skeleton'
+import Drawer from '@mui/material/Drawer'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from '../api'
 import type { Todo } from '../api'
+import { useKeyboardOffset } from '../useKeyboardOffset'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const STATUSES = ['Todo', 'In progress', 'On hold', 'Done'] as const
 type Status = (typeof STATUSES)[number]
 
-// Checking the checkbox cycles: non-Done → Done; Done → Todo
-function nextStatus(current: string | null): Status {
-  return current === 'Done' ? 'Todo' : 'Done'
+const STATUS_COLORS: Record<Status, 'default' | 'primary' | 'warning' | 'success'> = {
+  'Todo':        'default',
+  'In progress': 'primary',
+  'On hold':     'warning',
+  'Done':        'success',
+}
+
+const PRIORITY_OPTIONS: Array<{ label: string; value: string | null }> = [
+  { label: 'None',   value: null },
+  { label: 'Low',    value: 'Low' },
+  { label: 'Medium', value: 'Medium' },
+  { label: 'High',   value: 'High' },
+]
+
+const PRIORITY_COLORS: Record<string, { bg: string; color: string }> = {
+  High:   { bg: '#fde8e8', color: '#c62828' },
+  Medium: { bg: '#fff8e1', color: '#e65100' },
+  Low:    { bg: '#f3f3f3', color: '#616161' },
 }
 
 // ── Date formatting ───────────────────────────────────────────────────────────
@@ -47,12 +60,6 @@ function formatDue(due: string | null): string | null {
 
 // ── Priority chip ─────────────────────────────────────────────────────────────
 
-const PRIORITY_COLORS: Record<string, { bg: string; color: string }> = {
-  High:   { bg: '#fde8e8', color: '#c62828' },
-  Medium: { bg: '#fff8e1', color: '#e65100' },
-  Low:    { bg: '#f3f3f3', color: '#616161' },
-}
-
 function PriorityChip({ priority }: { priority: string | null }) {
   if (!priority) return null
   const style = PRIORITY_COLORS[priority] ?? { bg: '#f3f3f3', color: '#616161' }
@@ -61,8 +68,8 @@ function PriorityChip({ priority }: { priority: string | null }) {
       label={priority}
       size="small"
       sx={{
-        height: 20,
-        fontSize: '0.68rem',
+        height: 18,
+        fontSize: '0.65rem',
         fontWeight: 600,
         bgcolor: style.bg,
         color: style.color,
@@ -77,67 +84,225 @@ function PriorityChip({ priority }: { priority: string | null }) {
 
 interface TodoRowProps {
   todo: Todo
-  onToggle: (todo: Todo) => void
-  onDelete: (todo: Todo) => void
+  onOpen: (todo: Todo) => void
 }
 
-function TodoRow({ todo, onToggle, onDelete }: TodoRowProps) {
+function TodoRow({ todo, onOpen }: TodoRowProps) {
   const dueLabel = formatDue(todo.due)
   const isDone = todo.status === 'Done'
+  const hasSecondary = !!(todo.priority || dueLabel)
 
   return (
-    <ListItem
-      disablePadding
-      secondaryAction={
-        <IconButton
-          edge="end"
-          size="small"
-          aria-label={`Delete ${todo.name}`}
-          onClick={() => onDelete(todo)}
-          sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}
-        >
-          <DeleteOutlineIcon fontSize="small" />
-        </IconButton>
-      }
-      sx={{ px: 2, py: 1 }}
+    <ListItemButton
+      onClick={() => onOpen(todo)}
+      sx={{ px: 2, py: 0.75 }}
     >
-      <ListItemIcon sx={{ minWidth: 40 }}>
-        <Checkbox
-          edge="start"
-          checked={isDone}
-          onChange={() => onToggle(todo)}
-          size="small"
-          tabIndex={-1}
-          inputProps={{ 'aria-label': todo.name }}
-        />
-      </ListItemIcon>
-      <ListItemText
-        primary={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+        <ListItemText
+          primary={
             <Typography
               variant="body2"
               sx={{
                 textDecoration: isDone ? 'line-through' : 'none',
                 color: isDone ? 'text.disabled' : 'text.primary',
-                flexShrink: 1,
-                minWidth: 0,
               }}
             >
               {todo.name}
             </Typography>
-            <PriorityChip priority={todo.priority} />
-            {dueLabel && (
-              <Typography
-                variant="caption"
-                sx={{ color: dueLabel === 'Today' ? 'error.main' : 'text.secondary', flexShrink: 0 }}
+          }
+          secondary={
+            hasSecondary ? (
+              <Box
+                component="span"
+                sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25, flexWrap: 'wrap' }}
               >
-                {dueLabel}
-              </Typography>
-            )}
-          </Box>
-        }
-      />
-    </ListItem>
+                <PriorityChip priority={todo.priority} />
+                {dueLabel && (
+                  <Typography
+                    variant="caption"
+                    component="span"
+                    sx={{ color: dueLabel === 'Today' ? 'error.main' : 'text.secondary', flexShrink: 0 }}
+                  >
+                    {dueLabel}
+                  </Typography>
+                )}
+              </Box>
+            ) : null
+          }
+          secondaryTypographyProps={{ component: 'span' }}
+        />
+    </ListItemButton>
+  )
+}
+
+// ── Todo detail sheet ─────────────────────────────────────────────────────────
+
+interface TodoDetailSheetProps {
+  todo: Todo | null
+  onClose: () => void
+  onUpdate: (id: string, fields: Partial<Omit<Todo, 'id'>>) => void
+  onDelete: (todo: Todo) => void
+}
+
+function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetProps) {
+  const [draftName, setDraftName] = useState('')
+  const [draftDue, setDraftDue] = useState('')
+  const [draftStatus, setDraftStatus] = useState<Status>('Todo')
+  const [draftPriority, setDraftPriority] = useState<string | null>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
+  const keyboardOffset = useKeyboardOffset()
+
+  useEffect(() => {
+    if (!todo) return
+    setDraftName(todo.name)
+    setDraftDue(todo.due ?? '')
+    setDraftStatus((todo.status ?? 'Todo') as Status)
+    setDraftPriority(todo.priority)
+    const t = setTimeout(() => nameRef.current?.focus(), 150)
+    return () => clearTimeout(t)
+  }, [todo])
+
+  function handleSave() {
+    if (!todo) return
+    const fields: Partial<Omit<Todo, 'id'>> = {}
+    const trimmedName = draftName.trim()
+    if (trimmedName && trimmedName !== todo.name) fields.name = trimmedName
+    const due = draftDue || null
+    if (due !== todo.due) fields.due = due
+    if (draftStatus !== (todo.status ?? 'Todo')) fields.status = draftStatus
+    if (draftPriority !== todo.priority) fields.priority = draftPriority
+    if (Object.keys(fields).length > 0) onUpdate(todo.id, fields)
+    onClose()
+  }
+
+  function handleStatusChip(status: Status) {
+    setDraftStatus(status)
+  }
+
+  function handlePriorityChip(value: string | null) {
+    setDraftPriority(value)
+  }
+
+  return (
+    <Drawer
+      anchor="bottom"
+      open={!!todo}
+      onClose={onClose}
+      ModalProps={{ disableScrollLock: true }}
+      PaperProps={{
+        sx: {
+          borderRadius: '16px 16px 0 0',
+          display: 'flex',
+          flexDirection: 'column',
+          bottom: keyboardOffset,
+          transition: 'bottom 150ms ease-out',
+        },
+      }}
+    >
+      {/* Drag handle */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5, flexShrink: 0 }}>
+        <Box sx={{ width: 32, height: 4, borderRadius: 2, bgcolor: 'divider' }} />
+      </Box>
+
+      {/* Scrollable content */}
+      <Box sx={{ overflowY: 'auto', px: 2.5, pt: 1, pb: 3 }}>
+        {/* Name */}
+        <TextField
+          value={draftName}
+          onChange={e => setDraftName(e.target.value)}
+          variant="standard"
+          fullWidth
+          inputRef={nameRef}
+          inputProps={{ enterKeyHint: 'done', 'aria-label': 'Todo name' }}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); nameRef.current?.blur() } }}
+          sx={{ mb: 0.5 }}
+        />
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Status */}
+        <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1, letterSpacing: '.08em' }}>
+          Status
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.75 }}>
+          {STATUSES.map(s => {
+            const selected = draftStatus === s
+            return (
+              <Chip
+                key={s}
+                label={s}
+                clickable
+                size="small"
+                onClick={() => handleStatusChip(s)}
+                variant={selected ? 'filled' : 'outlined'}
+                color={selected ? STATUS_COLORS[s] : 'default'}
+                sx={{ fontSize: '0.8rem' }}
+              />
+            )
+          })}
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Priority */}
+        <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1, letterSpacing: '.08em' }}>
+          Priority
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.75 }}>
+          {PRIORITY_OPTIONS.map(({ label, value }) => {
+            const selected = draftPriority === value
+            const chipColor = value === 'High' ? 'error' : value === 'Medium' ? 'warning' : 'default'
+            return (
+              <Chip
+                key={label}
+                label={label}
+                clickable
+                size="small"
+                onClick={() => handlePriorityChip(value)}
+                variant={selected ? 'filled' : 'outlined'}
+                color={selected ? chipColor : 'default'}
+                sx={{ fontSize: '0.8rem' }}
+              />
+            )
+          })}
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Due date */}
+        <TextField
+          type="date"
+          label="Due date"
+          size="small"
+          fullWidth
+          value={draftDue}
+          onChange={e => setDraftDue(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+        />
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Actions */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Button
+            color="error"
+            variant="text"
+            startIcon={<DeleteOutlineIcon />}
+            onClick={() => { if (todo) { onDelete(todo); onClose() } }}
+            sx={{ textTransform: 'none' }}
+          >
+            Delete
+          </Button>
+          <Button
+            variant="contained"
+            disableElevation
+            onClick={handleSave}
+            sx={{ textTransform: 'none' }}
+          >
+            Save
+          </Button>
+        </Box>
+      </Box>
+    </Drawer>
   )
 }
 
@@ -146,15 +311,16 @@ function TodoRow({ todo, onToggle, onDelete }: TodoRowProps) {
 interface SectionProps {
   status: Status
   todos: Todo[]
-  collapsedByDefault?: boolean
   pendingDeleteId: string | null
-  onToggle: (todo: Todo) => void
-  onDelete: (todo: Todo) => void
+  onOpen: (todo: Todo) => void
+  onClearDone?: () => void
 }
 
-function Section({ status, todos, collapsedByDefault, pendingDeleteId, onToggle, onDelete }: SectionProps) {
-  const [expanded, setExpanded] = useState(!collapsedByDefault)
+function Section({ status, todos, pendingDeleteId, onOpen, onClearDone }: SectionProps) {
+  const [expanded, setExpanded] = useState(true)
   const visible = todos.filter(t => t.id !== pendingDeleteId)
+
+  if (visible.length === 0) return null
 
   return (
     <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,.06)', mb: 1 }}>
@@ -169,6 +335,17 @@ function Section({ status, todos, collapsedByDefault, pendingDeleteId, onToggle,
         <Typography variant="caption" color="text.disabled" sx={{ mr: 1 }}>
           {visible.length}
         </Typography>
+        {onClearDone && visible.length > 0 && (
+          <Button
+            size="small"
+            color="error"
+            variant="text"
+            onClick={e => { e.stopPropagation(); onClearDone() }}
+            sx={{ mr: 0.5, textTransform: 'none', fontSize: '0.75rem', minWidth: 0, px: 1, py: 0.25 }}
+          >
+            Clear all
+          </Button>
+        )}
         {expanded
           ? <ExpandLess fontSize="small" sx={{ color: 'text.disabled' }} />
           : <ExpandMore fontSize="small" sx={{ color: 'text.disabled' }} />
@@ -180,8 +357,8 @@ function Section({ status, todos, collapsedByDefault, pendingDeleteId, onToggle,
         <List disablePadding>
           {visible.map((todo, idx) => (
             <span key={todo.id}>
-              {idx > 0 && <Divider component="li" sx={{ ml: 7 }} />}
-              <TodoRow todo={todo} onToggle={onToggle} onDelete={onDelete} />
+              {idx > 0 && <Divider component="li" sx={{ ml: 2 }} />}
+              <TodoRow todo={todo} onOpen={onOpen} />
             </span>
           ))}
         </List>
@@ -234,6 +411,7 @@ export default function Todos() {
   const [inputValue, setInputValue] = useState('')
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
   const [undoVisible, setUndoVisible] = useState(false)
+  const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
   const pendingDeleteRef = useRef<PendingDelete | null>(null)
 
   useEffect(() => {
@@ -245,10 +423,6 @@ export default function Todos() {
     if (!name) return
     setInputValue('')
     createTodo.mutate({ name })
-  }
-
-  function handleToggle(todo: Todo) {
-    updateTodo.mutate({ id: todo.id, status: nextStatus(todo.status) })
   }
 
   const commitDelete = useCallback((todo: Todo) => {
@@ -285,6 +459,22 @@ export default function Todos() {
     setUndoVisible(false)
   }
 
+  function handleOpen(todo: Todo) {
+    setSelectedTodo(todo)
+  }
+
+  function handleCloseSheet() {
+    setSelectedTodo(null)
+  }
+
+  function handleUpdate(id: string, fields: Partial<Omit<Todo, 'id'>>) {
+    updateTodo.mutate({ id, ...fields })
+  }
+
+  function handleClearDone() {
+    byStatus('Done').forEach(todo => deleteTodo.mutate(todo.id))
+  }
+
   const pendingDeleteId = pendingDelete?.todo.id ?? null
   const byStatus = (status: Status) =>
     (todos ?? []).filter(t => (t.status ?? 'Todo') === status)
@@ -318,10 +508,9 @@ export default function Todos() {
             key={status}
             status={status}
             todos={byStatus(status)}
-            collapsedByDefault={status === 'Done'}
             pendingDeleteId={pendingDeleteId}
-            onToggle={handleToggle}
-            onDelete={handleDelete}
+            onOpen={handleOpen}
+            onClearDone={status === 'Done' ? handleClearDone : undefined}
           />
         ))}
       </Box>
@@ -387,6 +576,14 @@ export default function Todos() {
           To-do deleted
         </Alert>
       </Snackbar>
+
+      {/* Detail sheet */}
+      <TodoDetailSheet
+        todo={selectedTodo}
+        onClose={handleCloseSheet}
+        onUpdate={handleUpdate}
+        onDelete={handleDelete}
+      />
     </>
   )
 }
