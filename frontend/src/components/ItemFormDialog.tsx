@@ -92,6 +92,7 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
       <Autocomplete
         multiple
         freeSolo
+        disableCloseOnSelect
         options={supermarketOptions}
         value={supermarkets}
         onChange={(_, v) => setSupermarkets(v as string[])}
