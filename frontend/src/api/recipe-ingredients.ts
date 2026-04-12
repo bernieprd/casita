@@ -42,29 +42,39 @@ export function useToggleNeedsShopping(recipeId: string) {
     onMutate: async ({ id, needsShopping, itemId, itemName }) => {
       await qc.cancelQueries({ queryKey })
       await qc.cancelQueries({ queryKey: itemKeys.shopping })
+      await qc.cancelQueries({ queryKey: itemKeys.all })
 
       const previousIngredients = qc.getQueryData<RecipeIngredient[]>(queryKey)
       const previousShopping = qc.getQueryData<Item[]>(itemKeys.shopping)
+      const previousAll = qc.getQueryData<Item[]>(itemKeys.all)
 
       // Optimistically flip the ingredient.
       qc.setQueryData<RecipeIngredient[]>(queryKey, old =>
         old?.map(ing => (ing.id === id ? { ...ing, needsShopping } : ing)),
       )
 
-      // Optimistically add/remove from the shopping list.
+      // Optimistically sync onShoppingList on the full items cache.
       if (itemId) {
+        qc.setQueryData<Item[]>(itemKeys.all, old =>
+          old?.map(i => (i.id === itemId ? { ...i, onShoppingList: needsShopping } : i)),
+        )
+
+        // Optimistically add/remove from the shopping list, using full item data when available.
         qc.setQueryData<Item[]>(itemKeys.shopping, old => {
           if (!old) return old
           if (needsShopping) {
             if (old.some(i => i.id === itemId)) return old
-            const stub: Item = { id: itemId, name: itemName ?? '', category: null, supermarkets: [], tags: [], onShoppingList: true }
-            return [...old, stub]
+            const full = qc.getQueryData<Item[]>(itemKeys.all)?.find(i => i.id === itemId)
+            const item: Item = full
+              ? { ...full, onShoppingList: true }
+              : { id: itemId, name: itemName ?? '', category: null, supermarkets: [], tags: [], onShoppingList: true }
+            return [...old, item]
           }
           return old.filter(i => i.id !== itemId)
         })
       }
 
-      return { previousIngredients, previousShopping }
+      return { previousIngredients, previousShopping, previousAll }
     },
 
     onError: (_err, _vars, context) => {
@@ -72,11 +82,14 @@ export function useToggleNeedsShopping(recipeId: string) {
         qc.setQueryData(queryKey, context.previousIngredients)
       if (context?.previousShopping !== undefined)
         qc.setQueryData(itemKeys.shopping, context.previousShopping)
+      if (context?.previousAll !== undefined)
+        qc.setQueryData(itemKeys.all, context.previousAll)
     },
 
     onSettled: () => {
       qc.invalidateQueries({ queryKey })
       qc.invalidateQueries({ queryKey: itemKeys.shopping })
+      qc.invalidateQueries({ queryKey: itemKeys.all })
     },
   })
 }

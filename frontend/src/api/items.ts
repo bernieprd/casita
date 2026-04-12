@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import type { Item } from './types'
+import type { Item, RecipeIngredient } from './types'
 
 // ── Query keys ────────────────────────────────────────────────────────────────
 
@@ -112,15 +112,29 @@ export function useToggleShoppingList() {
         return old.filter(i => i.id !== id)
       })
 
-      return { previousAll, previousShopping }
+      // Optimistically sync needsShopping on any cached recipe ingredient queries.
+      const previousIngredientCaches: [readonly unknown[], RecipeIngredient[]][] = []
+      qc.getQueriesData<RecipeIngredient[]>({ queryKey: ['recipes'] }).forEach(([key, data]) => {
+        if (!Array.isArray(data) || key[2] !== 'ingredients') return
+        previousIngredientCaches.push([key, data])
+        qc.setQueryData(key, data.map(ing =>
+          ing.itemId === id ? { ...ing, needsShopping: onShoppingList } : ing,
+        ))
+      })
+
+      return { previousAll, previousShopping, previousIngredientCaches }
     },
     onError: (_err, _vars, context) => {
       if (context?.previousAll      !== undefined) qc.setQueryData(itemKeys.all,      context.previousAll)
       if (context?.previousShopping !== undefined) qc.setQueryData(itemKeys.shopping, context.previousShopping)
+      context?.previousIngredientCaches?.forEach(([key, data]) => qc.setQueryData(key, data))
     },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: itemKeys.all })
       qc.invalidateQueries({ queryKey: itemKeys.shopping })
+      qc.invalidateQueries({
+        predicate: q => q.queryKey[0] === 'recipes' && q.queryKey[2] === 'ingredients',
+      })
     },
   })
 }
