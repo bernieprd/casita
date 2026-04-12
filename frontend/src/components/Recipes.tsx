@@ -161,7 +161,7 @@ function RecipeGrid({ onSelect }: { onSelect: (id: string) => void }) {
       <Box
         sx={{
           position: 'sticky',
-          top: '56px',
+          top: { xs: '57px', sm: '65px' },
           ml: 'calc(50% - 50vw)',
           width: '100vw',
           mt: -2,

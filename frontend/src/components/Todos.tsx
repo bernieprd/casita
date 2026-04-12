@@ -481,8 +481,47 @@ export default function Todos() {
 
   return (
     <>
+      {/* Sticky add bar — matches Recipes search bar pattern */}
+      <Box
+        component="form"
+        onSubmit={e => { e.preventDefault(); handleAdd() }}
+        sx={{
+          position: 'sticky',
+          top: { xs: '57px', sm: '65px' },
+          ml: 'calc(50% - 50vw)',
+          width: '100vw',
+          mt: -2,
+          zIndex: 10,
+          mb: 1.5,
+          bgcolor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, py: 1.5, display: 'flex', gap: 1 }}>
+          <TextField
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            placeholder="Add a to-do…"
+            size="small"
+            fullWidth
+            autoComplete="off"
+            inputProps={{ 'aria-label': 'New to-do name' }}
+          />
+          <Button
+            type="submit"
+            variant="contained"
+            disableElevation
+            disabled={!inputValue.trim()}
+            sx={{ flexShrink: 0, textTransform: 'none' }}
+          >
+            Add
+          </Button>
+        </Box>
+      </Box>
+
       {/* List */}
-      <Box sx={{ pb: 10 }}>
+      <Box sx={{ pb: 4 }}>
         {isLoading && <TodosSkeleton />}
 
         {error && (
@@ -498,7 +537,7 @@ export default function Todos() {
               All caught up
             </Typography>
             <Typography variant="body2" color="text.disabled">
-              Add a to-do below to get started
+              Add a to-do above to get started
             </Typography>
           </Box>
         )}
@@ -515,53 +554,13 @@ export default function Todos() {
         ))}
       </Box>
 
-      {/* Fixed input bar above tab bar */}
-      <Box
-        component="form"
-        onSubmit={e => { e.preventDefault(); handleAdd() }}
-        sx={{
-          position: 'fixed',
-          bottom: 'calc(56px + env(safe-area-inset-bottom))',
-          left: 0,
-          right: 0,
-          zIndex: 1050,
-          display: 'flex',
-          gap: 1,
-          px: 2,
-          py: 1.5,
-          bgcolor: 'background.paper',
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          boxShadow: '0 -2px 8px rgba(0,0,0,.06)',
-        }}
-      >
-        <TextField
-          value={inputValue}
-          onChange={e => setInputValue(e.target.value)}
-          placeholder="Add a to-do…"
-          size="small"
-          fullWidth
-          autoComplete="off"
-          inputProps={{ 'aria-label': 'New to-do name' }}
-        />
-        <Button
-          type="submit"
-          variant="contained"
-          disableElevation
-          disabled={!inputValue.trim()}
-          sx={{ flexShrink: 0, textTransform: 'none' }}
-        >
-          Add
-        </Button>
-      </Box>
-
-      {/* Undo toast — sits above the input bar */}
+      {/* Undo toast */}
       <Snackbar
         open={undoVisible}
         autoHideDuration={UNDO_DURATION_MS}
         onClose={handleUndoClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{ mb: 'calc(112px + env(safe-area-inset-bottom))' }}
+        sx={{ mb: 'calc(56px + env(safe-area-inset-bottom))' }}
       >
         <Alert
           severity="info"
