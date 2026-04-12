@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
@@ -9,6 +9,7 @@ import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import ListItemText from '@mui/material/ListItemText'
 import IconButton from '@mui/material/IconButton'
+import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
 import InputAdornment from '@mui/material/InputAdornment'
 import Fab from '@mui/material/Fab'
@@ -17,9 +18,10 @@ import Alert from '@mui/material/Alert'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import EditIcon from '@mui/icons-material/Edit'
 import AddIcon from '@mui/icons-material/Add'
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
+import RefreshIcon from '@mui/icons-material/Refresh'
 import SearchIcon from '@mui/icons-material/Search'
-import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping } from '../api'
+import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping, recipeKeys } from '../api'
+import { useQueryClient } from '@tanstack/react-query'
 import type { Block, RecipeWithBlocks, RecipeIngredient } from '../api'
 import RecipeFormSheet from './RecipeFormSheet'
 
@@ -353,20 +355,33 @@ function IngredientGroups({
                 <ListItem
                   disableGutters
                   secondaryAction={
-                    <IconButton
-                      size="small"
-                      edge="end"
-                      onClick={() => toggle.mutate({
-                        id: ing.id,
-                        needsShopping: !ing.needsShopping,
-                        itemId: ing.itemId,
-                        itemName: ing.itemName,
-                      })}
-                      color={ing.needsShopping ? 'primary' : 'default'}
-                      sx={{ opacity: ing.needsShopping ? 1 : 0.35 }}
-                    >
-                      <ShoppingCartIcon fontSize="small" />
-                    </IconButton>
+                    ing.needsShopping ? (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => toggle.mutate({
+                          id: ing.id,
+                          needsShopping: false,
+                          itemId: ing.itemId,
+                          itemName: ing.itemName,
+                        })}
+                      >
+                        Added to list
+                      </Button>
+                    ) : (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() => toggle.mutate({
+                          id: ing.id,
+                          needsShopping: true,
+                          itemId: ing.itemId,
+                          itemName: ing.itemName,
+                        })}
+                      >
+                        Add to list
+                      </Button>
+                    )
                   }
                 >
                   <ListItemText
@@ -374,7 +389,7 @@ function IngredientGroups({
                     secondary={ing.quantity ?? undefined}
                     primaryTypographyProps={{ variant: 'body2' }}
                     secondaryTypographyProps={{ variant: 'caption' }}
-                    sx={{ pr: 5 }}
+                    sx={{ pr: 16 }}
                   />
                 </ListItem>
               </span>
@@ -389,32 +404,44 @@ function IngredientGroups({
 
 // ── Recipe detail ─────────────────────────────────────────────────────────────
 
-function RecipeDetail({ id, onBack }: { id: string; onBack: () => void }) {
+function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => void; setToolbar?: (node: ReactNode | null) => void }) {
   const { data: recipe, isLoading: recipeLoading } = useRecipe(id)
   const { data: ingredients, isLoading: ingredientsLoading } = useRecipeIngredients(id)
   const toggle = useToggleNeedsShopping(id)
   const [editOpen, setEditOpen] = useState(false)
   const [toastOpen, setToastOpen] = useState(false)
+  const qc = useQueryClient()
+  const onBackRef = useRef(onBack)
+  onBackRef.current = onBack
 
-  return (
-    <Box sx={{ pb: 10 }}>
-      {/* Back nav + edit button */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2, mx: -0.5 }}>
-        <IconButton onClick={onBack} size="small">
-          <ArrowBackIcon fontSize="small" />
+  useEffect(() => {
+    setToolbar?.(
+      <>
+        <IconButton onClick={() => onBackRef.current()} size="small" color="inherit" edge="start">
+          <ArrowBackIcon />
         </IconButton>
         <Typography
-          variant="body2"
+          variant="body1"
           color="text.secondary"
-          onClick={onBack}
-          sx={{ cursor: 'pointer', flex: 1 }}
+          onClick={() => onBackRef.current()}
+          sx={{ cursor: 'pointer', flex: 1, ml: 0.5 }}
         >
           Recipes
         </Typography>
-        <IconButton size="small" onClick={() => setEditOpen(true)}>
-          <EditIcon fontSize="small" />
+        <IconButton size="small" color="inherit" onClick={() => setEditOpen(true)}>
+          <EditIcon />
         </IconButton>
-      </Box>
+        <IconButton size="small" color="inherit" onClick={() => qc.invalidateQueries({ queryKey: recipeKeys.all })}>
+          <RefreshIcon />
+        </IconButton>
+      </>
+    )
+    return () => setToolbar?.(null)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <Box sx={{ pb: 10 }}>
 
       {recipeLoading && !recipe ? (
         <>
@@ -540,9 +567,11 @@ function RecipeDetail({ id, onBack }: { id: string; onBack: () => void }) {
 export default function Recipes({
   initialRecipeId,
   onInitialRecipeIdConsumed,
+  setToolbar,
 }: {
   initialRecipeId?: string | null
   onInitialRecipeIdConsumed?: () => void
+  setToolbar?: (node: ReactNode | null) => void
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(initialRecipeId ?? null)
 
@@ -552,7 +581,7 @@ export default function Recipes({
   })
 
   if (selectedId) {
-    return <RecipeDetail id={selectedId} onBack={() => setSelectedId(null)} />
+    return <RecipeDetail id={selectedId} onBack={() => setSelectedId(null)} setToolbar={setToolbar} />
   }
 
   return <RecipeGrid onSelect={setSelectedId} />

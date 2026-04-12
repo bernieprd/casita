@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
@@ -30,6 +30,7 @@ export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
 export default function App() {
   const [tab, setTab] = useState<TabId>('home')
   const [recipeDeepLink, setRecipeDeepLink] = useState<string | null>(null)
+  const [recipeDetailBar, setRecipeDetailBar] = useState<ReactNode | null>(null)
   const qc = useQueryClient()
   const isOnline = useOnlineStatus()
 
@@ -60,13 +61,17 @@ export default function App() {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="sticky" color="inherit" sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Toolbar sx={{ px: { xs: 2 } }}>
-          <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ flex: 1 }}>
-            Casita
-          </Typography>
-          {canRefresh && (
-            <IconButton onClick={handleRefresh} size="small" color="inherit">
-              <RefreshIcon />
-            </IconButton>
+          {recipeDetailBar ?? (
+            <>
+              <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ flex: 1 }}>
+                Casita
+              </Typography>
+              {canRefresh && (
+                <IconButton onClick={handleRefresh} size="small" color="inherit">
+                  <RefreshIcon />
+                </IconButton>
+              )}
+            </>
           )}
         </Toolbar>
       </AppBar>
@@ -91,6 +96,7 @@ export default function App() {
             <Recipes
               initialRecipeId={recipeDeepLink}
               onInitialRecipeIdConsumed={() => setRecipeDeepLink(null)}
+              setToolbar={setRecipeDetailBar}
             />
           </TabErrorBoundary>
         )}
