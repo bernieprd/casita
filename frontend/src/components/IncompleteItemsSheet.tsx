@@ -56,7 +56,7 @@ export default function IncompleteItemsSheet({ open, items, onClose, onEdit }: P
       <Divider />
 
       {/* List */}
-      <Box sx={{ overflow: 'auto', flex: 1 }}>
+      <Box sx={{ overflow: 'auto', flex: 1, overscrollBehavior: 'contain' }}>
         <List disablePadding>
           {items.map((item, idx) => (
             <span key={item.id}>

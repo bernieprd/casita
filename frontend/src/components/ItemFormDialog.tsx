@@ -85,6 +85,7 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
         onInputChange={(_, v, reason) => {
           if (reason === 'input') setCategory(v || null)
         }}
+        slotProps={{ popper: { placement: 'top-start' } }}
         renderInput={params => (
           <TextField {...params} label="Category" size="small" />
         )}
@@ -96,6 +97,7 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
         options={supermarketOptions}
         value={supermarkets}
         onChange={(_, v) => setSupermarkets(v as string[])}
+        slotProps={{ popper: { placement: 'top-start' } }}
         renderInput={params => (
           <TextField {...params} label="Supermarkets" size="small" />
         )}
@@ -148,7 +150,7 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
-        <Box sx={{ px: 2, pb: 1, overflow: 'auto', flex: 1 }}>
+        <Box sx={{ px: 2, pb: 1, overflow: 'auto', flex: 1, overscrollBehavior: 'contain' }}>
           {formContent}
         </Box>
         <Box sx={{ px: 2, py: 2, flexShrink: 0, borderTop: '1px solid', borderColor: 'divider' }}>

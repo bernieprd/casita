@@ -204,7 +204,7 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
       </Box>
 
       {/* Scrollable content */}
-      <Box sx={{ overflowY: 'auto', px: 2.5, pt: 1, pb: 3 }}>
+      <Box sx={{ overflowY: 'auto', px: 2.5, pt: 1, pb: 3, overscrollBehavior: 'contain' }}>
         {/* Name */}
         <TextField
           value={draftName}

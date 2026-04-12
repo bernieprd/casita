@@ -153,6 +153,7 @@ function IngredientRowForm({
             onUpdate({ itemId: v.id, itemName: v.name })
           }
         }}
+        slotProps={{ popper: { placement: 'top-start' } }}
         renderInput={params => <TextField {...params} label="Item" size="small" />}
         isOptionEqualToValue={(opt, val) => opt.id === val.id}
         noOptionsText="No items found"
@@ -622,6 +623,7 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
           value={type ?? ''}
           onChange={(_, v) => setType(v || null)}
           onInputChange={(_, v, reason) => { if (reason === 'input') setType(v || null) }}
+          slotProps={{ popper: { placement: 'top-start' } }}
           renderInput={params => <TextField {...params} label="Type" size="small" />}
         />
         <Autocomplete
@@ -630,6 +632,7 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
           value={day ?? ''}
           onChange={(_, v) => setDay(v || null)}
           onInputChange={(_, v, reason) => { if (reason === 'input') setDay(v || null) }}
+          slotProps={{ popper: { placement: 'top-start' } }}
           renderInput={params => <TextField {...params} label="Day" size="small" />}
         />
       </Box>
@@ -711,7 +714,7 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
             </Button>
           </Toolbar>
         </AppBar>
-        <Box sx={{ px: 2, py: 2, overflowY: 'auto' }}>
+        <Box sx={{ px: 2, py: 2, overflowY: 'auto', overscrollBehavior: 'contain' }}>
           {formBody}
         </Box>
       </Dialog>

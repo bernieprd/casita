@@ -80,7 +80,7 @@ export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
       <Divider />
 
       {/* Groups */}
-      <Box sx={{ overflow: 'auto', flex: 1 }}>
+      <Box sx={{ overflow: 'auto', flex: 1, overscrollBehavior: 'contain' }}>
         {groups.map((group, i) => (
           <Box key={group[0].name + i} sx={{ px: 3, py: 2 }}>
             {i > 0 && <Divider sx={{ mb: 2, mx: -3 }} />}
