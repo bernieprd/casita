@@ -5,7 +5,6 @@ import ListItemText from '@mui/material/ListItemText'
 import ListItemButton from '@mui/material/ListItemButton'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
-import Fab from '@mui/material/Fab'
 import Divider from '@mui/material/Divider'
 import Skeleton from '@mui/material/Skeleton'
 import Collapse from '@mui/material/Collapse'
@@ -17,7 +16,6 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
-import AddIcon from '@mui/icons-material/Add'
 import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useItems, useDeleteItem } from '../api'
@@ -180,7 +178,6 @@ export default function Items() {
   const { data, isLoading, error } = useItems()
   const deleteItem = useDeleteItem()
   const [editTarget, setEditTarget] = useState<Item | null>(null)
-  const [creating, setCreating] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Item | null>(null)
   const [mergeSheetOpen, setMergeSheetOpen] = useState(false)
   const [selectedSupermarkets, setSelectedSupermarkets] = useState<Set<string>>(new Set())
@@ -215,28 +212,15 @@ export default function Items() {
 
   if (allItems.length === 0) {
     return (
-      <>
-        <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
-          <Box component="img" src="/casita.png" alt="" sx={{ width: 80, mb: 2, opacity: 0.7 }} />
-          <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
-            No items yet
-          </Typography>
-          <Typography variant="body2" color="text.disabled">
-            Tap + to add your first inventory item
-          </Typography>
-        </Box>
-        <Fab color="primary" aria-label="Add item" onClick={() => setCreating(true)}
-          sx={{ position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', right: 24 }}>
-          <AddIcon />
-        </Fab>
-        <ItemFormDialog
-          open={creating || editTarget !== null}
-          item={editTarget}
-          onClose={() => { setCreating(false); setEditTarget(null) }}
-          onDeleteRequest={editTarget ? handleDeleteRequest : undefined}
-        />
-        <DeleteConfirm item={deleteTarget} onConfirm={handleDeleteConfirm} onCancel={() => setDeleteTarget(null)} />
-      </>
+      <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
+        <Box component="img" src="/casita.png" alt="" sx={{ width: 80, mb: 2, opacity: 0.7 }} />
+        <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
+          No items yet
+        </Typography>
+        <Typography variant="body2" color="text.disabled">
+          Use the search above to add your first item
+        </Typography>
+      </Box>
     )
   }
 
@@ -259,7 +243,6 @@ export default function Items() {
     // Close edit first, then open confirm sheet
     const target = editTarget
     setEditTarget(null)
-    setCreating(false)
     // Small delay so edit sheet finishes closing before confirm opens
     setTimeout(() => setDeleteTarget(target), 150)
   }
@@ -352,19 +335,10 @@ export default function Items() {
         ))
       )}
 
-      <Fab
-        color="primary"
-        aria-label="Add item"
-        onClick={() => setCreating(true)}
-        sx={{ position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', right: 24 }}
-      >
-        <AddIcon />
-      </Fab>
-
       <ItemFormDialog
-        open={creating || editTarget !== null}
+        open={editTarget !== null}
         item={editTarget}
-        onClose={() => { setCreating(false); setEditTarget(null) }}
+        onClose={() => setEditTarget(null)}
         onDeleteRequest={editTarget ? handleDeleteRequest : undefined}
       />
 

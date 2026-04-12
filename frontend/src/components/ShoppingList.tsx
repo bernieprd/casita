@@ -1,10 +1,7 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
-import Fab from '@mui/material/Fab'
-import AddIcon from '@mui/icons-material/Add'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
-import QuickAddDialog from './QuickAddDialog'
 import ItemFormDialog from './ItemFormDialog'
 import IncompleteItemsSheet from './IncompleteItemsSheet'
 import List from '@mui/material/List'
@@ -85,10 +82,10 @@ function ShoppingItemRow({ item, removing, onRemove, onEdit }: ShoppingItemRowPr
         <ListItemIcon sx={{ minWidth: 40 }}>
           <Checkbox
             edge="start"
-            checked
+            checked={false}
             color="primary"
             tabIndex={-1}
-            inputProps={{ 'aria-label': `Remove ${item.name} from shopping list` }}
+            inputProps={{ 'aria-label': `Mark ${item.name} as bought` }}
           />
         </ListItemIcon>
         <ListItemText
@@ -189,7 +186,6 @@ export default function ShoppingList() {
   const { data: items, isLoading, error } = useShoppingList()
   const toggle = useToggleShoppingList()
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
-  const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [editItem, setEditItem] = useState<Item | null>(null)
   const [selectedSupermarkets, setSelectedSupermarkets] = useState<Set<string>>(new Set())
   const [incompleteSheetOpen, setIncompleteSheetOpen] = useState(false)
@@ -229,22 +225,9 @@ export default function ShoppingList() {
             Your list is empty
           </Typography>
           <Typography variant="body2" color="text.disabled">
-            Tap + to add items from your inventory
+            Use the search above to add items
           </Typography>
         </Box>
-        <Fab
-          color="primary"
-          aria-label="Add to shopping list"
-          onClick={() => setQuickAddOpen(true)}
-          sx={{ position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', right: 24 }}
-        >
-          <AddIcon />
-        </Fab>
-        <QuickAddDialog
-          open={quickAddOpen}
-          onClose={() => setQuickAddOpen(false)}
-          onCreated={item => setEditItem(item)}
-        />
         <ItemFormDialog
           open={editItem !== null}
           item={editItem}
@@ -334,20 +317,6 @@ export default function ShoppingList() {
         ))
       )}
 
-      <Fab
-        color="primary"
-        aria-label="Add to shopping list"
-        onClick={() => setQuickAddOpen(true)}
-        sx={{ position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', right: 24 }}
-      >
-        <AddIcon />
-      </Fab>
-
-      <QuickAddDialog
-        open={quickAddOpen}
-        onClose={() => setQuickAddOpen(false)}
-        onCreated={item => setEditItem(item)}
-      />
       <ItemFormDialog
         open={editItem !== null}
         item={editItem}
