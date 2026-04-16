@@ -3,6 +3,7 @@ import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import IconButton from '@mui/material/IconButton'
 import TextField from '@mui/material/TextField'
 import Paper from '@mui/material/Paper'
 import List from '@mui/material/List'
@@ -13,8 +14,8 @@ import ListItemIcon from '@mui/material/ListItemIcon'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
 import InputAdornment from '@mui/material/InputAdornment'
-import ClickAwayListener from '@mui/material/ClickAwayListener'
 import SearchIcon from '@mui/icons-material/Search'
+import ClearIcon from '@mui/icons-material/Clear'
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
 import ShoppingList from './ShoppingList'
 import Items from './Items'
@@ -61,38 +62,53 @@ export default function Shopping() {
 
   return (
     <Box>
-      {/* Search bar — matches Recipes / Todos sticky bar pattern */}
-      <ClickAwayListener onClickAway={() => setQuery('')}>
+      {/* Backdrop: captures clicks outside the search area so they close the
+          dropdown without also triggering actions on list items beneath it. */}
+      {q && (
         <Box
-          sx={{
-            position: 'sticky',
-            top: { xs: '57px', sm: '65px' },
-            ml: 'calc(50% - 50vw)',
-            width: '100vw',
-            mt: -2,
-            zIndex: 10,
-            bgcolor: 'background.paper',
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, py: 1.5, position: 'relative' }}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Search inventory…"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon fontSize="small" sx={{ color: 'text.disabled' }} />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+          sx={{ position: 'fixed', inset: 0, zIndex: 9 }}
+          onClick={() => setQuery('')}
+        />
+      )}
+
+      {/* Search bar — matches Recipes / Todos sticky bar pattern */}
+      <Box
+        sx={{
+          position: 'sticky',
+          top: { xs: '57px', sm: '65px' },
+          ml: 'calc(50% - 50vw)',
+          width: '100vw',
+          mt: -2,
+          zIndex: 10,
+          bgcolor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, py: 1.5, position: 'relative' }}>
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Search inventory…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: query ? (
+                  <InputAdornment position="end">
+                    <IconButton size="small" edge="end" onClick={() => setQuery('')} aria-label="Clear search">
+                      <ClearIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              },
+            }}
+          />
 
             {q && (
               <Paper
@@ -177,7 +193,6 @@ export default function Shopping() {
             )}
           </Box>
         </Box>
-      </ClickAwayListener>
 
       <Tabs
         value={sub}
