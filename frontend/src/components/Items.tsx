@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import Box from '@mui/material/Box'
 import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
 import ListItemText from '@mui/material/ListItemText'
 import ListItemButton from '@mui/material/ListItemButton'
 import Typography from '@mui/material/Typography'
@@ -18,7 +19,7 @@ import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
 import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
-import { useItems, useDeleteItem } from '../api'
+import { useItems, useDeleteItem, useToggleShoppingList } from '../api'
 import type { Item } from '../api'
 import ItemFormDialog from './ItemFormDialog'
 import MergeDuplicatesSheet from './MergeDuplicatesSheet'
@@ -26,16 +27,32 @@ import IncompleteItemsSheet from './IncompleteItemsSheet'
 
 // ── Item row ──────────────────────────────────────────────────────────────────
 
-function ItemRow({ item, onEdit }: { item: Item; onEdit: (i: Item) => void }) {
+function ItemRow({ item, onEdit, onToggle }: { item: Item; onEdit: (i: Item) => void; onToggle: (i: Item) => void }) {
   return (
-    <ListItemButton sx={{ px: 2, py: 1 }} onClick={() => onEdit(item)}>
-      <ListItemText
-        primary={item.name}
-        secondary={item.supermarkets.length ? item.supermarkets.join(', ') : undefined}
-        primaryTypographyProps={{ variant: 'body1' }}
-        secondaryTypographyProps={{ variant: 'caption' }}
-      />
-    </ListItemButton>
+    <ListItem
+      disablePadding
+      secondaryAction={
+        <Button
+          size="small"
+          disableElevation
+          variant={item.onShoppingList ? 'outlined' : 'contained'}
+          color={item.onShoppingList ? 'inherit' : 'primary'}
+          onClick={e => { e.stopPropagation(); onToggle(item) }}
+          sx={{ textTransform: 'none', minWidth: 68, mr: 0.5 }}
+        >
+          {item.onShoppingList ? 'Remove' : 'Add'}
+        </Button>
+      }
+    >
+      <ListItemButton sx={{ px: 2, py: 1, pr: 10 }} onClick={() => onEdit(item)}>
+        <ListItemText
+          primary={item.name}
+          secondary={item.supermarkets.length ? item.supermarkets.join(', ') : undefined}
+          primaryTypographyProps={{ variant: 'body1' }}
+          secondaryTypographyProps={{ variant: 'caption' }}
+        />
+      </ListItemButton>
+    </ListItem>
   )
 }
 
@@ -45,9 +62,10 @@ interface GroupSectionProps {
   label: string
   items: Item[]
   onEdit: (item: Item) => void
+  onToggle: (item: Item) => void
 }
 
-function GroupSection({ label, items, onEdit }: GroupSectionProps) {
+function GroupSection({ label, items, onEdit, onToggle }: GroupSectionProps) {
   const [open, setOpen] = useState(true)
 
   return (
@@ -72,7 +90,7 @@ function GroupSection({ label, items, onEdit }: GroupSectionProps) {
           {items.map((item, idx) => (
             <span key={item.id}>
               {idx > 0 && <Divider sx={{ ml: 2 }} />}
-              <ItemRow item={item} onEdit={onEdit} />
+              <ItemRow item={item} onEdit={onEdit} onToggle={onToggle} />
             </span>
           ))}
         </List>
@@ -177,6 +195,7 @@ function ItemsSkeleton() {
 export default function Items() {
   const { data, isLoading, error } = useItems()
   const deleteItem = useDeleteItem()
+  const toggleShoppingList = useToggleShoppingList()
   const [editTarget, setEditTarget] = useState<Item | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Item | null>(null)
   const [mergeSheetOpen, setMergeSheetOpen] = useState(false)
@@ -331,6 +350,7 @@ export default function Items() {
             label={label}
             items={groupItems}
             onEdit={setEditTarget}
+            onToggle={item => toggleShoppingList.mutate({ id: item.id, onShoppingList: !item.onShoppingList })}
           />
         ))
       )}
