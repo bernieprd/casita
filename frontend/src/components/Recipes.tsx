@@ -355,33 +355,21 @@ function IngredientGroups({
                 <ListItem
                   disableGutters
                   secondaryAction={
-                    ing.needsShopping ? (
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => toggle.mutate({
-                          id: ing.id,
-                          needsShopping: false,
-                          itemId: ing.itemId,
-                          itemName: ing.itemName,
-                        })}
-                      >
-                        Added to list
-                      </Button>
-                    ) : (
-                      <Button
-                        size="small"
-                        variant="contained"
-                        onClick={() => toggle.mutate({
-                          id: ing.id,
-                          needsShopping: true,
-                          itemId: ing.itemId,
-                          itemName: ing.itemName,
-                        })}
-                      >
-                        Add to list
-                      </Button>
-                    )
+                    <Button
+                      size="small"
+                      disableElevation
+                      variant={ing.needsShopping ? 'outlined' : 'contained'}
+                      color={ing.needsShopping ? 'inherit' : 'primary'}
+                      onClick={() => toggle.mutate({
+                        id: ing.id,
+                        needsShopping: !ing.needsShopping,
+                        itemId: ing.itemId,
+                        itemName: ing.itemName,
+                      })}
+                      sx={{ textTransform: 'none', minWidth: 68 }}
+                    >
+                      {ing.needsShopping ? 'Remove' : 'Add'}
+                    </Button>
                   }
                 >
                   <ListItemText
