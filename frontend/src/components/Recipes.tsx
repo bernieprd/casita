@@ -21,9 +21,9 @@ import EditIcon from '@mui/icons-material/Edit'
 import AddIcon from '@mui/icons-material/Add'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import SearchIcon from '@mui/icons-material/Search'
-import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping, recipeKeys } from '../api'
+import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping, useItems, recipeKeys } from '../api'
 import { useQueryClient } from '@tanstack/react-query'
-import type { Block, RecipeWithBlocks, RecipeIngredient } from '../api'
+import type { Block, RecipeWithBlocks, RecipeIngredient, Item } from '../api'
 import RecipeFormSheet from './RecipeFormSheet'
 
 // ── Block renderer ────────────────────────────────────────────────────────────
@@ -312,10 +312,20 @@ type ToggleMutation = ReturnType<typeof useToggleNeedsShopping>
 function IngredientGroups({
   ingredients,
   toggle,
+  allItems,
 }: {
   ingredients: RecipeIngredient[]
   toggle: ToggleMutation
+  allItems: Item[]
 }) {
+  const inList = (ing: RecipeIngredient): boolean => {
+    if (ing.itemId && allItems.length > 0) {
+      const found = allItems.find(i => i.id === ing.itemId)
+      if (found !== undefined) return found.onShoppingList
+    }
+    return ing.needsShopping
+  }
+
   // Group: null/empty section first, then named sections in order of first appearance
   const groups = useMemo(() => {
     const order: Array<string | null> = []
@@ -359,17 +369,17 @@ function IngredientGroups({
                     <Button
                       size="small"
                       disableElevation
-                      variant={ing.needsShopping ? 'outlined' : 'contained'}
-                      color={ing.needsShopping ? 'inherit' : 'primary'}
+                      variant={inList(ing) ? 'outlined' : 'contained'}
+                      color={inList(ing) ? 'inherit' : 'primary'}
                       onClick={() => toggle.mutate({
                         id: ing.id,
-                        needsShopping: !ing.needsShopping,
+                        needsShopping: !inList(ing),
                         itemId: ing.itemId,
                         itemName: ing.itemName,
                       })}
                       sx={{ textTransform: 'none', minWidth: 68 }}
                     >
-                      {ing.needsShopping ? 'Remove' : 'Add'}
+                      {inList(ing) ? 'Remove' : 'Add'}
                     </Button>
                   }
                 >
@@ -397,6 +407,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
   const { data: recipe, isLoading: recipeLoading } = useRecipe(id)
   const { data: ingredients, isLoading: ingredientsLoading } = useRecipeIngredients(id)
   const toggle = useToggleNeedsShopping(id)
+  const { data: allItems = [] } = useItems()
   const [editOpen, setEditOpen] = useState(false)
   const [toastOpen, setToastOpen] = useState(false)
   const qc = useQueryClient()
@@ -503,7 +514,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
               No ingredients listed.
             </Typography>
           ) : (
-            <IngredientGroups ingredients={ingredients ?? []} toggle={toggle} />
+            <IngredientGroups ingredients={ingredients ?? []} toggle={toggle} allItems={allItems} />
           )}
 
           {/* Instructions */}

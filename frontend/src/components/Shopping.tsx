@@ -15,6 +15,8 @@ import ListItemIcon from '@mui/material/ListItemIcon'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
 import InputAdornment from '@mui/material/InputAdornment'
+import Snackbar from '@mui/material/Snackbar'
+import Alert from '@mui/material/Alert'
 import SearchIcon from '@mui/icons-material/Search'
 import ClearIcon from '@mui/icons-material/Clear'
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline'
@@ -32,6 +34,7 @@ export default function Shopping() {
   const sub: SubTab = isInventory ? 'inventory' : 'list'
   const [query, setQuery] = useState('')
   const [editItem, setEditItem] = useState<Item | null>(null)
+  const [createError, setCreateError] = useState(false)
 
   const { data: allItems = [] } = useItems()
   const toggle = useToggleShoppingList()
@@ -59,7 +62,10 @@ export default function Shopping() {
   function handleCreate() {
     create.mutate(
       { name: query.trim(), category: null, supermarkets: [], tags: [], onShoppingList: true },
-      { onSuccess: item => { setQuery(''); setEditItem(item) } },
+      {
+        onSuccess: item => { setQuery(''); setEditItem(item) },
+        onError: () => setCreateError(true),
+      },
     )
   }
 
@@ -172,7 +178,7 @@ export default function Shopping() {
                   {showCreate && (
                     <>
                       {filtered.length > 0 && <Divider />}
-                      <ListItemButton onClick={handleCreate}>
+                      <ListItemButton onClick={handleCreate} disabled={create.isPending}>
                         <ListItemIcon sx={{ minWidth: 36 }}>
                           <AddCircleOutlineIcon color="primary" fontSize="small" />
                         </ListItemIcon>
@@ -213,6 +219,17 @@ export default function Shopping() {
         item={editItem}
         onClose={() => setEditItem(null)}
       />
+
+      <Snackbar
+        open={createError}
+        autoHideDuration={4000}
+        onClose={() => setCreateError(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="error" onClose={() => setCreateError(false)}>
+          Could not create item. Check that the worker is running.
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }

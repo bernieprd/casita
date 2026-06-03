@@ -132,9 +132,6 @@ export function useToggleShoppingList() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: itemKeys.all })
       qc.invalidateQueries({ queryKey: itemKeys.shopping })
-      qc.invalidateQueries({
-        predicate: q => q.queryKey[0] === 'recipes' && q.queryKey[2] === 'ingredients',
-      })
     },
   })
 }

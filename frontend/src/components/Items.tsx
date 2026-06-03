@@ -69,8 +69,20 @@ function GroupSection({ label, items, onEdit, onToggle }: GroupSectionProps) {
   const [open, setOpen] = useState(true)
 
   return (
-    <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,.06)', mb: 1 }}>
-      <ListItemButton onClick={() => setOpen(o => !o)} sx={{ px: 2, py: 1 }}>
+    <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: '0 1px 2px rgba(0,0,0,.06)', mb: 1 }}>
+      <ListItemButton
+        onClick={() => setOpen(o => !o)}
+        sx={{
+          px: 2,
+          py: 1,
+          position: 'sticky',
+          top: { xs: '122px', sm: '130px' },
+          zIndex: 8,
+          bgcolor: 'background.paper',
+          borderRadius: open ? '8px 8px 0 0' : 2,
+          '&:hover': { bgcolor: 'background.default' },
+        }}
+      >
         <ListItemText
           primary={
             <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1, letterSpacing: '.08em' }}>
@@ -85,15 +97,17 @@ function GroupSection({ label, items, onEdit, onToggle }: GroupSectionProps) {
       </ListItemButton>
 
       <Collapse in={open} timeout="auto" unmountOnExit>
-        <Divider />
-        <List disablePadding>
-          {items.map((item, idx) => (
-            <span key={item.id}>
-              {idx > 0 && <Divider sx={{ ml: 2 }} />}
-              <ItemRow item={item} onEdit={onEdit} onToggle={onToggle} />
-            </span>
-          ))}
-        </List>
+        <Box sx={{ borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
+          <Divider />
+          <List disablePadding>
+            {items.map((item, idx) => (
+              <span key={item.id}>
+                {idx > 0 && <Divider sx={{ ml: 2 }} />}
+                <ItemRow item={item} onEdit={onEdit} onToggle={onToggle} />
+              </span>
+            ))}
+          </List>
+        </Box>
       </Collapse>
     </Box>
   )
