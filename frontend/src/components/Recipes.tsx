@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
@@ -553,24 +554,16 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
 // ── Recipes ───────────────────────────────────────────────────────────────────
 
 export default function Recipes({
-  initialRecipeId,
-  onInitialRecipeIdConsumed,
   setToolbar,
 }: {
-  initialRecipeId?: string | null
-  onInitialRecipeIdConsumed?: () => void
   setToolbar?: (node: ReactNode | null) => void
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(initialRecipeId ?? null)
+  const { id } = useParams<{ id?: string }>()
+  const navigate = useNavigate()
 
-  // Tell the parent the deep-link was consumed so it won't reuse it on next mount
-  useState(() => {
-    if (initialRecipeId) onInitialRecipeIdConsumed?.()
-  })
-
-  if (selectedId) {
-    return <RecipeDetail id={selectedId} onBack={() => setSelectedId(null)} setToolbar={setToolbar} />
+  if (id) {
+    return <RecipeDetail id={id} onBack={() => navigate('/recipes')} setToolbar={setToolbar} />
   }
 
-  return <RecipeGrid onSelect={setSelectedId} />
+  return <RecipeGrid onSelect={id => navigate(`/recipes/${id}`)} />
 }

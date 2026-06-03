@@ -6,7 +6,7 @@ import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import { useShoppingList, useRecipes, useTodos, useCalendarEvents } from '../api'
-import type { TabId } from '../App'
+import { useNavigate } from 'react-router-dom'
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
@@ -421,13 +421,14 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
 
 // ── Home ──────────────────────────────────────────────────────────────────────
 
-export default function Home({ onNavigate }: { onNavigate: (tab: TabId, recipeId?: string) => void }) {
+export default function Home() {
+  const navigate = useNavigate()
   return (
     <Box sx={{ pb: 2 }}>
-      <CalendarSection onNavigate={() => onNavigate('calendar')} />
-      <TodoSection     onSeeAll={() => onNavigate('todos')} />
-      <ShoppingSection onNavigate={() => onNavigate('shopping')} />
-      <RecipeSection   onNavigate={id => onNavigate('recipes', id)} />
+      <CalendarSection onNavigate={() => navigate('/calendar')} />
+      <TodoSection     onSeeAll={() => navigate('/todos')} />
+      <ShoppingSection onNavigate={() => navigate('/shopping')} />
+      <RecipeSection   onNavigate={id => navigate(`/recipes/${id}`)} />
     </Box>
   )
 }
