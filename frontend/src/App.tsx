@@ -15,6 +15,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import MenuBookIcon from '@mui/icons-material/MenuBook'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { itemKeys, itemsApi, todoKeys, todosApi, recipeKeys } from './api'
 import { useOnlineStatus } from './useOnlineStatus'
@@ -27,12 +28,30 @@ import Recipes from './components/Recipes'
 
 export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
 
+const TAB_PATHS: Record<TabId, string> = {
+  home:     '/',
+  calendar: '/calendar',
+  todos:    '/todos',
+  shopping: '/shopping',
+  recipes:  '/recipes',
+}
+
+function pathnameToTab(pathname: string): TabId {
+  if (pathname.startsWith('/calendar')) return 'calendar'
+  if (pathname.startsWith('/todos'))    return 'todos'
+  if (pathname.startsWith('/shopping')) return 'shopping'
+  if (pathname.startsWith('/recipes'))  return 'recipes'
+  return 'home'
+}
+
 export default function App() {
-  const [tab, setTab] = useState<TabId>('home')
-  const [recipeDeepLink, setRecipeDeepLink] = useState<string | null>(null)
   const [recipeDetailBar, setRecipeDetailBar] = useState<ReactNode | null>(null)
   const qc = useQueryClient()
   const isOnline = useOnlineStatus()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const activeTab = pathnameToTab(location.pathname)
 
   // Prime the Workbox cache on first load so shopping list + todos are
   // available offline even before the user visits those tabs.
@@ -41,21 +60,16 @@ export default function App() {
     qc.prefetchQuery({ queryKey: todoKeys.all,      queryFn: todosApi.list })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleNavigate(nextTab: TabId, recipeId?: string) {
-    if (recipeId) setRecipeDeepLink(recipeId)
-    setTab(nextTab)
-  }
-
   function handleRefresh() {
-    if (tab === 'shopping') {
+    if (activeTab === 'shopping') {
       qc.invalidateQueries({ queryKey: itemKeys.shopping })
       qc.invalidateQueries({ queryKey: itemKeys.all })
-    } else if (tab === 'recipes') {
+    } else if (activeTab === 'recipes') {
       qc.invalidateQueries({ queryKey: recipeKeys.all })
     }
   }
 
-  const canRefresh = tab === 'shopping' || tab === 'recipes'
+  const canRefresh = activeTab === 'shopping' || activeTab === 'recipes'
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -87,19 +101,39 @@ export default function App() {
       )}
 
       <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, pt: 2, paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
-        {tab === 'home'     && <TabErrorBoundary key="home">    <Home onNavigate={handleNavigate} /></TabErrorBoundary>}
-        {tab === 'calendar' && <TabErrorBoundary key="calendar"><Calendar /></TabErrorBoundary>}
-        {tab === 'todos'    && <TabErrorBoundary key="todos">   <Todos /></TabErrorBoundary>}
-        {tab === 'shopping' && <TabErrorBoundary key="shopping"><Shopping /></TabErrorBoundary>}
-        {tab === 'recipes'  && (
-          <TabErrorBoundary key="recipes">
-            <Recipes
-              initialRecipeId={recipeDeepLink}
-              onInitialRecipeIdConsumed={() => setRecipeDeepLink(null)}
-              setToolbar={setRecipeDetailBar}
-            />
-          </TabErrorBoundary>
-        )}
+        <Routes>
+          <Route path="/" element={
+            <TabErrorBoundary key="home">
+              <Home />
+            </TabErrorBoundary>
+          } />
+          <Route path="/calendar" element={
+            <TabErrorBoundary key="calendar">
+              <Calendar />
+            </TabErrorBoundary>
+          } />
+          <Route path="/todos" element={
+            <TabErrorBoundary key="todos">
+              <Todos />
+            </TabErrorBoundary>
+          } />
+          <Route path="/shopping/*" element={
+            <TabErrorBoundary key="shopping">
+              <Shopping />
+            </TabErrorBoundary>
+          } />
+          <Route path="/recipes" element={
+            <TabErrorBoundary key="recipes">
+              <Recipes setToolbar={setRecipeDetailBar} />
+            </TabErrorBoundary>
+          } />
+          <Route path="/recipes/:id" element={
+            <TabErrorBoundary key="recipes">
+              <Recipes setToolbar={setRecipeDetailBar} />
+            </TabErrorBoundary>
+          } />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </Box>
 
       <Paper
@@ -107,8 +141,8 @@ export default function App() {
         sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100, paddingBottom: 'env(safe-area-inset-bottom)', borderTop: '1px solid', borderColor: 'divider' }}
       >
         <BottomNavigation
-          value={tab}
-          onChange={(_, v: TabId) => setTab(v)}
+          value={activeTab}
+          onChange={(_, v: TabId) => navigate(TAB_PATHS[v])}
           sx={{ maxWidth: 600, mx: 'auto' }}
         >
           <BottomNavigationAction label="Home"     value="home"     icon={<HomeIcon />} />

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate, useMatch } from 'react-router-dom'
 import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 import Box from '@mui/material/Box'
@@ -26,7 +27,9 @@ import type { Item } from '../api'
 type SubTab = 'list' | 'inventory'
 
 export default function Shopping() {
-  const [sub, setSub] = useState<SubTab>('list')
+  const navigate = useNavigate()
+  const isInventory = useMatch('/shopping/inventory')
+  const sub: SubTab = isInventory ? 'inventory' : 'list'
   const [query, setQuery] = useState('')
   const [editItem, setEditItem] = useState<Item | null>(null)
 
@@ -196,7 +199,7 @@ export default function Shopping() {
 
       <Tabs
         value={sub}
-        onChange={(_, v: SubTab) => setSub(v)}
+        onChange={(_, v: SubTab) => navigate(v === 'inventory' ? '/shopping/inventory' : '/shopping')}
         sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
       >
         <Tab label="Shopping list" value="list" />
