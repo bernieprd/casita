@@ -41,7 +41,7 @@ async function getAccessToken(env: Env): Promise<string> {
 
   const key = await crypto.subtle.importKey(
     'pkcs8',
-    pemToBytes(env.GCAL_PRIVATE_KEY),
+    pemToBytes(env.GCAL_PRIVATE_KEY!),
     { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
     false,
     ['sign'],
@@ -112,6 +112,9 @@ export async function getCalendarEvents(
   req: Request,
   env: Env,
 ): Promise<Response> {
+  if (!env.GCAL_PRIVATE_KEY || !env.GCAL_CLIENT_EMAIL || !env.GCAL_CALENDAR_ID) {
+    return Response.json([])
+  }
   try {
     const accessToken = await getAccessToken(env)
 

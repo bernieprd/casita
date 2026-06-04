@@ -11,18 +11,12 @@
     "deploy": "pnpm -r run deploy",
     "deploy:frontend": "pnpm --filter frontend run deploy",
     "deploy:worker": "pnpm --filter worker run deploy",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "check": "pnpm typecheck && pnpm build:frontend"
   },
   "engines": {
-    "node": ">=20",
+    "node": ">=22",
     "pnpm": ">=9"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "sharp",
-      "workerd"
-    ]
   },
   "devDependencies": {
     "wrangler": "^4.97.0"
