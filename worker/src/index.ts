@@ -1,6 +1,7 @@
 import { getItems, createItem, updateItem, deleteItem, mergeItem } from './routes/items'
 import { createRecipe, getRecipes, getRecipe, updateRecipe, getRecipeIngredients } from './routes/recipes'
 import { updateRecipeIngredient, createRecipeIngredient, deleteRecipeIngredient } from './routes/recipe-ingredients'
+import { uploadRecipePhoto, serveRecipePhoto } from './routes/uploads'
 import { getTodos, createTodo, updateTodo, deleteTodo } from './routes/todos'
 import { getCalendarEvents } from './routes/calendar'
 import { NotionError } from './notion'
@@ -56,6 +57,8 @@ const routes: Array<[string, URLPattern, Handler]> = [
   ['POST',   new URLPattern({ pathname: '/recipe-ingredients' }),             createRecipeIngredient],
   ['PATCH',  new URLPattern({ pathname: '/recipe-ingredients/:id' }),         updateRecipeIngredient],
   ['DELETE', new URLPattern({ pathname: '/recipe-ingredients/:id' }),         deleteRecipeIngredient],
+  ['POST',   new URLPattern({ pathname: '/recipe-photos' }),                  uploadRecipePhoto],
+  ['GET',    new URLPattern({ pathname: '/recipe-photos/:key' }),             serveRecipePhoto],
   ['GET',    new URLPattern({ pathname: '/todos' }),                          getTodos],
   ['POST',   new URLPattern({ pathname: '/todos' }),                          createTodo],
   ['PATCH',  new URLPattern({ pathname: '/todos/:id' }),                      updateTodo],

@@ -12,6 +12,7 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
+import CircularProgress from '@mui/material/CircularProgress'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
@@ -19,6 +20,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import EditIcon from '@mui/icons-material/Edit'
 import CheckIcon from '@mui/icons-material/Check'
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate'
 import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import {
@@ -34,6 +36,7 @@ import {
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { useItems, useRecipes, useCreateRecipe, useEditRecipe } from '../api'
 import type { Item, RecipeWithBlocks, RecipeIngredient } from '../api'
+import { uploadPhoto } from '../api/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -339,6 +342,10 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
   const [removedIds, setRemovedIds] = useState<string[]>([])
   const [sectionOrder, setSectionOrder] = useState<string[]>([]) // named sections only
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const [previewUrl, setPreviewUrl] = useState<string>(initialData?.recipe?.coverPhotoUrl ?? '')
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -350,6 +357,8 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
       setDay(recipe.day)
       setUrl(recipe.url ?? '')
       setCoverUrl(recipe.coverPhotoUrl ?? '')
+      setPreviewUrl(recipe.coverPhotoUrl ?? '')
+      setPhotoError(false)
       setInstructions(
         (recipe.blocks ?? [])
           .map(b => (b.type === 'divider' ? '---' : b.text))
@@ -384,6 +393,8 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
       setDay(null)
       setUrl('')
       setCoverUrl('')
+      setPreviewUrl('')
+      setPhotoError(false)
       setInstructions('')
       setRows([])
       setRemovedIds([])
@@ -459,9 +470,32 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
     setRows(prev => prev.map(r => (r.section === name ? { ...r, section: '' } : r)))
   }
 
+  // ── Photo upload ─────────────────────────────────────────────────────────────
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const local = URL.createObjectURL(file)
+    setPreviewUrl(local)
+    setPhotoUploading(true)
+    setPhotoError(false)
+    try {
+      const url = await uploadPhoto(file)
+      setCoverUrl(url)
+      setPreviewUrl(url)
+      URL.revokeObjectURL(local)
+    } catch {
+      setPhotoError(true)
+      // revert preview to whatever was there before
+      setPreviewUrl(coverUrl)
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
   // ── Submit ──────────────────────────────────────────────────────────────────
 
-  const canSubmit = name.trim().length > 0 && !isPending
+  const canSubmit = name.trim().length > 0 && !isPending && !photoUploading
 
   function handleSubmit() {
     if (!name.trim()) {
@@ -647,24 +681,52 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
         placeholder="https://..."
       />
 
+      {/* Cover photo upload */}
       <Box>
-        <TextField
-          label="Cover photo URL"
-          fullWidth
-          value={coverUrl}
-          onChange={e => setCoverUrl(e.target.value)}
-          size="small"
-          type="url"
-          placeholder="https://..."
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handlePhotoChange}
         />
-        {coverUrl && (
+        {previewUrl ? (
           <Box
-            component="img"
-            src={coverUrl}
-            alt="Cover preview"
-            sx={{ mt: 1, width: '100%', aspectRatio: '16/9', objectFit: 'cover', borderRadius: 1, display: 'block' }}
-            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-          />
+            sx={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', cursor: 'pointer' }}
+            onClick={() => photoInputRef.current?.click()}
+          >
+            <Box
+              component="img"
+              src={previewUrl}
+              alt="Cover preview"
+              sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+            {photoUploading && (
+              <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0.4)' }}>
+                <CircularProgress size={32} sx={{ color: 'white' }} />
+              </Box>
+            )}
+            {!photoUploading && (
+              <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0)', '&:hover': { bgcolor: 'rgba(0,0,0,0.35)' }, transition: 'background 0.15s' }}>
+                <Typography variant="caption" sx={{ color: 'white', opacity: 0, '.MuiBox-root:hover > &': { opacity: 1 }, pointerEvents: 'none' }}>
+                  Change photo
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        ) : (
+          <Box
+            onClick={() => photoInputRef.current?.click()}
+            sx={{ width: '100%', aspectRatio: '16/9', border: '2px dashed', borderColor: 'divider', borderRadius: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.5, cursor: 'pointer', color: 'text.secondary', '&:hover': { borderColor: 'primary.main', color: 'primary.main' } }}
+          >
+            <AddPhotoAlternateIcon />
+            <Typography variant="caption">Add photo</Typography>
+          </Box>
+        )}
+        {photoError && (
+          <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+            Upload failed — previous photo kept
+          </Typography>
         )}
       </Box>
 

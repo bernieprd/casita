@@ -33,3 +33,12 @@ export const api = {
 
   delete: (path: string) => request<void>(path, { method: 'DELETE' }),
 }
+
+export async function uploadPhoto(file: File): Promise<string> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`${BASE_URL}/recipe-photos`, { method: 'POST', body: form })
+  const data = await res.json()
+  if (!res.ok) throw new ApiError(res.status, (data as { error?: string }).error ?? res.statusText)
+  return (data as { url: string }).url
+}
