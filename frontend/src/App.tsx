@@ -25,6 +25,8 @@ import Calendar from './components/Calendar'
 import Todos from './components/Todos'
 import Shopping from './components/Shopping'
 import Recipes from './components/Recipes'
+import RecipeFormPage from './components/RecipeFormPage'
+import PublicRecipeView from './components/PublicRecipeView'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './components/Login'
 import AccountSetup from './components/AccountSetup'
@@ -170,6 +172,17 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/setup" element={<AccountSetup />} />
+        <Route path="/share/:token" element={<PublicRecipeView />} />
+        <Route path="/recipes/new" element={
+          <ProtectedRoute>
+            <RecipeFormPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/recipes/:id/edit" element={
+          <ProtectedRoute>
+            <RecipeFormPage />
+          </ProtectedRoute>
+        } />
         <Route path="/*" element={
           <ProtectedRoute>
             <AppShell />

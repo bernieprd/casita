@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from './client'
-import type { Recipe, RecipeWithBlocks } from './types'
+import { api, publicGet } from './client'
+import type { Recipe, RecipeWithBlocks, RecipeIngredient } from './types'
 
 // ── Query keys ────────────────────────────────────────────────────────────────
 
@@ -110,5 +110,18 @@ export function useRecipe(id: string) {
       const list = qc.getQueryData<Recipe[]>(recipeKeys.all)
       return list?.find(r => r.id === id) as RecipeWithBlocks | undefined
     },
+  })
+}
+
+export function useShareRecipe(recipeId: string) {
+  return useMutation({
+    mutationFn: () => api.post<{ token: string; url: string }>(`/recipes/${recipeId}/share`, {}),
+  })
+}
+
+export function usePublicRecipe(token: string) {
+  return useQuery({
+    queryKey: ['public-recipe', token],
+    queryFn: () => publicGet<{ recipe: RecipeWithBlocks; ingredients: RecipeIngredient[] }>(`/public/recipes/${token}`),
   })
 }

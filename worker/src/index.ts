@@ -1,5 +1,5 @@
 import { getItems, createItem, updateItem, deleteItem, mergeItem } from './routes/items'
-import { createRecipe, getRecipes, getRecipe, updateRecipe, getRecipeIngredients } from './routes/recipes'
+import { createRecipe, getRecipes, getRecipe, updateRecipe, getRecipeIngredients, shareRecipe, getPublicRecipe } from './routes/recipes'
 import { updateRecipeIngredient, createRecipeIngredient, deleteRecipeIngredient } from './routes/recipe-ingredients'
 import { uploadRecipePhoto, serveRecipePhoto } from './routes/uploads'
 import { getTodos, createTodo, updateTodo, deleteTodo } from './routes/todos'
@@ -59,6 +59,8 @@ const routes: Array<[string, URLPattern, Handler]> = [
   ['GET',    new URLPattern({ pathname: '/recipes/:id' }),                    getRecipe],
   ['PATCH',  new URLPattern({ pathname: '/recipes/:id' }),                    updateRecipe],
   ['GET',    new URLPattern({ pathname: '/recipes/:id/ingredients' }),        getRecipeIngredients],
+  ['POST',   new URLPattern({ pathname: '/recipes/:id/share' }),             shareRecipe],
+  ['GET',    new URLPattern({ pathname: '/public/recipes/:token' }),         getPublicRecipe],
   ['POST',   new URLPattern({ pathname: '/recipe-ingredients' }),             createRecipeIngredient],
   ['PATCH',  new URLPattern({ pathname: '/recipe-ingredients/:id' }),         updateRecipeIngredient],
   ['DELETE', new URLPattern({ pathname: '/recipe-ingredients/:id' }),         deleteRecipeIngredient],
@@ -83,7 +85,7 @@ export default {
     }
 
     try {
-      if (!req.url.includes('/auth/')) {
+      if (!req.url.includes('/auth/') && !req.url.includes('/public/')) {
         const token = req.headers.get('Authorization')?.replace('Bearer ', '')
         if (!token) return err(401, 'Unauthorized', origin)
         const session = await env.AUTH_KV.get(`session:${token}`, 'json') as { email: string; expiresAt: number } | null

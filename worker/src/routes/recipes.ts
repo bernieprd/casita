@@ -135,3 +135,54 @@ export async function getRecipeIngredients(
 
   return Response.json(ingredients)
 }
+
+export async function shareRecipe(_req: Request, env: Env, recipeId: string): Promise<Response> {
+  const existing = await env.AUTH_KV.get(`share-recipe:${recipeId}`)
+  if (existing) {
+    const appUrl = env.ALLOWED_ORIGIN ?? 'https://bernieprd.github.io'
+    return Response.json({ token: existing, url: `${appUrl}/share/${existing}` })
+  }
+
+  const token = crypto.randomUUID()
+  await Promise.all([
+    env.AUTH_KV.put(`share:${token}`, recipeId),
+    env.AUTH_KV.put(`share-recipe:${recipeId}`, token),
+  ])
+
+  const appUrl = env.ALLOWED_ORIGIN ?? 'https://bernieprd.github.io'
+  return Response.json({ token, url: `${appUrl}/share/${token}` }, { status: 201 })
+}
+
+export async function getPublicRecipe(_req: Request, env: Env, token: string): Promise<Response> {
+  const recipeId = await env.AUTH_KV.get(`share:${token}`)
+  if (!recipeId) return Response.json({ error: 'Not found' }, { status: 404 })
+
+  const [page, blocks, ingredientPages] = await Promise.all([
+    getPage(env.NOTION_TOKEN, recipeId),
+    getBlockChildren(env.NOTION_TOKEN, recipeId),
+    queryDatabase(env.NOTION_TOKEN, env.NOTION_RECIPE_INGREDIENT_DB, {
+      property: 'Recipe',
+      relation: { contains: recipeId },
+    }),
+  ])
+
+  const recipe: RecipeWithBlocks = {
+    ...normalizeRecipe(page),
+    blocks: blocks.map(normalizeBlock),
+  }
+
+  const ingredients = await Promise.all(
+    ingredientPages.map(async ingPage => {
+      const relation = ingPage.properties['Ingredient']
+      const itemId = relation?.type === 'relation' ? (relation.relation[0]?.id ?? '') : ''
+      let itemName = ''
+      if (itemId) {
+        const itemPage = await getPage(env.NOTION_TOKEN, itemId)
+        itemName = normalizeItem(itemPage).name
+      }
+      return normalizeRecipeIngredient(ingPage, itemName)
+    }),
+  )
+
+  return Response.json({ recipe, ingredients })
+}

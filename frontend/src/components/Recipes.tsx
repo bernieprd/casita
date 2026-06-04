@@ -21,10 +21,10 @@ import EditIcon from '@mui/icons-material/Edit'
 import AddIcon from '@mui/icons-material/Add'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import SearchIcon from '@mui/icons-material/Search'
-import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping, useItems, recipeKeys } from '../api'
+import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping, useItems, useShareRecipe, recipeKeys } from '../api'
 import { useQueryClient } from '@tanstack/react-query'
-import type { Block, RecipeWithBlocks, RecipeIngredient, Item } from '../api'
-import RecipeFormSheet from './RecipeFormSheet'
+import type { Block, RecipeIngredient, Item } from '../api'
+import IosShareIcon from '@mui/icons-material/IosShare'
 
 // ── Block renderer ────────────────────────────────────────────────────────────
 
@@ -72,9 +72,9 @@ function RecipeGridSkeleton() {
 
 function RecipeGrid({ onSelect }: { onSelect: (id: string) => void }) {
   const { data: recipes, isLoading, error } = useRecipes()
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [selectedType, setSelectedType] = useState<string | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [scrollToId, setScrollToId] = useState<string | null>(null)
 
@@ -110,19 +110,11 @@ function RecipeGrid({ onSelect }: { onSelect: (id: string) => void }) {
     <Fab
       color="primary"
       aria-label="New recipe"
-      onClick={() => setCreateOpen(true)}
+      onClick={() => navigate('/recipes/new')}
       sx={{ position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', right: 24 }}
     >
       <AddIcon />
     </Fab>
-  )
-
-  const sheet = (
-    <RecipeFormSheet
-      open={createOpen}
-      onClose={() => setCreateOpen(false)}
-      onSaved={id => { setToastMsg('Recipe created'); if (id) setScrollToId(id) }}
-    />
   )
 
   const toast = (
@@ -153,7 +145,7 @@ function RecipeGrid({ onSelect }: { onSelect: (id: string) => void }) {
             Tap + to add your first recipe
           </Typography>
         </Box>
-        {fab}{sheet}{toast}
+        {fab}{toast}
       </>
     )
   }
@@ -300,7 +292,7 @@ function RecipeGrid({ onSelect }: { onSelect: (id: string) => void }) {
         </Box>
       )}
 
-      {fab}{sheet}{toast}
+      {fab}{toast}
     </Box>
   )
 }
@@ -408,11 +400,23 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
   const { data: ingredients, isLoading: ingredientsLoading } = useRecipeIngredients(id)
   const toggle = useToggleNeedsShopping(id)
   const { data: allItems = [] } = useItems()
-  const [editOpen, setEditOpen] = useState(false)
   const [toastOpen, setToastOpen] = useState(false)
+  const [toastMsg, setToastMsg] = useState('Recipe saved')
   const qc = useQueryClient()
+  const navigate = useNavigate()
+  const shareRecipe = useShareRecipe(id)
   const onBackRef = useRef(onBack)
   onBackRef.current = onBack
+
+  function handleShare() {
+    shareRecipe.mutate(undefined, {
+      onSuccess: ({ url }) => {
+        navigator.clipboard.writeText(url).catch(() => {})
+        setToastMsg('Link copied!')
+        setToastOpen(true)
+      }
+    })
+  }
 
   useEffect(() => {
     setToolbar?.(
@@ -428,8 +432,11 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
         >
           Recipes
         </Typography>
-        <IconButton size="small" color="inherit" onClick={() => setEditOpen(true)}>
+        <IconButton size="small" color="inherit" onClick={() => navigate(`/recipes/${id}/edit`)}>
           <EditIcon />
+        </IconButton>
+        <IconButton size="small" color="inherit" onClick={handleShare}>
+          <IosShareIcon />
         </IconButton>
         <IconButton size="small" color="inherit" onClick={() => qc.invalidateQueries({ queryKey: recipeKeys.all })}>
           <RefreshIcon />
@@ -534,20 +541,6 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
         </>
       )}
 
-      {/* Edit sheet — only mount when we have full data */}
-      {recipe && (
-        <RecipeFormSheet
-          open={editOpen}
-          recipeId={id}
-          initialData={{
-            recipe: recipe as RecipeWithBlocks,
-            ingredients: ingredients ?? [] as RecipeIngredient[],
-          }}
-          onClose={() => setEditOpen(false)}
-          onSaved={() => setToastOpen(true)}
-        />
-      )}
-
       <Snackbar
         open={toastOpen}
         autoHideDuration={3000}
@@ -555,7 +548,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert severity="success" onClose={() => setToastOpen(false)} sx={{ width: '100%' }}>
-          Recipe saved
+          {toastMsg}
         </Alert>
       </Snackbar>
     </Box>

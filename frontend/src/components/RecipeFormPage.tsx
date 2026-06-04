@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
@@ -7,22 +8,17 @@ import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
 import Stack from '@mui/material/Stack'
 import Divider from '@mui/material/Divider'
-import Dialog from '@mui/material/Dialog'
-import DialogContent from '@mui/material/DialogContent'
-import DialogActions from '@mui/material/DialogActions'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import CircularProgress from '@mui/material/CircularProgress'
+import Skeleton from '@mui/material/Skeleton'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import CloseIcon from '@mui/icons-material/Close'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import EditIcon from '@mui/icons-material/Edit'
 import CheckIcon from '@mui/icons-material/Check'
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate'
-import { useTheme } from '@mui/material/styles'
-import useMediaQuery from '@mui/material/useMediaQuery'
 import {
   DndContext,
   DragOverlay,
@@ -34,43 +30,29 @@ import {
   useDraggable,
 } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
-import { useItems, useRecipes, useCreateRecipe, useEditRecipe } from '../api'
-import type { Item, RecipeWithBlocks, RecipeIngredient } from '../api'
+import { useItems, useRecipes, useCreateRecipe, useEditRecipe, useRecipe, useRecipeIngredients } from '../api'
+import type { Item } from '../api'
 import { uploadPhoto } from '../api/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface IngRow {
   key: string
-  id?: string            // existing ingredient id — undefined means new row
+  id?: string
   itemId: string
   itemName: string
   originalItemId: string
   quantity: string
   originalQuantity: string
-  section: string        // '' = no section
+  section: string
   originalSection: string
-}
-
-interface Props {
-  open: boolean
-  /** Omit for create mode */
-  recipeId?: string
-  /** Omit for create mode */
-  initialData?: {
-    recipe: RecipeWithBlocks
-    ingredients: RecipeIngredient[]
-  }
-  onClose: () => void
-  /** Called with the new recipe id in create mode, undefined in edit mode */
-  onSaved: (newId?: string) => void
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const DAY_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const TYPE_OPTIONS = ['Favourite', 'Try again', 'New']
-const NO_SECTION = ''   // sentinel for the "unsectioned" bucket
+const NO_SECTION = ''
 
 // ── Droppable section container ───────────────────────────────────────────────
 
@@ -248,7 +230,7 @@ function SectionHeader({
   )
 }
 
-// ── Add section dialog ────────────────────────────────────────────────────────
+// ── Add section input ─────────────────────────────────────────────────────────
 
 function AddSectionInput({ onAdd }: { onAdd: (name: string) => void }) {
   const [open, setOpen] = useState(false)
@@ -307,11 +289,14 @@ function AddSectionInput({ onAdd }: { onAdd: (name: string) => void }) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function RecipeFormSheet({ open, recipeId, initialData, onClose, onSaved }: Props) {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+export default function RecipeFormPage() {
+  const { id } = useParams<{ id?: string }>()
+  const navigate = useNavigate()
 
-  const isEdit = !!recipeId && !!initialData
+  const isEdit = !!id
+
+  const { data: recipeData, isLoading: recipeLoading } = useRecipe(id ?? '')
+  const { data: ingredientsData, isLoading: ingredientsLoading } = useRecipeIngredients(id ?? '')
 
   const { data: allItems = [] } = useItems()
 
@@ -326,11 +311,12 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
   }, [recipes])
 
   const createRecipe = useCreateRecipe()
-  const editRecipe = useEditRecipe(recipeId ?? '')
+  const editRecipe = useEditRecipe(id ?? '')
   const isPending = isEdit ? editRecipe.isPending : createRecipe.isPending
 
   // ── Form state ──────────────────────────────────────────────────────────────
 
+  const [initialized, setInitialized] = useState(false)
   const [name, setName] = useState('')
   const [nameError, setNameError] = useState(false)
   const [type, setType] = useState<string | null>(null)
@@ -340,70 +326,64 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
   const [instructions, setInstructions] = useState('')
   const [rows, setRows] = useState<IngRow[]>([])
   const [removedIds, setRemovedIds] = useState<string[]>([])
-  const [sectionOrder, setSectionOrder] = useState<string[]>([]) // named sections only
+  const [sectionOrder, setSectionOrder] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
-  const [previewUrl, setPreviewUrl] = useState<string>(initialData?.recipe?.coverPhotoUrl ?? '')
+  const [previewUrl, setPreviewUrl] = useState<string>('')
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState(false)
 
+  // Initialize form once data is available
   useEffect(() => {
-    if (!open) return
+    if (initialized) return
 
-    if (isEdit && initialData) {
-      const { recipe, ingredients } = initialData
-      setName(recipe.name)
-      setType(recipe.type)
-      setDay(recipe.day)
-      setUrl(recipe.url ?? '')
-      setCoverUrl(recipe.coverPhotoUrl ?? '')
-      setPreviewUrl(recipe.coverPhotoUrl ?? '')
-      setPhotoError(false)
-      setInstructions(
-        (recipe.blocks ?? [])
-          .map(b => (b.type === 'divider' ? '---' : b.text))
-          .join('\n'),
-      )
-      const ingRows: IngRow[] = ingredients.map(ing => ({
-        key: ing.id,
-        id: ing.id,
-        itemId: ing.itemId,
-        itemName: ing.itemName,
-        originalItemId: ing.itemId,
-        quantity: ing.quantity ?? '',
-        originalQuantity: ing.quantity ?? '',
-        section: ing.section ?? '',
-        originalSection: ing.section ?? '',
-      }))
-      setRows(ingRows)
-      setRemovedIds([])
-      // Build section order from first-appearance of named sections
-      const seen = new Set<string>()
-      const order: string[] = []
-      for (const ing of ingredients) {
-        if (ing.section && !seen.has(ing.section)) {
-          seen.add(ing.section)
-          order.push(ing.section)
-        }
-      }
-      setSectionOrder(order)
-    } else {
-      setName('')
-      setType(null)
-      setDay(null)
-      setUrl('')
-      setCoverUrl('')
-      setPreviewUrl('')
-      setPhotoError(false)
-      setInstructions('')
-      setRows([])
-      setRemovedIds([])
-      setSectionOrder([])
+    if (!isEdit) {
+      setInitialized(true)
+      return
     }
 
+    if (!recipeData || ingredientsLoading) return
+
+    const recipe = recipeData
+    const ingredients = ingredientsData ?? []
+
+    setName(recipe.name)
+    setType(recipe.type)
+    setDay(recipe.day)
+    setUrl(recipe.url ?? '')
+    setCoverUrl(recipe.coverPhotoUrl ?? '')
+    setPreviewUrl(recipe.coverPhotoUrl ?? '')
+    setPhotoError(false)
+    setInstructions(
+      (recipe.blocks ?? [])
+        .map(b => (b.type === 'divider' ? '---' : b.text))
+        .join('\n'),
+    )
+    const ingRows: IngRow[] = ingredients.map(ing => ({
+      key: ing.id,
+      id: ing.id,
+      itemId: ing.itemId,
+      itemName: ing.itemName,
+      originalItemId: ing.itemId,
+      quantity: ing.quantity ?? '',
+      originalQuantity: ing.quantity ?? '',
+      section: ing.section ?? '',
+      originalSection: ing.section ?? '',
+    }))
+    setRows(ingRows)
+    setRemovedIds([])
+    const seen = new Set<string>()
+    const order: string[] = []
+    for (const ing of ingredients) {
+      if (ing.section && !seen.has(ing.section)) {
+        seen.add(ing.section)
+        order.push(ing.section)
+      }
+    }
+    setSectionOrder(order)
     setNameError(false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+    setInitialized(true)
+  }, [isEdit, recipeData, ingredientsData, ingredientsLoading, initialized])
 
   // ── DnD sensors ─────────────────────────────────────────────────────────────
 
@@ -437,8 +417,8 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
     ])
   }
 
-  function removeRow(key: string, id?: string) {
-    if (id) setRemovedIds(prev => [...prev, id])
+  function removeRow(key: string, rowId?: string) {
+    if (rowId) setRemovedIds(prev => [...prev, rowId])
     setRows(prev => {
       const next = prev.filter(r => r.key !== key)
       setSectionOrder(order => order.filter(s => next.some(r => r.section === s)))
@@ -452,9 +432,9 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
 
   // ── Section helpers ──────────────────────────────────────────────────────────
 
-  function addSection(name: string) {
-    if (!sectionOrder.includes(name)) {
-      setSectionOrder(prev => [...prev, name])
+  function addSection(sectionName: string) {
+    if (!sectionOrder.includes(sectionName)) {
+      setSectionOrder(prev => [...prev, sectionName])
     }
   }
 
@@ -464,10 +444,9 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
     setRows(prev => prev.map(r => (r.section === oldName ? { ...r, section: newName } : r)))
   }
 
-  function deleteSection(name: string) {
-    setSectionOrder(prev => prev.filter(s => s !== name))
-    // Move rows in that section back to no-section
-    setRows(prev => prev.map(r => (r.section === name ? { ...r, section: '' } : r)))
+  function deleteSection(sectionName: string) {
+    setSectionOrder(prev => prev.filter(s => s !== sectionName))
+    setRows(prev => prev.map(r => (r.section === sectionName ? { ...r, section: '' } : r)))
   }
 
   // ── Photo upload ─────────────────────────────────────────────────────────────
@@ -480,13 +459,12 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
     setPhotoUploading(true)
     setPhotoError(false)
     try {
-      const url = await uploadPhoto(file)
-      setCoverUrl(url)
-      setPreviewUrl(url)
+      const uploaded = await uploadPhoto(file)
+      setCoverUrl(uploaded)
+      setPreviewUrl(uploaded)
       URL.revokeObjectURL(local)
     } catch {
       setPhotoError(true)
-      // revert preview to whatever was there before
       setPreviewUrl(coverUrl)
     } finally {
       setPhotoUploading(false)
@@ -503,7 +481,6 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
       return
     }
 
-    // Drop sections that never got any ingredients
     setSectionOrder(prev => prev.filter(s => rows.some(r => r.section === s)))
 
     const recipeBody = {
@@ -534,12 +511,7 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
 
       editRecipe.mutate(
         { recipe: recipeBody, removedIngredientIds: removedIds, newIngredients, updatedIngredients },
-        {
-          onSuccess: () => {
-            onSaved(undefined)
-            onClose()
-          },
-        },
+        { onSuccess: () => navigate(-1) },
       )
     } else {
       const ingredients = rows
@@ -549,10 +521,7 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
       createRecipe.mutate(
         { recipe: recipeBody, ingredients },
         {
-          onSuccess: newRecipe => {
-            onSaved(newRecipe.id)
-            onClose()
-          },
+          onSuccess: newRecipe => navigate(`/recipes/${newRecipe.id}`, { replace: true }),
         },
       )
     }
@@ -561,6 +530,10 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
   // ── Active drag row ──────────────────────────────────────────────────────────
 
   const activeDragRow = activeDragId ? rows.find(r => r.key === activeDragId) : null
+
+  // ── Loading state for edit mode ──────────────────────────────────────────────
+
+  const isLoadingEdit = isEdit && (recipeLoading || ingredientsLoading || !initialized)
 
   // ── Ingredient section ───────────────────────────────────────────────────────
 
@@ -572,7 +545,6 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
       <Divider sx={{ mt: 0.5, mb: 1.5 }} />
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        {/* Unsectioned rows */}
         <DroppableGroup sectionKey={NO_SECTION}>
           <Stack spacing={1.5}>
             {rows.filter(r => r.section === NO_SECTION).map(row => (
@@ -590,7 +562,6 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
           </Button>
         </DroppableGroup>
 
-        {/* Named sections */}
         {sectionOrder.map(sectionName => (
           <Box key={sectionName}>
             <SectionHeader
@@ -747,69 +718,36 @@ export default function RecipeFormSheet({ open, recipeId, initialData, onClose, 
 
   const title = isEdit ? 'Edit recipe' : 'New recipe'
 
-  const actions = (
-    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, width: '100%' }}>
-      <Button onClick={onClose} color="inherit" disabled={isPending}>
-        Cancel
-      </Button>
-      <Button variant="contained" disabled={!canSubmit} onClick={handleSubmit}>
-        {isPending ? (isEdit ? 'Saving…' : 'Creating…') : (isEdit ? 'Save' : 'Create')}
-      </Button>
-    </Box>
-  )
-
-  // ── Mobile full-screen ───────────────────────────────────────────────────────
-
-  if (isMobile) {
-    return (
-      <Dialog open={open} onClose={isPending ? undefined : onClose} fullScreen>
-        <AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Toolbar sx={{ px: 2 }}>
-            <IconButton edge="start" size="small" onClick={onClose} disabled={isPending} sx={{ mr: 1 }}>
-              <ArrowBackIcon fontSize="small" />
-            </IconButton>
-            <Typography variant="h6" sx={{ flex: 1, fontSize: '1rem', fontWeight: 600 }}>
-              {title}
-            </Typography>
-            <Button variant="contained" disableElevation disabled={!canSubmit} onClick={handleSubmit} size="small">
-              {isPending ? (isEdit ? 'Saving…' : 'Creating…') : (isEdit ? 'Save' : 'Create')}
-            </Button>
-          </Toolbar>
-        </AppBar>
-        <Box sx={{ px: 2, py: 2, overflowY: 'auto', overscrollBehavior: 'contain' }}>
-          {formBody}
-        </Box>
-      </Dialog>
-    )
-  }
-
-  // ── Desktop dialog ───────────────────────────────────────────────────────────
-
   return (
-    <Dialog open={open} onClose={isPending ? undefined : onClose} fullWidth maxWidth="sm">
-      <Box
-        sx={{
-          px: 3,
-          pt: 2.5,
-          pb: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          {title}
-        </Typography>
-        <IconButton size="small" onClick={onClose} disabled={isPending}>
-          <CloseIcon fontSize="small" />
-        </IconButton>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+      <AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Toolbar sx={{ px: 2 }}>
+          <IconButton edge="start" size="small" onClick={() => navigate(-1)} disabled={isPending} sx={{ mr: 1 }}>
+            <ArrowBackIcon fontSize="small" />
+          </IconButton>
+          <Typography variant="h6" sx={{ flex: 1, fontSize: '1rem', fontWeight: 600 }}>
+            {title}
+          </Typography>
+          <Button variant="contained" disableElevation disabled={!canSubmit} onClick={handleSubmit} size="small">
+            {isPending ? (isEdit ? 'Saving…' : 'Creating…') : (isEdit ? 'Save' : 'Create')}
+          </Button>
+        </Toolbar>
+      </AppBar>
+
+      <Box sx={{ px: 2, py: 2, overflowY: 'auto', overscrollBehavior: 'contain', flex: 1 }}>
+        {isLoadingEdit ? (
+          <Stack spacing={2}>
+            <Skeleton height={40} />
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+              <Skeleton height={40} />
+              <Skeleton height={40} />
+            </Box>
+            <Skeleton height={40} />
+            <Skeleton variant="rectangular" sx={{ width: '100%', aspectRatio: '16/9', borderRadius: 1 }} />
+            <Skeleton height={120} />
+          </Stack>
+        ) : formBody}
       </Box>
-      <DialogContent sx={{ pt: 1 }}>
-        {formBody}
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        {actions}
-      </DialogActions>
-    </Dialog>
+    </Box>
   )
 }
