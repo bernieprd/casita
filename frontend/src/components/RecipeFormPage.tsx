@@ -719,7 +719,7 @@ export default function RecipeFormPage() {
   const title = isEdit ? 'Edit recipe' : 'New recipe'
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
       <AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Toolbar sx={{ px: 2 }}>
           <IconButton edge="start" size="small" onClick={() => navigate(-1)} disabled={isPending} sx={{ mr: 1 }}>
@@ -734,7 +734,7 @@ export default function RecipeFormPage() {
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ px: 2, py: 2, overflowY: 'auto', overscrollBehavior: 'contain', flex: 1 }}>
+      <Box sx={{ px: 2, py: 2, overflowY: 'auto', overscrollBehavior: 'contain', flex: 1, maxWidth: 600, mx: 'auto', width: '100%' }}>
         {isLoadingEdit ? (
           <Stack spacing={2}>
             <Skeleton height={40} />

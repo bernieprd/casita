@@ -139,7 +139,7 @@ export async function getRecipeIngredients(
 export async function shareRecipe(_req: Request, env: Env, recipeId: string): Promise<Response> {
   const existing = await env.AUTH_KV.get(`share-recipe:${recipeId}`)
   if (existing) {
-    const appUrl = env.ALLOWED_ORIGIN ?? 'https://bernieprd.github.io'
+    const appUrl = env.APP_BASE_URL ?? 'https://bernieprd.github.io/casita/#'
     return Response.json({ token: existing, url: `${appUrl}/share/${existing}` })
   }
 
@@ -149,7 +149,7 @@ export async function shareRecipe(_req: Request, env: Env, recipeId: string): Pr
     env.AUTH_KV.put(`share-recipe:${recipeId}`, token),
   ])
 
-  const appUrl = env.ALLOWED_ORIGIN ?? 'https://bernieprd.github.io'
+  const appUrl = env.APP_BASE_URL ?? 'https://bernieprd.github.io/casita/#'
   return Response.json({ token, url: `${appUrl}/share/${token}` }, { status: 201 })
 }
 

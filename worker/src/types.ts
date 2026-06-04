@@ -125,6 +125,7 @@ export interface Env {
   // Set in wrangler.toml [vars] or .dev.vars to override the default.
   // Defaults to the GitHub Pages origin in production.
   ALLOWED_ORIGIN?: string
+  APP_BASE_URL?: string
   RECIPE_PHOTOS: R2Bucket
   AUTH_KV: KVNamespace
   ALLOWED_EMAILS: string
