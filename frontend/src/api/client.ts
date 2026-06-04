@@ -1,4 +1,4 @@
-const BASE_URL = (import.meta.env.VITE_WORKER_URL as string | undefined) ?? 'http://localhost:8787'
+const BASE_URL = (import.meta.env.VITE_WORKER_URL as string | undefined) || 'http://localhost:8787'
 
 export class ApiError extends Error {
   constructor(public readonly status: number, message: string) {
@@ -26,7 +26,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   const data = await res.json()
   if (res.status === 401) {
-    onUnauthorized?.()
+    if (token) onUnauthorized?.()
     throw new ApiError(401, (data as { error?: string }).error ?? 'Unauthorized')
   }
   if (!res.ok) throw new ApiError(res.status, (data as { error?: string }).error ?? res.statusText)
@@ -53,7 +53,7 @@ export async function uploadPhoto(file: File): Promise<string> {
   })
   const data = await res.json()
   if (res.status === 401) {
-    onUnauthorized?.()
+    if (token) onUnauthorized?.()
     throw new ApiError(401, (data as { error?: string }).error ?? 'Unauthorized')
   }
   if (!res.ok) throw new ApiError(res.status, (data as { error?: string }).error ?? res.statusText)
