@@ -16,7 +16,7 @@ function getToken(): string | null {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getToken()
-  const authHeader = token ? { Authorization: `Bearer ${token}` } : {}
+  const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...authHeader, ...init?.headers },
@@ -49,7 +49,7 @@ export async function uploadPhoto(file: File): Promise<string> {
   const res = await fetch(`${BASE_URL}/recipe-photos`, {
     method: 'POST',
     body: form,
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   })
   const data = await res.json()
   if (res.status === 401) {
