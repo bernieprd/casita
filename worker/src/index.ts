@@ -4,6 +4,7 @@ import { updateRecipeIngredient, createRecipeIngredient, deleteRecipeIngredient 
 import { uploadRecipePhoto, serveRecipePhoto } from './routes/uploads'
 import { getTodos, createTodo, updateTodo, deleteTodo } from './routes/todos'
 import { getCalendarEvents } from './routes/calendar'
+import { checkAuth, setupAuth, loginAuth, logoutAuth } from './routes/auth'
 import { NotionError } from './notion'
 import type { Env } from './types'
 
@@ -19,7 +20,7 @@ function corsHeaders(origin: string): HeadersInit {
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '86400',
   }
 }
@@ -44,6 +45,10 @@ function err(status: number, message: string, origin: string): Response {
 type Handler = (req: Request, env: Env, ...ids: string[]) => Promise<Response>
 
 const routes: Array<[string, URLPattern, Handler]> = [
+  ['POST',   new URLPattern({ pathname: '/auth/check' }),              checkAuth],
+  ['POST',   new URLPattern({ pathname: '/auth/setup' }),              setupAuth],
+  ['POST',   new URLPattern({ pathname: '/auth/login' }),              loginAuth],
+  ['POST',   new URLPattern({ pathname: '/auth/logout' }),             logoutAuth],
   ['GET',    new URLPattern({ pathname: '/items' }),                          getItems],
   ['POST',   new URLPattern({ pathname: '/items' }),                          createItem],
   ['PATCH',  new URLPattern({ pathname: '/items/:id' }),                      updateItem],
@@ -78,6 +83,16 @@ export default {
     }
 
     try {
+      if (!req.url.includes('/auth/')) {
+        const token = req.headers.get('Authorization')?.replace('Bearer ', '')
+        if (!token) return err(401, 'Unauthorized', origin)
+        const session = await env.AUTH_KV.get(`session:${token}`, 'json') as { email: string; expiresAt: number } | null
+        if (!session || session.expiresAt < Date.now()) {
+          if (session) await env.AUTH_KV.delete(`session:${token}`)
+          return err(401, 'Unauthorized', origin)
+        }
+      }
+
       for (const [method, pattern, handler] of routes) {
         if (req.method !== method) continue
 

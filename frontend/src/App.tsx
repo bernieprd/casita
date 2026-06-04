@@ -25,6 +25,9 @@ import Calendar from './components/Calendar'
 import Todos from './components/Todos'
 import Shopping from './components/Shopping'
 import Recipes from './components/Recipes'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import Login from './components/Login'
+import AccountSetup from './components/AccountSetup'
 
 export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
 
@@ -44,7 +47,14 @@ function pathnameToTab(pathname: string): TabId {
   return 'home'
 }
 
-export default function App() {
+function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
+  const location = useLocation()
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />
+  return <>{children}</>
+}
+
+function AppShell() {
   const [recipeDetailBar, setRecipeDetailBar] = useState<ReactNode | null>(null)
   const qc = useQueryClient()
   const isOnline = useOnlineStatus()
@@ -53,8 +63,6 @@ export default function App() {
 
   const activeTab = pathnameToTab(location.pathname)
 
-  // Prime the Workbox cache on first load so shopping list + todos are
-  // available offline even before the user visits those tabs.
   useEffect(() => {
     qc.prefetchQuery({ queryKey: itemKeys.shopping, queryFn: itemsApi.listShopping })
     qc.prefetchQuery({ queryKey: todoKeys.all,      queryFn: todosApi.list })
@@ -153,5 +161,21 @@ export default function App() {
         </BottomNavigation>
       </Paper>
     </Box>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/setup" element={<AccountSetup />} />
+        <Route path="/*" element={
+          <ProtectedRoute>
+            <AppShell />
+          </ProtectedRoute>
+        } />
+      </Routes>
+    </AuthProvider>
   )
 }

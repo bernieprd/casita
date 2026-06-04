@@ -3,11 +3,17 @@ main = "src/index.ts"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
+[[kv_namespaces]]
+binding = "AUTH_KV"
+id = "2d412d6c4d5e4f6fbc17b2aae06de761"
+preview_id = "8f83fdfdf2254528b98ec78c65e1b88f"
+
 [vars]
 # Add non-secret environment variables here.
 # Secrets (e.g. NOTION_TOKEN) must be set via:
 #   wrangler secret put NOTION_TOKEN
 NOTION_TODOS_DB = "332332846c00806480fdfd6be9f5ffa0"
+ALLOWED_EMAILS = "bernardo.prd@gmail.com,cesareditimoteo@gmail.com"
 
 [[r2_buckets]]
 binding = "RECIPE_PHOTOS"

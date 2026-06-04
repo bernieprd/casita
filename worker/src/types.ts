@@ -126,4 +126,6 @@ export interface Env {
   // Defaults to the GitHub Pages origin in production.
   ALLOWED_ORIGIN?: string
   RECIPE_PHOTOS: R2Bucket
+  AUTH_KV: KVNamespace
+  ALLOWED_EMAILS: string
 }
