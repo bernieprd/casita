@@ -8,9 +8,9 @@
     "build": "pnpm -r build",
     "build:frontend": "pnpm --filter frontend build",
     "build:worker": "pnpm --filter worker build",
-    "deploy": "pnpm -r deploy",
-    "deploy:frontend": "pnpm --filter frontend deploy",
-    "deploy:worker": "pnpm --filter worker deploy",
+    "deploy": "pnpm -r run deploy",
+    "deploy:frontend": "pnpm --filter frontend run deploy",
+    "deploy:worker": "pnpm --filter worker run deploy",
     "typecheck": "pnpm -r typecheck"
   },
   "engines": {
