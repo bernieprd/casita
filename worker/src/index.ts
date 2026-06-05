@@ -8,7 +8,7 @@ import { checkAuth, setupAuth, loginAuth, logoutAuth } from './routes/auth'
 import { NotionError } from './notion'
 import type { Env } from './types'
 
-const DEFAULT_ORIGIN = 'https://bernieprd.github.io'
+const DEFAULT_ORIGIN = 'https://casita.bernardoprd.com'
 const DEV_ORIGINS = ['http://localhost:5173', 'http://localhost:5174']
 
 function resolveOrigin(req: Request, allowedOrigin: string): string {

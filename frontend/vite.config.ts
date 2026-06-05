@@ -46,7 +46,7 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ],
-  base: mode === 'production' ? (process.env.VITE_BASE_PATH ?? '/casita/') : '/',
+  base: '/',
   build: {
     rollupOptions: {
       output: {
