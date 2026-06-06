@@ -354,7 +354,7 @@ Single agent updates type files and config before anything imports from them:
 
 ---
 
-### Wave 2 — Parallel build (4 agents simultaneously, ~15 min)
+### Wave 2 — Parallel build (4 agents simultaneously, ~15 min) ✅ DONE
 
 **Agent A — `worker/src/auth/clerk.ts`**
 - Install `@clerk/backend` in the worker package
