@@ -16,6 +16,13 @@ NOTION_TODOS_DB = "332332846c00806480fdfd6be9f5ffa0"
 ALLOWED_EMAILS = "bernardo.prd@gmail.com,cesareditimoteo@gmail.com"
 APP_BASE_URL = "https://casita.bernardoprd.com/#"
 GOOGLE_REDIRECT_URI = "https://casita-worker.bernardoprd.workers.dev/auth/google/callback"
+CLERK_PUBLISHABLE_KEY=pk_test_c2V0dGxpbmctZmFsY29uLTY3LmNsZXJrLmFjY291bnRzLmRldiQ
+
+
+[[d1_databases]]
+binding = "DB"
+database_name = "casita"
+database_id = "FILL_IN_AFTER_wrangler_d1_create_casita"
 
 [[r2_buckets]]
 binding = "RECIPE_PHOTOS"

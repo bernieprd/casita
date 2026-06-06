@@ -345,7 +345,7 @@ function ProtectedRoute({ children }) {
 
 Agents within the same wave run **in parallel**.
 
-### Wave 1 — Foundation (1 agent, ~5 min)
+### Wave 1 — Foundation ✅ DONE
 
 Single agent updates type files and config before anything imports from them:
 - `worker/src/types.ts` — add `DB: D1Database`, `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `RequestContext`
