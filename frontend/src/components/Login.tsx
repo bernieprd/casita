@@ -12,7 +12,7 @@ export default function Login() {
         bgcolor: 'background.default',
       }}
     >
-      <SignIn routing="hash" />
+      <SignIn routing="virtual" />
     </Box>
   )
 }

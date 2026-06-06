@@ -55,20 +55,37 @@ function pathnameToTab(pathname: string): TabId {
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user } = useAuth()
-  const { householdId, isLoading } = useHousehold()
-  const { isSignedIn: isClerkSignedIn } = useUser()
+  const { householdId, isLoading: isHouseholdLoading } = useHousehold()
+  const { isSignedIn: isClerkSignedIn, isLoaded: isClerkLoaded } = useUser()
   const location = useLocation()
 
-  // Not authenticated at all → Clerk sign-in
+  // Wait for Clerk to finish loading before making any auth decision.
+  // Without this, we redirect to /sign-in on every load even for signed-in users.
+  if (!isClerkLoaded) return null
+
+  // Not authenticated → sign-in
   if (!user) return <Navigate to="/sign-in" state={{ from: location }} replace />
 
   // Clerk user: wait for household fetch, then redirect to setup if needed
   if (isClerkSignedIn) {
-    if (isLoading) return null
+    if (isHouseholdLoading) return null
     if (householdId === null) return <Navigate to="/household/setup" replace />
   }
 
   return <>{children}</>
+}
+
+// Redirects already-signed-in users away from the sign-in page to prevent
+// Clerk from looping when it detects a live session on its own SignIn component.
+function SignInPage() {
+  const { isSignedIn, isLoaded } = useUser()
+  if (!isLoaded) return null
+  if (isSignedIn) return <Navigate to="/" replace />
+  return (
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
+      <SignIn routing="virtual" />
+    </Box>
+  )
 }
 
 function AppShell() {
@@ -206,7 +223,7 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Navigate to="/sign-in" replace />} />
-        <Route path="/sign-in" element={<SignIn routing="hash" />} />
+        <Route path="/sign-in" element={<SignInPage />} />
         <Route path="/setup" element={<AccountSetup />} />
         <Route path="/share/:token" element={<PublicRecipeView />} />
         <Route path="/household/setup" element={<SignedIn><HouseholdSetup /></SignedIn>} />
