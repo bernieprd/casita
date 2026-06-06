@@ -1,4 +1,5 @@
 import type { Env, GoogleTokens } from '../types'
+import { rebuildSharedIndex } from './shared-calendar-index'
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
@@ -122,6 +123,7 @@ export async function disconnectGoogle(req: Request, env: Env): Promise<Response
     env.AUTH_KV.delete(`google_tokens:${email}`),
     env.AUTH_KV.delete(`user_calendars:${email}`),
   ])
+  await rebuildSharedIndex(email, [], env)
 
   return Response.json({ ok: true })
 }

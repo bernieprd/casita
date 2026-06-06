@@ -26,6 +26,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   const data = await res.json()
   if (res.status === 401) {
+    console.warn('[casita] 401 on:', path, '— token present:', !!token)
     if (token) onUnauthorized?.()
     throw new ApiError(401, (data as { error?: string }).error ?? 'Unauthorized')
   }

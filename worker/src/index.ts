@@ -97,6 +97,7 @@ export default {
         const token = req.headers.get('Authorization')?.replace('Bearer ', '')
         if (!token) return err(401, 'Unauthorized', origin)
         const session = await env.AUTH_KV.get(`session:${token}`, 'json') as { email: string; expiresAt: number } | null
+        console.log('[auth]', req.method, new URL(req.url).pathname, '| token:', token?.slice(0, 8), '| session:', session ? `ok(exp=${session.expiresAt}, now=${Date.now()})` : 'null')
         if (!session || session.expiresAt < Date.now()) {
           if (session) await env.AUTH_KV.delete(`session:${token}`)
           return err(401, 'Unauthorized', origin)
@@ -118,7 +119,12 @@ export default {
       return err(404, 'Not found', origin)
     } catch (e) {
       if (e instanceof NotionError) {
-        return err(e.status >= 400 && e.status < 500 ? e.status : 502, e.message, origin)
+        // Never forward Notion's 401/403 as a 401 — that would trigger client logout.
+        // Notion auth failures are a server-side config problem, not a user auth problem.
+        const clientStatus = (e.status === 401 || e.status === 403)
+          ? 502
+          : (e.status >= 400 && e.status < 500 ? e.status : 502)
+        return err(clientStatus, e.message, origin)
       }
       console.error(e)
       return err(500, 'Internal server error', origin)

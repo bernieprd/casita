@@ -1,5 +1,6 @@
 import type { Env, UserCalendar } from '../types'
 import { getValidAccessToken } from './google-auth'
+import { rebuildSharedIndex } from './shared-calendar-index'
 
 async function getEmailFromRequest(req: Request, env: Env): Promise<string | null> {
   const token = req.headers.get('Authorization')?.replace('Bearer ', '')
@@ -37,6 +38,7 @@ export async function listUserCalendars(req: Request, env: Env): Promise<Respons
       name: item.summary,
       colorHex: item.backgroundColor ?? '#4285F4',
       enabled: match ? match.enabled : false,
+      visibility: match?.visibility ?? 'private',
     }
   })
 
@@ -51,6 +53,7 @@ export async function updateUserCalendars(req: Request, env: Env): Promise<Respo
 
   const calendars = await req.json() as UserCalendar[]
   await env.AUTH_KV.put(`user_calendars:${email}`, JSON.stringify(calendars))
+  await rebuildSharedIndex(email, calendars, env)
 
   return Response.json({ ok: true })
 }

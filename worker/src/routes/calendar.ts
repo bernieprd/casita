@@ -1,4 +1,4 @@
-import type { Env, CalendarEvent, UserCalendar } from '../types'
+import type { Env, CalendarEvent, UserCalendar, SharedCalendar } from '../types'
 import { getValidAccessToken } from './google-auth'
 
 // ── JWT / OAuth2 helpers ──────────────────────────────────────────────────────
@@ -109,6 +109,10 @@ interface GCalListResponse {
   error?: { code: number; message: string }
 }
 
+interface FreeBusyResponse {
+  calendars: Record<string, { busy: Array<{ start: string; end: string }> }>
+}
+
 async function fetchServiceAccountEvents(
   env: Env,
   timeMin: string,
@@ -209,6 +213,99 @@ async function fetchUserOAuthEvents(
   return events
 }
 
+async function fetchFullSharedCalendar(
+  entry: SharedCalendar,
+  accessToken: string,
+  timeMin: string,
+  timeMax: string,
+): Promise<CalendarEvent[]> {
+  const params = new URLSearchParams({
+    timeMin, timeMax, singleEvents: 'true', orderBy: 'startTime', maxResults: '50',
+  })
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(entry.calendarId)}/events?${params}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  )
+  if (!res.ok) return []
+  const body = await res.json() as GCalListResponse
+  return (body.items ?? [])
+    .filter(e => e.status !== 'cancelled')
+    .map(e => ({
+      id:     `shared:${entry.calendarId}:${e.id}`,
+      title:  e.summary ?? '(No title)',
+      start:  e.start.dateTime ?? e.start.date ?? '',
+      end:    e.end.dateTime   ?? e.end.date   ?? '',
+      allDay: Boolean(e.start.date && !e.start.dateTime),
+      color:  e.colorId ? (GCAL_COLORS[e.colorId] ?? entry.colorHex) : entry.colorHex,
+      source: 'household-shared' as const,
+    }))
+}
+
+async function fetchFreeBusyCalendar(
+  entry: SharedCalendar,
+  accessToken: string,
+  timeMin: string,
+  timeMax: string,
+): Promise<CalendarEvent[]> {
+  const res = await fetch('https://www.googleapis.com/calendar/v3/freeBusy', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      timeMin,
+      timeMax,
+      items: [{ id: entry.calendarId }],
+    }),
+  })
+  if (!res.ok) return []
+  const body = await res.json() as FreeBusyResponse
+  const busySlots = body.calendars?.[entry.calendarId]?.busy ?? []
+  return busySlots.map((slot, i) => ({
+    id:     `freebusy:${entry.calendarId}:${i}:${slot.start}`,
+    title:  'Busy',
+    start:  slot.start,
+    end:    slot.end,
+    allDay: false,
+    color:  entry.colorHex,
+    source: 'free-busy' as const,
+  }))
+}
+
+async function fetchSharedCalendarEvents(
+  requestingEmail: string,
+  env: Env,
+  timeMin: string,
+  timeMax: string,
+): Promise<CalendarEvent[]> {
+  const raw = await env.AUTH_KV.get('household_shared_calendars')
+  if (!raw) return []
+
+  const index = (JSON.parse(raw) as SharedCalendar[])
+    .filter(entry => entry.ownerEmail !== requestingEmail)
+
+  if (index.length === 0) return []
+
+  const results = await Promise.allSettled(
+    index.map(async entry => {
+      const accessToken = await getValidAccessToken(entry.ownerEmail, env)
+      if (!accessToken) return [] as CalendarEvent[]
+      if (entry.visibility === 'household') {
+        return fetchFullSharedCalendar(entry, accessToken, timeMin, timeMax)
+      } else {
+        return fetchFreeBusyCalendar(entry, accessToken, timeMin, timeMax)
+      }
+    }),
+  )
+
+  const events: CalendarEvent[] = []
+  for (const result of results) {
+    if (result.status === 'fulfilled') events.push(...result.value)
+  }
+  return events
+}
+
 export async function getCalendarEvents(
   req: Request,
   env: Env,
@@ -233,12 +330,13 @@ export async function getCalendarEvents(
   }
 
   try {
-    const [householdEvents, userEvents] = await Promise.all([
+    const [householdEvents, userEvents, sharedEvents] = await Promise.all([
       fetchServiceAccountEvents(env, timeMin, timeMax),
       email ? fetchUserOAuthEvents(email, env, timeMin, timeMax) : Promise.resolve([] as CalendarEvent[]),
+      email ? fetchSharedCalendarEvents(email, env, timeMin, timeMax) : Promise.resolve([] as CalendarEvent[]),
     ])
 
-    const events = [...householdEvents, ...userEvents]
+    const events = [...householdEvents, ...userEvents, ...sharedEvents]
       .sort((a, b) => a.start.localeCompare(b.start))
 
     return Response.json(events)

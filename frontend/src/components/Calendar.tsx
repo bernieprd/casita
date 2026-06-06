@@ -79,6 +79,7 @@ function EventCard({ event }: { event: CalendarEvent }) {
         overflow: 'hidden',
         boxShadow: '0 1px 2px rgba(0,0,0,.06)',
         mb: 1,
+        ...(event.source === 'free-busy' && { opacity: 0.7 }),
       }}
     >
       {/* Color strip */}

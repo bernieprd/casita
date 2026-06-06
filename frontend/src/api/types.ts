@@ -41,7 +41,7 @@ export interface CalendarEvent {
   end: string
   allDay: boolean
   color: string | null
-  source?: 'household' | 'user'
+  source?: 'household' | 'user' | 'household-shared' | 'free-busy'
 }
 
 export interface UserCalendar {
@@ -49,6 +49,7 @@ export interface UserCalendar {
   name: string
   colorHex: string
   enabled: boolean
+  visibility: 'private' | 'household' | 'free-busy'
 }
 
 export interface RecipeIngredient {

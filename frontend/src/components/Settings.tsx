@@ -7,6 +7,9 @@ import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
 import Skeleton from '@mui/material/Skeleton'
 import Switch from '@mui/material/Switch'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
+import FormControl from '@mui/material/FormControl'
 import {
   useGoogleStatus,
   useUserCalendars,
@@ -38,6 +41,14 @@ export default function Settings() {
     if (!calendars) return
     const updated = calendars.map(c =>
       c.id === cal.id ? { ...c, enabled: !c.enabled } : c
+    )
+    updateCalendars(updated)
+  }
+
+  function handleVisibility(cal: UserCalendar, visibility: UserCalendar['visibility']) {
+    if (!calendars) return
+    const updated = calendars.map(c =>
+      c.id === cal.id ? { ...c, visibility } : c
     )
     updateCalendars(updated)
   }
@@ -110,27 +121,42 @@ export default function Settings() {
           ) : (
             <>
               {(calendars ?? []).map(cal => (
-                <Box
-                  key={cal.id}
-                  sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}
-                >
-                  <Box
-                    sx={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: 0.5,
-                      bgcolor: cal.colorHex,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <Typography variant="body2" sx={{ flex: 1 }}>
-                    {cal.name}
-                  </Typography>
-                  <Switch
-                    checked={cal.enabled}
-                    size="small"
-                    onChange={() => handleToggle(cal)}
-                  />
+                <Box key={cal.id} sx={{ mb: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box
+                      sx={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: 0.5,
+                        bgcolor: cal.colorHex,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <Typography variant="body2" sx={{ flex: 1 }}>
+                      {cal.name}
+                    </Typography>
+                    <Switch
+                      checked={cal.enabled}
+                      size="small"
+                      onChange={() => handleToggle(cal)}
+                    />
+                  </Box>
+
+                  {cal.enabled && (
+                    <Box sx={{ pl: 3.5, mt: 0.5 }}>
+                      <FormControl size="small" fullWidth>
+                        <Select
+                          value={cal.visibility ?? 'private'}
+                          onChange={e => handleVisibility(cal, e.target.value as UserCalendar['visibility'])}
+                          sx={{ fontSize: 13 }}
+                        >
+                          <MenuItem value="private">Private — only me</MenuItem>
+                          <MenuItem value="household">Household — full events</MenuItem>
+                          <MenuItem value="free-busy">Household — free/busy only</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Box>
+                  )}
                 </Box>
               ))}
             </>

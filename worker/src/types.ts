@@ -53,7 +53,7 @@ export interface CalendarEvent {
   end: string
   allDay: boolean
   color: string | null
-  source?: 'household' | 'user'
+  source?: 'household' | 'user' | 'household-shared' | 'free-busy'
 }
 
 export interface GoogleTokens {
@@ -67,6 +67,15 @@ export interface UserCalendar {
   name: string
   colorHex: string
   enabled: boolean
+  visibility: 'private' | 'household' | 'free-busy'
+}
+
+export interface SharedCalendar {
+  calendarId: string
+  ownerEmail: string
+  name: string
+  colorHex: string
+  visibility: 'household' | 'free-busy'
 }
 
 // ── Notion raw types ──────────────────────────────────────────────────────────
