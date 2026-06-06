@@ -252,6 +252,141 @@ No changes to `TabId` or bottom navigation.
 
 ---
 
+## Implementation Status — DONE (as of 2026-06-06)
+
+All waves completed. Both worker and frontend type-check clean (`tsc --noEmit`).
+
+### Files created
+- `worker/src/routes/google-auth.ts` — OAuth flow + `getValidAccessToken`
+- `worker/src/routes/user-calendars.ts` — list + update user calendar preferences
+- `frontend/src/api/google-calendar.ts` — hooks: `useGoogleStatus`, `useUserCalendars`, `useUpdateUserCalendars`, `useDisconnectGoogle`, `buildGoogleConnectUrl`
+- `frontend/src/components/Settings.tsx` — full Settings page UI
+
+### Files modified
+- `worker/src/types.ts` — `GoogleTokens`, `UserCalendar`, `source` on `CalendarEvent`, `GOOGLE_*` env vars
+- `worker/src/routes/calendar.ts` — refactored to merge household + user OAuth events in parallel
+- `worker/src/index.ts` — 6 new routes, `PUT` added to CORS
+- `frontend/src/api/client.ts` — added `put` method
+- `frontend/src/api/types.ts` — `UserCalendar`, `source` on `CalendarEvent`
+- `frontend/src/api/index.ts` — exports for new hooks and `UserCalendar`
+- `frontend/src/App.tsx` — gear icon in AppBar, `/settings` route
+
+### Config already done
+- `worker/wrangler.toml` — `GOOGLE_REDIRECT_URI` added under `[vars]`
+- `worker/.dev.vars` — `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `APP_BASE_URL=http://localhost:5173/#` set for local dev
+- Cloudflare secrets (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) pushed via `wrangler secret put`
+
+### Known local dev caveat
+`GCAL_CALENDAR_ID` / `GCAL_CLIENT_EMAIL` / `GCAL_PRIVATE_KEY` are commented out in `.dev.vars`, so the household calendar won't load in local dev — only personal OAuth events appear. Production deploy will have both.
+
+### Bug fixes (2026-06-06, post-testing)
+- **Settings full-screen**: `App.tsx` — added `isSettings` flag; bottom nav `<Paper>` hidden on `/settings`; content `paddingBottom` drops when on Settings
+- **Settings in AppBar**: Back button + "Settings" title now replace "Casita" in the AppBar when on Settings; back button removed from Settings component body; gear icon restricted to Calendar tab only
+- **`calendars.map is not a function`**: `Settings.tsx` — `useUserCalendars()` data (shape `{ calendars, connected }`) was being used as an array directly; fixed by extracting `calendarData?.calendars`
+
+---
+
+## Planned: Calendar Visibility & Household Sharing
+
+### What & Why
+Each user currently sees only their own OAuth calendars merged with the household calendar. The goal is to let users control:
+1. **Who sees a synced calendar** — private (only me) or shared with the household
+2. **What household members see** — full event titles, or just free/busy time blocks ("Busy" placeholder)
+
+Example: Bernardo marks his "Personal" calendar as private but marks "Work" as household-visible with free/busy only. Cesare's Calendar view shows work blocks labeled "Busy" but nothing from Personal.
+
+---
+
+### Google Calendar API — What's Available
+
+**Free/busy endpoint:** `POST /calendar/v3/freeBusy` — returns only `{ busy: [{start, end}] }` per calendar. No titles, no descriptions. Use this to fetch blocks for household-visible/free-busy calendars belonging to other users.
+
+**Event transparency field:** Each event has `transparency: "opaque" | "transparent"`. Opaque = blocks time (busy); transparent = doesn't. When building "Busy" placeholders we can respect this to skip transparent events.
+
+**Access roles** (on `calendarList` entries): `owner`, `writer`, `reader`, `freeBusyReader`. With `freeBusyReader`, `events.list` returns 403 — must use `freebusy.query`. We don't need Google ACL sharing for this feature; visibility is enforced at the app layer using the calendar owner's own token.
+
+---
+
+### Architecture Decision: App-layer visibility (no Google ACL changes)
+
+Each user's token is stored in KV under `google_tokens:{email}`. When fetching events, the worker can use *any user's* stored token to fetch their shared calendars on behalf of a request. No Google ACL sharing required — visibility is controlled entirely by the app.
+
+**Household member discovery:** Add a `household_shared_calendars` key in `AUTH_KV`:
+```
+household_shared_calendars → [{ calendarId, ownerEmail, name, colorHex, visibility }]
+```
+Updated whenever any user saves their calendar preferences. When fetching events, the worker loads this list and fetches shared calendars using the respective owner's access token.
+
+---
+
+### Data Model Changes
+
+**Add to `UserCalendar`** (both `worker/src/types.ts` and `frontend/src/api/types.ts`):
+```typescript
+visibility: 'private' | 'household' | 'free-busy'
+// 'private'    — only the owner sees this calendar
+// 'household'  — all household members see full event titles
+// 'free-busy'  — all household members see "Busy" time blocks only
+```
+Default: `'private'`. Backwards-compatible — existing records without the field are treated as private.
+
+**New shared index** (worker KV):
+```typescript
+// Key: "household_shared_calendars"
+// Value: SharedCalendar[]
+interface SharedCalendar {
+  calendarId: string
+  ownerEmail: string
+  name: string
+  colorHex: string
+  visibility: 'household' | 'free-busy'
+}
+```
+
+---
+
+### Backend Changes
+
+**`worker/src/routes/user-calendars.ts` — `updateUserCalendars`**
+After saving `user_calendars:{email}`, rebuild and save `household_shared_calendars`:
+- Load the current list, remove all entries for this user's email, append any calendars from the new list where `visibility !== 'private'`
+
+**`worker/src/routes/calendar.ts` — `fetchUserOAuthEvents` (existing function)**
+- Keep fetching the requesting user's own enabled calendars (unchanged)
+
+**`worker/src/routes/calendar.ts` — new `fetchSharedCalendarEvents(requestingEmail, env, timeMin, timeMax)`**
+- Load `household_shared_calendars` from KV
+- Skip entries where `ownerEmail === requestingEmail` (user already sees their own)
+- For each entry with `visibility: 'household'`: use owner's access token → `events.list` → return full events with `source: 'household-shared'`
+- For each entry with `visibility: 'free-busy'`: use owner's access token → `freebusy.query` → return synthetic events `{ title: 'Busy', start, end, color: entry.colorHex, source: 'free-busy' }`
+- Use `Promise.allSettled` (resilient per-calendar failures; revoked tokens return `[]` and delete `google_tokens:{ownerEmail}`)
+
+**`worker/src/routes/calendar.ts` — `getCalendarEvents`**
+- Add `fetchSharedCalendarEvents` to the parallel fetch alongside household + personal
+
+---
+
+### Frontend Changes
+
+**`frontend/src/api/types.ts`** — add `'household-shared' | 'free-busy'` to `source` on `CalendarEvent`
+
+**`frontend/src/components/Settings.tsx`** — replace the `Switch` per calendar row with an expandable row:
+- Row: color swatch + name + enable toggle (existing)
+- When enabled: a single `Select` with three options — "Private (only me)" / "Household — full events" / "Household — free/busy"
+- Auto-saves on change via `useUpdateUserCalendars` (existing mutation)
+
+**`frontend/src/components/Calendar.tsx`** — no changes required. "Busy" events render as-is since the component already renders `event.title` generically. Optional: style `source: 'free-busy'` events with a subtle striped or muted appearance to distinguish them visually.
+
+---
+
+### Implementation Complexity
+
+Medium. The main new moving part is the `household_shared_calendars` shared KV index and the `fetchSharedCalendarEvents` worker function. Settings UI change is a small component update. No new routes needed — `updateUserCalendars` and `getCalendarEvents` are extended in place.
+
+The token-reuse pattern (fetching another user's calendar using their stored token) is already established by `getValidAccessToken` in `google-auth.ts`.
+
+---
+
 ## Agent-Optimized Implementation Order
 
 The work is split into waves. Agents within the same wave run **in parallel**.

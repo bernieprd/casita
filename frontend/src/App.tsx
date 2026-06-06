@@ -9,7 +9,9 @@ import Box from '@mui/material/Box'
 import Alert from '@mui/material/Alert'
 import IconButton from '@mui/material/IconButton'
 import RefreshIcon from '@mui/icons-material/Refresh'
+import SettingsIcon from '@mui/icons-material/Settings'
 import WifiOffIcon from '@mui/icons-material/WifiOff'
+import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import HomeIcon from '@mui/icons-material/Home'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import CheckBoxIcon from '@mui/icons-material/CheckBox'
@@ -27,6 +29,7 @@ import Shopping from './components/Shopping'
 import Recipes from './components/Recipes'
 import RecipeFormPage from './components/RecipeFormPage'
 import PublicRecipeView from './components/PublicRecipeView'
+import Settings from './components/Settings'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './components/Login'
 import AccountSetup from './components/AccountSetup'
@@ -64,6 +67,7 @@ function AppShell() {
   const location = useLocation()
 
   const activeTab = pathnameToTab(location.pathname)
+  const isSettings = location.pathname === '/settings'
 
   useEffect(() => {
     qc.prefetchQuery({ queryKey: itemKeys.shopping, queryFn: itemsApi.listShopping })
@@ -86,16 +90,32 @@ function AppShell() {
       <AppBar position="sticky" color="inherit" sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Toolbar sx={{ px: { xs: 2 } }}>
           {recipeDetailBar ?? (
-            <>
-              <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ flex: 1 }}>
-                Casita
-              </Typography>
-              {canRefresh && (
-                <IconButton onClick={handleRefresh} size="small" color="inherit">
-                  <RefreshIcon />
+            isSettings ? (
+              <>
+                <IconButton onClick={() => navigate(-1)} size="small" color="inherit" edge="start">
+                  <ArrowBackIcon />
                 </IconButton>
-              )}
-            </>
+                <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ flex: 1 }}>
+                  Settings
+                </Typography>
+              </>
+            ) : (
+              <>
+                <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ flex: 1 }}>
+                  Casita
+                </Typography>
+                {canRefresh && (
+                  <IconButton onClick={handleRefresh} size="small" color="inherit">
+                    <RefreshIcon />
+                  </IconButton>
+                )}
+                {activeTab === 'calendar' && (
+                  <IconButton onClick={() => navigate('/settings')} size="small" color="inherit">
+                    <SettingsIcon />
+                  </IconButton>
+                )}
+              </>
+            )
           )}
         </Toolbar>
       </AppBar>
@@ -110,7 +130,7 @@ function AppShell() {
         </Alert>
       )}
 
-      <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, pt: 2, paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
+      <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, pt: 2, paddingBottom: isSettings ? 2 : 'calc(80px + env(safe-area-inset-bottom))' }}>
         <Routes>
           <Route path="/" element={
             <TabErrorBoundary key="home">
@@ -142,26 +162,29 @@ function AppShell() {
               <Recipes setToolbar={setRecipeDetailBar} />
             </TabErrorBoundary>
           } />
+          <Route path="/settings" element={<TabErrorBoundary key="settings"><Settings /></TabErrorBoundary>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Box>
 
-      <Paper
-        elevation={0}
-        sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100, paddingBottom: 'env(safe-area-inset-bottom)', borderTop: '1px solid', borderColor: 'divider' }}
-      >
-        <BottomNavigation
-          value={activeTab}
-          onChange={(_, v: TabId) => navigate(TAB_PATHS[v])}
-          sx={{ maxWidth: 600, mx: 'auto' }}
+      {!isSettings && (
+        <Paper
+          elevation={0}
+          sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100, paddingBottom: 'env(safe-area-inset-bottom)', borderTop: '1px solid', borderColor: 'divider' }}
         >
-          <BottomNavigationAction label="Home"     value="home"     icon={<HomeIcon />} />
-          <BottomNavigationAction label="Calendar" value="calendar" icon={<CalendarMonthIcon />} />
-          <BottomNavigationAction label="Todos"    value="todos"    icon={<CheckBoxIcon />} />
-          <BottomNavigationAction label="Shopping" value="shopping" icon={<ShoppingCartIcon />} />
-          <BottomNavigationAction label="Recipes"  value="recipes"  icon={<MenuBookIcon />} />
-        </BottomNavigation>
-      </Paper>
+          <BottomNavigation
+            value={activeTab}
+            onChange={(_, v: TabId) => navigate(TAB_PATHS[v])}
+            sx={{ maxWidth: 600, mx: 'auto' }}
+          >
+            <BottomNavigationAction label="Home"     value="home"     icon={<HomeIcon />} />
+            <BottomNavigationAction label="Calendar" value="calendar" icon={<CalendarMonthIcon />} />
+            <BottomNavigationAction label="Todos"    value="todos"    icon={<CheckBoxIcon />} />
+            <BottomNavigationAction label="Shopping" value="shopping" icon={<ShoppingCartIcon />} />
+            <BottomNavigationAction label="Recipes"  value="recipes"  icon={<MenuBookIcon />} />
+          </BottomNavigation>
+        </Paper>
+      )}
     </Box>
   )
 }
