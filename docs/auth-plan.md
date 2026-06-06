@@ -379,15 +379,15 @@ Single agent updates type files and config before anything imports from them:
 
 ---
 
-### Wave 3 — Integration (2 agents simultaneously, after Wave 2)
+### Wave 3 — Integration (2 agents simultaneously, after Wave 2) ✅ DONE
 
-**Agent E — `worker/src/index.ts`**
+**Agent E — `worker/src/index.ts`** ✅ DONE
 - Depends on Agent A (Clerk verifier) and Agent B (household routes)
 - Replace session middleware with Clerk JWT check + D1 household lookup
 - Add KV fallback (remove in migration step)
 - Register 5 new household routes
 
-**Agent F — `worker/src/routes/items.ts` + `todos.ts` + `recipes.ts`**
+**Agent F — `worker/src/routes/items.ts` + `todos.ts` + `recipes.ts`** ✅ DONE
 - Update all 3 route files to accept `ctx: RequestContext`
 - Replace `env.NOTION_*_DB` with `household_notion_config` D1 lookup
 - Return 403 if `ctx.householdId` is null

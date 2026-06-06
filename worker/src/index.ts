@@ -7,8 +7,10 @@ import { getCalendarEvents } from './routes/calendar'
 import { checkAuth, setupAuth, loginAuth, logoutAuth } from './routes/auth'
 import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, disconnectGoogle } from './routes/google-auth'
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
+import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite } from './routes/household'
+import { verifyClerkToken } from './auth/clerk'
 import { NotionError } from './notion'
-import type { Env } from './types'
+import type { Env, RequestContext } from './types'
 
 const DEFAULT_ORIGIN = 'https://casita.bernardoprd.com'
 const DEV_ORIGINS = ['http://localhost:5173', 'http://localhost:5174']
@@ -37,48 +39,57 @@ function err(status: number, message: string, origin: string): Response {
   return withCors(Response.json({ error: message }, { status }), origin)
 }
 
-// ── Route table ───────────────────────────────────────────────────────────────
+// ── Route tables ──────────────────────────────────────────────────────────────
 //
-// Each entry: [method, URLPattern, handler(req, env, ...groups)]
+// Each entry: [method, URLPattern, handler]
 //
 // URLPattern groups capture named path segments. The handler receives them
 // positionally in the order they appear in the pattern's pathname groups.
 
-type Handler = (req: Request, env: Env, ...ids: string[]) => Promise<Response>
+type PublicHandler = (req: Request, env: Env, ...ids: string[]) => Promise<Response>
+type AuthHandler = (req: Request, env: Env, ctx: RequestContext, ...ids: string[]) => Promise<Response>
 
-const routes: Array<[string, URLPattern, Handler]> = [
-  ['POST',   new URLPattern({ pathname: '/auth/check' }),              checkAuth],
-  ['POST',   new URLPattern({ pathname: '/auth/setup' }),              setupAuth],
-  ['POST',   new URLPattern({ pathname: '/auth/login' }),              loginAuth],
-  ['POST',   new URLPattern({ pathname: '/auth/logout' }),             logoutAuth],
-  ['GET',    new URLPattern({ pathname: '/auth/google/callback' }),    handleGoogleOAuthCallback],
-  ['GET',    new URLPattern({ pathname: '/auth/google/status' }),      getGoogleAuthStatus],
-  ['GET',    new URLPattern({ pathname: '/auth/google' }),             initiateGoogleOAuth],
-  ['DELETE', new URLPattern({ pathname: '/auth/google' }),             disconnectGoogle],
-  ['GET',    new URLPattern({ pathname: '/items' }),                          getItems],
-  ['POST',   new URLPattern({ pathname: '/items' }),                          createItem],
-  ['PATCH',  new URLPattern({ pathname: '/items/:id' }),                      updateItem],
-  ['DELETE', new URLPattern({ pathname: '/items/:id' }),                      deleteItem],
-  ['POST',   new URLPattern({ pathname: '/items/:id/merge' }),                mergeItem],
-  ['POST',   new URLPattern({ pathname: '/recipes' }),                        createRecipe],
-  ['GET',    new URLPattern({ pathname: '/recipes' }),                        getRecipes],
-  ['GET',    new URLPattern({ pathname: '/recipes/:id' }),                    getRecipe],
-  ['PATCH',  new URLPattern({ pathname: '/recipes/:id' }),                    updateRecipe],
-  ['GET',    new URLPattern({ pathname: '/recipes/:id/ingredients' }),        getRecipeIngredients],
-  ['POST',   new URLPattern({ pathname: '/recipes/:id/share' }),             shareRecipe],
-  ['GET',    new URLPattern({ pathname: '/public/recipes/:token' }),         getPublicRecipe],
-  ['POST',   new URLPattern({ pathname: '/recipe-ingredients' }),             createRecipeIngredient],
-  ['PATCH',  new URLPattern({ pathname: '/recipe-ingredients/:id' }),         updateRecipeIngredient],
-  ['DELETE', new URLPattern({ pathname: '/recipe-ingredients/:id' }),         deleteRecipeIngredient],
-  ['POST',   new URLPattern({ pathname: '/recipe-photos' }),                  uploadRecipePhoto],
-  ['GET',    new URLPattern({ pathname: '/recipe-photos/:key' }),             serveRecipePhoto],
-  ['GET',    new URLPattern({ pathname: '/todos' }),                          getTodos],
-  ['POST',   new URLPattern({ pathname: '/todos' }),                          createTodo],
-  ['PATCH',  new URLPattern({ pathname: '/todos/:id' }),                      updateTodo],
-  ['DELETE', new URLPattern({ pathname: '/todos/:id' }),                      deleteTodo],
-  ['GET',    new URLPattern({ pathname: '/calendar' }),                       getCalendarEvents],
-  ['GET',    new URLPattern({ pathname: '/user-calendars' }),                 listUserCalendars],
-  ['PUT',    new URLPattern({ pathname: '/user-calendars' }),                 updateUserCalendars],
+const publicRoutes: Array<[string, URLPattern, PublicHandler]> = [
+  ['POST',   new URLPattern({ pathname: '/auth/check' }),            checkAuth],
+  ['POST',   new URLPattern({ pathname: '/auth/setup' }),            setupAuth],
+  ['POST',   new URLPattern({ pathname: '/auth/login' }),            loginAuth],
+  ['POST',   new URLPattern({ pathname: '/auth/logout' }),           logoutAuth],
+  ['GET',    new URLPattern({ pathname: '/auth/google/callback' }),  handleGoogleOAuthCallback],
+  ['GET',    new URLPattern({ pathname: '/auth/google/status' }),    getGoogleAuthStatus],
+  ['GET',    new URLPattern({ pathname: '/auth/google' }),           initiateGoogleOAuth],
+  ['DELETE', new URLPattern({ pathname: '/auth/google' }),           disconnectGoogle],
+  ['GET',    new URLPattern({ pathname: '/public/recipes/:token' }), getPublicRecipe],
+]
+
+const routes: Array<[string, URLPattern, AuthHandler]> = [
+  ['GET',    new URLPattern({ pathname: '/household/me' }),              getHousehold],
+  ['POST',   new URLPattern({ pathname: '/household' }),                 createHousehold],
+  ['POST',   new URLPattern({ pathname: '/household/join' }),            joinHousehold],
+  ['POST',   new URLPattern({ pathname: '/household/invite' }),          generateInvite],
+  ['DELETE', new URLPattern({ pathname: '/household/invite' }),          revokeInvite],
+  ['GET',    new URLPattern({ pathname: '/items' }),                     getItems],
+  ['POST',   new URLPattern({ pathname: '/items' }),                     createItem],
+  ['PATCH',  new URLPattern({ pathname: '/items/:id' }),                 updateItem],
+  ['DELETE', new URLPattern({ pathname: '/items/:id' }),                 deleteItem],
+  ['POST',   new URLPattern({ pathname: '/items/:id/merge' }),           mergeItem],
+  ['POST',   new URLPattern({ pathname: '/recipes' }),                   createRecipe],
+  ['GET',    new URLPattern({ pathname: '/recipes' }),                   getRecipes],
+  ['GET',    new URLPattern({ pathname: '/recipes/:id' }),               getRecipe],
+  ['PATCH',  new URLPattern({ pathname: '/recipes/:id' }),               updateRecipe],
+  ['GET',    new URLPattern({ pathname: '/recipes/:id/ingredients' }),   getRecipeIngredients],
+  ['POST',   new URLPattern({ pathname: '/recipes/:id/share' }),         shareRecipe],
+  ['POST',   new URLPattern({ pathname: '/recipe-ingredients' }),        createRecipeIngredient],
+  ['PATCH',  new URLPattern({ pathname: '/recipe-ingredients/:id' }),    updateRecipeIngredient],
+  ['DELETE', new URLPattern({ pathname: '/recipe-ingredients/:id' }),    deleteRecipeIngredient],
+  ['POST',   new URLPattern({ pathname: '/recipe-photos' }),             uploadRecipePhoto],
+  ['GET',    new URLPattern({ pathname: '/recipe-photos/:key' }),        serveRecipePhoto],
+  ['GET',    new URLPattern({ pathname: '/todos' }),                     getTodos],
+  ['POST',   new URLPattern({ pathname: '/todos' }),                     createTodo],
+  ['PATCH',  new URLPattern({ pathname: '/todos/:id' }),                 updateTodo],
+  ['DELETE', new URLPattern({ pathname: '/todos/:id' }),                 deleteTodo],
+  ['GET',    new URLPattern({ pathname: '/calendar' }),                  getCalendarEvents],
+  ['GET',    new URLPattern({ pathname: '/user-calendars' }),            listUserCalendars],
+  ['PUT',    new URLPattern({ pathname: '/user-calendars' }),            updateUserCalendars],
 ]
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -87,40 +98,64 @@ export default {
   async fetch(req: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
     const origin = resolveOrigin(req, env.ALLOWED_ORIGIN ?? DEFAULT_ORIGIN)
 
-    // CORS preflight
     if (req.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: corsHeaders(origin) })
     }
 
     try {
-      if (!req.url.includes('/auth/') && !req.url.includes('/public/')) {
-        const token = req.headers.get('Authorization')?.replace('Bearer ', '')
-        if (!token) return err(401, 'Unauthorized', origin)
-        const session = await env.AUTH_KV.get(`session:${token}`, 'json') as { email: string; expiresAt: number } | null
-        console.log('[auth]', req.method, new URL(req.url).pathname, '| token:', token?.slice(0, 8), '| session:', session ? `ok(exp=${session.expiresAt}, now=${Date.now()})` : 'null')
-        if (!session || session.expiresAt < Date.now()) {
-          if (session) await env.AUTH_KV.delete(`session:${token}`)
-          return err(401, 'Unauthorized', origin)
-        }
-      }
-
-      for (const [method, pattern, handler] of routes) {
+      // 1. Dispatch public (unauthenticated) routes
+      for (const [method, pattern, handler] of publicRoutes) {
         if (req.method !== method) continue
-
         const match = pattern.exec(req.url)
         if (!match) continue
-
-        // Collect pathname groups in declaration order
         const groups = Object.values(match.pathname.groups).map(v => v ?? '')
         const res = await handler(req, env, ...groups)
+        return withCors(res, origin)
+      }
+
+      // 2. Auth check — required for all remaining routes
+      const token = req.headers.get('Authorization')?.replace('Bearer ', '')
+      if (!token) return err(401, 'Unauthorized', origin)
+
+      let clerkUserId: string | null = null
+
+      // Try Clerk JWT first
+      const verified = await verifyClerkToken(token, env)
+      if (verified) {
+        clerkUserId = verified.userId
+      }
+
+      // KV fallback for existing sessions (remove after migration)
+      if (!clerkUserId) {
+        const kv = await env.AUTH_KV.get(`session:${token}`, 'json') as { email: string; expiresAt: number } | null
+        if (!kv || kv.expiresAt < Date.now()) return err(401, 'Unauthorized', origin)
+        clerkUserId = `kv:${kv.email}`
+      }
+
+      // Resolve household membership from D1
+      const membership = await env.DB.prepare(
+        'SELECT household_id, role FROM household_members WHERE clerk_user_id = ?'
+      ).bind(clerkUserId).first<{ household_id: string; role: string }>()
+
+      const ctx: RequestContext = {
+        clerkUserId,
+        householdId: membership?.household_id ?? null,
+        role: (membership?.role as 'owner' | 'member') ?? null,
+      }
+
+      // 3. Dispatch authenticated routes
+      for (const [method, pattern, handler] of routes) {
+        if (req.method !== method) continue
+        const match = pattern.exec(req.url)
+        if (!match) continue
+        const groups = Object.values(match.pathname.groups).map(v => v ?? '')
+        const res = await handler(req, env, ctx, ...groups)
         return withCors(res, origin)
       }
 
       return err(404, 'Not found', origin)
     } catch (e) {
       if (e instanceof NotionError) {
-        // Never forward Notion's 401/403 as a 401 — that would trigger client logout.
-        // Notion auth failures are a server-side config problem, not a user auth problem.
         const clientStatus = (e.status === 401 || e.status === 403)
           ? 502
           : (e.status >= 400 && e.status < 500 ? e.status : 502)

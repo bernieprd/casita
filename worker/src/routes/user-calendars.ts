@@ -1,4 +1,4 @@
-import type { Env, UserCalendar } from '../types'
+import type { Env, UserCalendar, RequestContext } from '../types'
 import { getValidAccessToken } from './google-auth'
 import { rebuildSharedIndex } from './shared-calendar-index'
 
@@ -12,7 +12,7 @@ async function getEmailFromRequest(req: Request, env: Env): Promise<string | nul
   return email
 }
 
-export async function listUserCalendars(req: Request, env: Env): Promise<Response> {
+export async function listUserCalendars(req: Request, env: Env, _ctx: RequestContext): Promise<Response> {
   const email = await getEmailFromRequest(req, env)
   if (!email) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -45,7 +45,7 @@ export async function listUserCalendars(req: Request, env: Env): Promise<Respons
   return Response.json({ calendars, connected: true })
 }
 
-export async function updateUserCalendars(req: Request, env: Env): Promise<Response> {
+export async function updateUserCalendars(req: Request, env: Env, _ctx: RequestContext): Promise<Response> {
   const email = await getEmailFromRequest(req, env)
   if (!email) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })

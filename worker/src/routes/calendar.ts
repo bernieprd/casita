@@ -1,4 +1,4 @@
-import type { Env, CalendarEvent, UserCalendar, SharedCalendar } from '../types'
+import type { Env, CalendarEvent, UserCalendar, SharedCalendar, RequestContext } from '../types'
 import { getValidAccessToken } from './google-auth'
 
 // ── Google Calendar color map ─────────────────────────────────────────────────
@@ -193,6 +193,7 @@ async function fetchSharedCalendarEvents(
 export async function getCalendarEvents(
   req: Request,
   env: Env,
+  _ctx: RequestContext,
 ): Promise<Response> {
   const reqUrl = new URL(req.url)
   const now = new Date()

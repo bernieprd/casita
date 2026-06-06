@@ -1,8 +1,15 @@
 import { queryDatabase, getPage, getBlockChildren, createPage, updatePage, deleteBlock, appendBlockChildren } from '../notion'
 import { normalizeRecipe, normalizeBlock, normalizeRecipeIngredient, normalizeItem, recipeToProps } from '../normalize'
-import type { Env, RecipeWithBlocks } from '../types'
+import type { Env, RecipeWithBlocks, RequestContext, HouseholdNotionConfig } from '../types'
 
-export async function createRecipe(req: Request, env: Env): Promise<Response> {
+export async function createRecipe(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
+  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+
+  const config = await env.DB.prepare(
+    'SELECT * FROM household_notion_config WHERE household_id = ?'
+  ).bind(ctx.householdId).first<HouseholdNotionConfig>()
+  if (!config) return Response.json({ error: 'Household not configured' }, { status: 403 })
+
   const body = await req.json<{
     name: string
     type?: string | null
@@ -23,7 +30,7 @@ export async function createRecipe(req: Request, env: Env): Promise<Response> {
     ? ({ type: 'external', external: { url: body.coverUrl } } as const)
     : undefined
 
-  const page = await createPage(env.NOTION_TOKEN, env.NOTION_RECIPES_DB, props, cover)
+  const page = await createPage(env.NOTION_TOKEN, config.recipes_db, props, cover)
 
   if (body.instructions) {
     const lines = body.instructions.split('\n').filter(l => l.trim())
@@ -42,12 +49,21 @@ export async function createRecipe(req: Request, env: Env): Promise<Response> {
   return Response.json(normalizeRecipe(page), { status: 201 })
 }
 
-export async function getRecipes(_req: Request, env: Env): Promise<Response> {
-  const pages = await queryDatabase(env.NOTION_TOKEN, env.NOTION_RECIPES_DB)
+export async function getRecipes(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
+  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+
+  const config = await env.DB.prepare(
+    'SELECT * FROM household_notion_config WHERE household_id = ?'
+  ).bind(ctx.householdId).first<HouseholdNotionConfig>()
+  if (!config) return Response.json({ error: 'Household not configured' }, { status: 403 })
+
+  const pages = await queryDatabase(env.NOTION_TOKEN, config.recipes_db)
   return Response.json(pages.map(normalizeRecipe))
 }
 
-export async function getRecipe(_req: Request, env: Env, id: string): Promise<Response> {
+export async function getRecipe(_req: Request, env: Env, ctx: RequestContext, id: string): Promise<Response> {
+  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+
   const [page, blocks] = await Promise.all([
     getPage(env.NOTION_TOKEN, id),
     getBlockChildren(env.NOTION_TOKEN, id),
@@ -60,7 +76,9 @@ export async function getRecipe(_req: Request, env: Env, id: string): Promise<Re
   return Response.json(recipe)
 }
 
-export async function updateRecipe(req: Request, env: Env, id: string): Promise<Response> {
+export async function updateRecipe(req: Request, env: Env, ctx: RequestContext, id: string): Promise<Response> {
+  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+
   const body = await req.json<{
     name?: string
     type?: string | null
@@ -107,12 +125,20 @@ export async function updateRecipe(req: Request, env: Env, id: string): Promise<
 export async function getRecipeIngredients(
   _req: Request,
   env: Env,
+  ctx: RequestContext,
   recipeId: string,
 ): Promise<Response> {
+  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+
+  const config = await env.DB.prepare(
+    'SELECT * FROM household_notion_config WHERE household_id = ?'
+  ).bind(ctx.householdId).first<HouseholdNotionConfig>()
+  if (!config) return Response.json({ error: 'Household not configured' }, { status: 403 })
+
   const filter = { property: 'Recipe', relation: { contains: recipeId } }
   const ingredientPages = await queryDatabase(
     env.NOTION_TOKEN,
-    env.NOTION_RECIPE_INGREDIENT_DB,
+    config.recipe_ingredient_db,
     filter,
   )
 
@@ -136,7 +162,9 @@ export async function getRecipeIngredients(
   return Response.json(ingredients)
 }
 
-export async function shareRecipe(_req: Request, env: Env, recipeId: string): Promise<Response> {
+export async function shareRecipe(_req: Request, env: Env, ctx: RequestContext, recipeId: string): Promise<Response> {
+  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+
   const existing = await env.AUTH_KV.get(`share-recipe:${recipeId}`)
   if (existing) {
     const appUrl = env.APP_BASE_URL ?? 'https://casita.bernardoprd.com/#'
