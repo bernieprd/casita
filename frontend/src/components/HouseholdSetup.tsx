@@ -10,9 +10,11 @@ import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
+import { useHousehold } from '../context/AuthContext'
 
 export default function HouseholdSetup() {
   const navigate = useNavigate()
+  const { refreshHousehold } = useHousehold()
   const [tab, setTab] = useState<0 | 1>(0)
 
   // Create flow state
@@ -31,6 +33,7 @@ export default function HouseholdSetup() {
     setCreateLoading(true)
     try {
       await api.post<{ id: string; name: string }>('/household', { name: householdName.trim() })
+      refreshHousehold()
       navigate('/', { replace: true })
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Failed to create household')
@@ -45,6 +48,7 @@ export default function HouseholdSetup() {
     setJoinLoading(true)
     try {
       await api.post<{ id: string; name: string }>('/household/join', { inviteCode: inviteCode.trim() })
+      refreshHousehold()
       navigate('/', { replace: true })
     } catch (err) {
       setJoinError(err instanceof Error ? err.message : 'Failed to join household')

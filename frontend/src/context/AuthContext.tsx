@@ -25,9 +25,10 @@ export interface HouseholdState {
   householdName: string | null
   role: 'owner' | 'member' | null
   isLoading: boolean
+  refreshHousehold: () => void
 }
 
-const HouseholdContext = createContext<HouseholdState | null>(null)
+const HouseholdContext = createContext<(HouseholdState & { refreshHousehold: () => void }) | null>(null)
 
 // ---------------------------------------------------------------------------
 // AuthProvider — registers Clerk's getToken with the api client and provides
@@ -38,42 +39,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser()
   const { getToken, signOut } = useClerkAuth()
 
-  // Register Clerk's getToken as the api client's token getter on mount.
-  // This replaces the localStorage fallback for all api requests.
+  // Legacy KV session state — used as fallback when no Clerk session exists.
+  // Initialised from localStorage so a page refresh preserves the session.
+  const [legacyUser, setLegacyUser] = useState<AuthUser | null>(() => {
+    const email = localStorage.getItem('casita_email')
+    const token = localStorage.getItem('casita_token')
+    return email && token ? { email } : null
+  })
+
+  // Register token getter: Clerk JWT first, localStorage KV token as fallback.
   useEffect(() => {
-    setTokenGetter(() => getToken())
+    setTokenGetter(async () => {
+      const clerkToken = await getToken()
+      if (clerkToken) return clerkToken
+      return localStorage.getItem('casita_token')
+    })
   }, [getToken])
 
-  // Derive auth user from Clerk user
+  // Clerk user takes precedence; fall back to legacy localStorage session.
   const authUser: AuthUser | null =
     isClerkLoaded && clerkUser
       ? { email: clerkUser.primaryEmailAddress?.emailAddress ?? '' }
-      : null
+      : legacyUser
 
-  // login/logout are kept for backward compat with Login.tsx / AccountSetup.tsx.
-  // They will be replaced by Clerk's own UI flows in a later wave; for now they
-  // call the legacy API endpoint and are no-ops in the Clerk sense.
   async function login(email: string, password: string) {
-    // Legacy path: call the old /auth/login endpoint. The token returned is
-    // stored in localStorage as fallback until Clerk session is established.
     const res = await api.post<{ ok: boolean; token?: string; email?: string; error?: string }>(
       '/auth/login', { email, password }
     )
     if (!res.ok || !res.token || !res.email) throw new Error(res.error ?? 'Login failed')
     localStorage.setItem('casita_token', res.token)
     localStorage.setItem('casita_email', res.email)
+    setLegacyUser({ email: res.email })
   }
 
   async function logout() {
     try { await signOut() } catch { /* ignore */ }
     localStorage.removeItem('casita_token')
     localStorage.removeItem('casita_email')
+    setLegacyUser(null)
   }
 
   // ---------------------------------------------------------------------------
   // Household state — fetched whenever the Clerk user changes
   // ---------------------------------------------------------------------------
-  const [householdState, setHouseholdState] = useState<HouseholdState>({
+  const [refreshKey, setRefreshKey] = useState(0)
+  const refreshHousehold = () => setRefreshKey(k => k + 1)
+
+  const [householdState, setHouseholdState] = useState<Omit<HouseholdState, 'refreshHousehold'>>({
     householdId: null,
     householdName: null,
     role: null,
@@ -107,11 +119,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
     return () => { cancelled = true }
-  }, [clerkUser, isClerkLoaded])
+  }, [clerkUser, isClerkLoaded, refreshKey])
 
   return (
     <AuthContext.Provider value={{ user: authUser, login, logout }}>
-      <HouseholdContext.Provider value={householdState}>
+      <HouseholdContext.Provider value={{ ...householdState, refreshHousehold }}>
         {children}
       </HouseholdContext.Provider>
     </AuthContext.Provider>
@@ -131,7 +143,7 @@ export function useAuth(): AuthContextValue {
 /** Alias kept so callers can import { HouseholdProvider } if they prefer */
 export const HouseholdProvider = AuthProvider
 
-export function useHousehold(): HouseholdState {
+export function useHousehold(): HouseholdState & { refreshHousehold: () => void } {
   const ctx = useContext(HouseholdContext)
   if (!ctx) throw new Error('useHousehold must be used inside AuthProvider')
   return ctx

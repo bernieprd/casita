@@ -30,9 +30,10 @@ import Recipes from './components/Recipes'
 import RecipeFormPage from './components/RecipeFormPage'
 import PublicRecipeView from './components/PublicRecipeView'
 import Settings from './components/Settings'
-import { AuthProvider, useAuth } from './context/AuthContext'
-import Login from './components/Login'
+import { SignIn, SignedIn, useUser } from '@clerk/clerk-react'
+import { AuthProvider, useAuth, useHousehold } from './context/AuthContext'
 import AccountSetup from './components/AccountSetup'
+import HouseholdSetup from './components/HouseholdSetup'
 
 export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
 
@@ -54,8 +55,19 @@ function pathnameToTab(pathname: string): TabId {
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user } = useAuth()
+  const { householdId, isLoading } = useHousehold()
+  const { isSignedIn: isClerkSignedIn } = useUser()
   const location = useLocation()
-  if (!user) return <Navigate to="/login" state={{ from: location }} replace />
+
+  // Not authenticated at all → Clerk sign-in
+  if (!user) return <Navigate to="/sign-in" state={{ from: location }} replace />
+
+  // Clerk user: wait for household fetch, then redirect to setup if needed
+  if (isClerkSignedIn) {
+    if (isLoading) return null
+    if (householdId === null) return <Navigate to="/household/setup" replace />
+  }
+
   return <>{children}</>
 }
 
@@ -193,9 +205,11 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Navigate to="/sign-in" replace />} />
+        <Route path="/sign-in" element={<SignIn routing="hash" />} />
         <Route path="/setup" element={<AccountSetup />} />
         <Route path="/share/:token" element={<PublicRecipeView />} />
+        <Route path="/household/setup" element={<SignedIn><HouseholdSetup /></SignedIn>} />
         <Route path="/recipes/new" element={
           <ProtectedRoute>
             <RecipeFormPage />
