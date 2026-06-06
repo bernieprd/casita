@@ -1,4 +1,5 @@
-import type { Env, CalendarEvent } from '../types'
+import type { Env, CalendarEvent, UserCalendar } from '../types'
+import { getValidAccessToken } from './google-auth'
 
 // ── JWT / OAuth2 helpers ──────────────────────────────────────────────────────
 
@@ -108,53 +109,136 @@ interface GCalListResponse {
   error?: { code: number; message: string }
 }
 
+async function fetchServiceAccountEvents(
+  env: Env,
+  timeMin: string,
+  timeMax: string,
+): Promise<CalendarEvent[]> {
+  if (!env.GCAL_PRIVATE_KEY || !env.GCAL_CLIENT_EMAIL || !env.GCAL_CALENDAR_ID) {
+    return []
+  }
+
+  const accessToken = await getAccessToken(env)
+
+  const calendarId = encodeURIComponent(env.GCAL_CALENDAR_ID)
+  const params = new URLSearchParams({
+    timeMin,
+    timeMax,
+    singleEvents: 'true',
+    orderBy:      'startTime',
+    maxResults:   '50',
+  })
+
+  const gcalRes = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?${params}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  )
+
+  const body = await gcalRes.json() as GCalListResponse
+
+  if (!gcalRes.ok) {
+    console.error('Google Calendar API error:', body.error)
+    return []
+  }
+
+  return (body.items ?? [])
+    .filter(e => e.status !== 'cancelled')
+    .map(e => ({
+      id:     e.id,
+      title:  e.summary ?? '(No title)',
+      start:  e.start.dateTime ?? e.start.date ?? '',
+      end:    e.end.dateTime   ?? e.end.date   ?? '',
+      allDay: Boolean(e.start.date && !e.start.dateTime),
+      color:  e.colorId ? (GCAL_COLORS[e.colorId] ?? null) : null,
+      source: 'household' as const,
+    }))
+}
+
+async function fetchUserOAuthEvents(
+  email: string,
+  env: Env,
+  timeMin: string,
+  timeMax: string,
+): Promise<CalendarEvent[]> {
+  const accessToken = await getValidAccessToken(email, env)
+  if (!accessToken) return []
+
+  const calendarsRaw = await env.AUTH_KV.get(`user_calendars:${email}`)
+  if (!calendarsRaw) return []
+
+  const allCalendars = JSON.parse(calendarsRaw) as UserCalendar[]
+  const enabledCalendars = allCalendars.filter(cal => cal.enabled)
+  if (enabledCalendars.length === 0) return []
+
+  const results = await Promise.allSettled(
+    enabledCalendars.map(cal =>
+      fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      ).then(async res => ({ cal, res, body: await res.json() as GCalListResponse })),
+    ),
+  )
+
+  // Check for 401 from any calendar — revoke tokens and bail out
+  for (const result of results) {
+    if (result.status === 'fulfilled' && result.value.res.status === 401) {
+      await env.AUTH_KV.delete(`google_tokens:${email}`)
+      return []
+    }
+  }
+
+  const events: CalendarEvent[] = []
+  for (const result of results) {
+    if (result.status !== 'fulfilled') continue
+    const { cal, res, body } = result.value
+    if (!res.ok) continue
+    for (const e of body.items ?? []) {
+      if (e.status === 'cancelled') continue
+      events.push({
+        id:     'user:' + e.id,
+        title:  e.summary ?? '(no title)',
+        start:  e.start?.dateTime ?? e.start?.date ?? '',
+        end:    e.end?.dateTime   ?? e.end?.date   ?? '',
+        allDay: !e.start?.dateTime,
+        color:  e.colorId ? (GCAL_COLORS[e.colorId] ?? cal.colorHex) : cal.colorHex,
+        source: 'user' as const,
+      })
+    }
+  }
+
+  return events
+}
+
 export async function getCalendarEvents(
   req: Request,
   env: Env,
 ): Promise<Response> {
-  if (!env.GCAL_PRIVATE_KEY || !env.GCAL_CLIENT_EMAIL || !env.GCAL_CALENDAR_ID) {
-    return Response.json([])
-  }
-  try {
-    const accessToken = await getAccessToken(env)
+  const reqUrl = new URL(req.url)
+  const now = new Date()
+  const defaultMax = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
+  const timeMin = reqUrl.searchParams.get('timeMin') ?? now.toISOString()
+  const timeMax = reqUrl.searchParams.get('timeMax') ?? defaultMax.toISOString()
 
-    const reqUrl = new URL(req.url)
-    const now = new Date()
-    const defaultMax = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
-    const timeMin = reqUrl.searchParams.get('timeMin') ?? now.toISOString()
-    const timeMax = reqUrl.searchParams.get('timeMax') ?? defaultMax.toISOString()
-
-    const calendarId = encodeURIComponent(env.GCAL_CALENDAR_ID)
-    const params = new URLSearchParams({
-      timeMin,
-      timeMax,
-      singleEvents: 'true',
-      orderBy:      'startTime',
-      maxResults:   '50',
-    })
-
-    const gcalRes = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?${params}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } },
-    )
-
-    const body = await gcalRes.json() as GCalListResponse
-
-    if (!gcalRes.ok) {
-      console.error('Google Calendar API error:', body.error)
-      return Response.json([])
+  // Resolve the session email from the Authorization header
+  let email: string | null = null
+  const sessionToken = req.headers.get('Authorization')?.replace('Bearer ', '')
+  if (sessionToken) {
+    const sessionRaw = await env.AUTH_KV.get(`session:${sessionToken}`)
+    if (sessionRaw) {
+      const session = JSON.parse(sessionRaw) as { email: string; expiresAt: number }
+      if (session.expiresAt >= Date.now()) {
+        email = session.email
+      }
     }
+  }
 
-    const events: CalendarEvent[] = (body.items ?? [])
-      .filter(e => e.status !== 'cancelled')
-      .map(e => ({
-        id:    e.id,
-        title: e.summary ?? '(No title)',
-        start: e.start.dateTime ?? e.start.date ?? '',
-        end:   e.end.dateTime   ?? e.end.date   ?? '',
-        allDay: Boolean(e.start.date && !e.start.dateTime),
-        color: e.colorId ? (GCAL_COLORS[e.colorId] ?? null) : null,
-      }))
+  try {
+    const [householdEvents, userEvents] = await Promise.all([
+      fetchServiceAccountEvents(env, timeMin, timeMax),
+      email ? fetchUserOAuthEvents(email, env, timeMin, timeMax) : Promise.resolve([] as CalendarEvent[]),
+    ])
+
+    const events = [...householdEvents, ...userEvents]
       .sort((a, b) => a.start.localeCompare(b.start))
 
     return Response.json(events)

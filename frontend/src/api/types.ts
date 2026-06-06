@@ -41,6 +41,14 @@ export interface CalendarEvent {
   end: string
   allDay: boolean
   color: string | null
+  source?: 'household' | 'user'
+}
+
+export interface UserCalendar {
+  id: string
+  name: string
+  colorHex: string
+  enabled: boolean
 }
 
 export interface RecipeIngredient {

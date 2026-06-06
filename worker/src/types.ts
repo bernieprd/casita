@@ -53,6 +53,20 @@ export interface CalendarEvent {
   end: string
   allDay: boolean
   color: string | null
+  source?: 'household' | 'user'
+}
+
+export interface GoogleTokens {
+  accessToken: string
+  refreshToken: string
+  expiresAt: number
+}
+
+export interface UserCalendar {
+  id: string
+  name: string
+  colorHex: string
+  enabled: boolean
 }
 
 // ── Notion raw types ──────────────────────────────────────────────────────────
@@ -122,6 +136,9 @@ export interface Env {
   GCAL_CALENDAR_ID?: string
   GCAL_CLIENT_EMAIL?: string
   GCAL_PRIVATE_KEY?: string
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
+  GOOGLE_REDIRECT_URI?: string
   // Set in wrangler.toml [vars] or .dev.vars to override the default.
   // Defaults to the GitHub Pages origin in production.
   ALLOWED_ORIGIN?: string

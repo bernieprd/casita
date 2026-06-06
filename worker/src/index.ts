@@ -5,6 +5,8 @@ import { uploadRecipePhoto, serveRecipePhoto } from './routes/uploads'
 import { getTodos, createTodo, updateTodo, deleteTodo } from './routes/todos'
 import { getCalendarEvents } from './routes/calendar'
 import { checkAuth, setupAuth, loginAuth, logoutAuth } from './routes/auth'
+import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, disconnectGoogle } from './routes/google-auth'
+import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
 import { NotionError } from './notion'
 import type { Env } from './types'
 
@@ -19,7 +21,7 @@ function resolveOrigin(req: Request, allowedOrigin: string): string {
 function corsHeaders(origin: string): HeadersInit {
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '86400',
   }
@@ -49,6 +51,10 @@ const routes: Array<[string, URLPattern, Handler]> = [
   ['POST',   new URLPattern({ pathname: '/auth/setup' }),              setupAuth],
   ['POST',   new URLPattern({ pathname: '/auth/login' }),              loginAuth],
   ['POST',   new URLPattern({ pathname: '/auth/logout' }),             logoutAuth],
+  ['GET',    new URLPattern({ pathname: '/auth/google/callback' }),    handleGoogleOAuthCallback],
+  ['GET',    new URLPattern({ pathname: '/auth/google/status' }),      getGoogleAuthStatus],
+  ['GET',    new URLPattern({ pathname: '/auth/google' }),             initiateGoogleOAuth],
+  ['DELETE', new URLPattern({ pathname: '/auth/google' }),             disconnectGoogle],
   ['GET',    new URLPattern({ pathname: '/items' }),                          getItems],
   ['POST',   new URLPattern({ pathname: '/items' }),                          createItem],
   ['PATCH',  new URLPattern({ pathname: '/items/:id' }),                      updateItem],
@@ -71,6 +77,8 @@ const routes: Array<[string, URLPattern, Handler]> = [
   ['PATCH',  new URLPattern({ pathname: '/todos/:id' }),                      updateTodo],
   ['DELETE', new URLPattern({ pathname: '/todos/:id' }),                      deleteTodo],
   ['GET',    new URLPattern({ pathname: '/calendar' }),                       getCalendarEvents],
+  ['GET',    new URLPattern({ pathname: '/user-calendars' }),                 listUserCalendars],
+  ['PUT',    new URLPattern({ pathname: '/user-calendars' }),                 updateUserCalendars],
 ]
 
 // ── Entry point ───────────────────────────────────────────────────────────────
