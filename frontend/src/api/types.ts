@@ -41,7 +41,7 @@ export interface CalendarEvent {
   end: string
   allDay: boolean
   color: string | null
-  source?: 'household' | 'user' | 'household-shared' | 'free-busy'
+  source?: 'user' | 'household-shared' | 'free-busy'
 }
 
 export interface UserCalendar {

@@ -53,7 +53,7 @@ export interface CalendarEvent {
   end: string
   allDay: boolean
   color: string | null
-  source?: 'household' | 'user' | 'household-shared' | 'free-busy'
+  source?: 'user' | 'household-shared' | 'free-busy'
 }
 
 export interface GoogleTokens {
@@ -142,9 +142,6 @@ export interface Env {
   NOTION_RECIPES_DB: string
   NOTION_RECIPE_INGREDIENT_DB: string
   NOTION_TODOS_DB: string
-  GCAL_CALENDAR_ID?: string
-  GCAL_CLIENT_EMAIL?: string
-  GCAL_PRIVATE_KEY?: string
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   GOOGLE_REDIRECT_URI?: string

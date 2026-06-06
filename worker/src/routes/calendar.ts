@@ -1,77 +1,6 @@
 import type { Env, CalendarEvent, UserCalendar, SharedCalendar } from '../types'
 import { getValidAccessToken } from './google-auth'
 
-// ── JWT / OAuth2 helpers ──────────────────────────────────────────────────────
-
-function b64url(data: ArrayBuffer | string): string {
-  const bytes =
-    typeof data === 'string'
-      ? new TextEncoder().encode(data)
-      : new Uint8Array(data)
-  let binary = ''
-  for (const b of bytes) binary += String.fromCharCode(b)
-  return btoa(binary).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-}
-
-function pemToBytes(pem: string): ArrayBuffer {
-  // Handle both literal \n (from .dev.vars) and real newlines (from wrangler secrets)
-  const normalized = pem.replace(/\\n/g, '\n')
-  const body = normalized
-    .replace(/-----BEGIN PRIVATE KEY-----/, '')
-    .replace(/-----END PRIVATE KEY-----/, '')
-    .replace(/\s+/g, '')
-  const binary = atob(body)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-  return bytes.buffer
-}
-
-async function getAccessToken(env: Env): Promise<string> {
-  const now = Math.floor(Date.now() / 1000)
-
-  const header  = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
-  const payload = b64url(JSON.stringify({
-    iss:   env.GCAL_CLIENT_EMAIL,
-    scope: 'https://www.googleapis.com/auth/calendar.readonly',
-    aud:   'https://oauth2.googleapis.com/token',
-    iat:   now,
-    exp:   now + 3600,
-  }))
-
-  const signingInput = `${header}.${payload}`
-
-  const key = await crypto.subtle.importKey(
-    'pkcs8',
-    pemToBytes(env.GCAL_PRIVATE_KEY!),
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  )
-
-  const signature = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    key,
-    new TextEncoder().encode(signingInput),
-  )
-
-  const jwt = `${signingInput}.${b64url(signature)}`
-
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion:  jwt,
-    }),
-  })
-
-  const data = await res.json() as { access_token?: string; error?: string; error_description?: string }
-  if (!data.access_token) {
-    throw new Error(`OAuth token error: ${data.error} – ${data.error_description}`)
-  }
-  return data.access_token
-}
-
 // ── Google Calendar color map ─────────────────────────────────────────────────
 
 const GCAL_COLORS: Record<string, string> = {
@@ -111,51 +40,6 @@ interface GCalListResponse {
 
 interface FreeBusyResponse {
   calendars: Record<string, { busy: Array<{ start: string; end: string }> }>
-}
-
-async function fetchServiceAccountEvents(
-  env: Env,
-  timeMin: string,
-  timeMax: string,
-): Promise<CalendarEvent[]> {
-  if (!env.GCAL_PRIVATE_KEY || !env.GCAL_CLIENT_EMAIL || !env.GCAL_CALENDAR_ID) {
-    return []
-  }
-
-  const accessToken = await getAccessToken(env)
-
-  const calendarId = encodeURIComponent(env.GCAL_CALENDAR_ID)
-  const params = new URLSearchParams({
-    timeMin,
-    timeMax,
-    singleEvents: 'true',
-    orderBy:      'startTime',
-    maxResults:   '50',
-  })
-
-  const gcalRes = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?${params}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
-  )
-
-  const body = await gcalRes.json() as GCalListResponse
-
-  if (!gcalRes.ok) {
-    console.error('Google Calendar API error:', body.error)
-    return []
-  }
-
-  return (body.items ?? [])
-    .filter(e => e.status !== 'cancelled')
-    .map(e => ({
-      id:     e.id,
-      title:  e.summary ?? '(No title)',
-      start:  e.start.dateTime ?? e.start.date ?? '',
-      end:    e.end.dateTime   ?? e.end.date   ?? '',
-      allDay: Boolean(e.start.date && !e.start.dateTime),
-      color:  e.colorId ? (GCAL_COLORS[e.colorId] ?? null) : null,
-      source: 'household' as const,
-    }))
 }
 
 async function fetchUserOAuthEvents(
@@ -330,13 +214,12 @@ export async function getCalendarEvents(
   }
 
   try {
-    const [householdEvents, userEvents, sharedEvents] = await Promise.all([
-      fetchServiceAccountEvents(env, timeMin, timeMax),
+    const [userEvents, sharedEvents] = await Promise.all([
       email ? fetchUserOAuthEvents(email, env, timeMin, timeMax) : Promise.resolve([] as CalendarEvent[]),
       email ? fetchSharedCalendarEvents(email, env, timeMin, timeMax) : Promise.resolve([] as CalendarEvent[]),
     ])
 
-    const events = [...householdEvents, ...userEvents, ...sharedEvents]
+    const events = [...userEvents, ...sharedEvents]
       .sort((a, b) => a.start.localeCompare(b.start))
 
     return Response.json(events)
