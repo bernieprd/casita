@@ -394,26 +394,75 @@ Single agent updates type files and config before anything imports from them:
 
 ---
 
-### Wave 4 — Frontend routing (1 agent, after Wave 2)
+### Wave 4 — Frontend routing (1 agent, after Wave 2) ✅ DONE (sign-in loop unresolved)
 
-**Agent G — `frontend/src/App.tsx` + `frontend/src/components/Login.tsx`**
-- Depends on Agent C + D (context and household setup ready)
-- Replace `ProtectedRoute` with Clerk-aware version
-- Add `/sign-in`, `/household/setup` routes
-- Add gear icon to AppBar (also planned in calendar-sync and editable-concepts — done here once)
+**Agent G — `frontend/src/App.tsx` + `frontend/src/components/Login.tsx`** ✅ DONE
+- Replaced `ProtectedRoute` with Clerk-aware version (waits for `isClerkLoaded`, checks household)
+- Added `SignInPage` wrapper (guards against already-signed-in users hitting `<SignIn>`)
+- Added `/sign-in`, `/household/setup` routes
+- `Login.tsx` replaced with Clerk `<SignIn routing="virtual" />`
+- `AuthContext.tsx` patched: added `legacyUser` localStorage fallback, `refreshHousehold`, `refreshKey`
+- `HouseholdSetup.tsx` patched: calls `refreshHousehold()` after create/join
+
+**⚠️ Known issue — Clerk sign-in redirect loop (unresolved as of 2026-06-06)**
+
+The embedded `<SignIn routing="virtual">` component still triggers a redirect loop in the browser
+(`Throttling navigation to prevent the browser from hanging`). Attempted fixes:
+- Changed `routing="hash"` → `routing="virtual"` (no effect)
+- Added `isClerkLoaded` guard in `ProtectedRoute` to prevent premature redirect (no effect)
+- Added `SignInPage` wrapper that redirects signed-in users away from `/sign-in` (no effect)
+
+The `redirectUrl deprecated` warning in the console points to Clerk's internal `redirectToSignIn`
+being called from within its `SignIn` component. The loop appears to be Clerk fighting with
+`HashRouter` over URL control even with `routing="virtual"`.
+
+**Likely root cause:** Clerk's embedded `<SignIn>` component always tries to drive navigation
+regardless of `routing` mode when it detects an active session. `HashRouter` intercepts the
+navigation and re-triggers ProtectedRoute, causing the loop.
+
+**Recommended next steps to investigate:**
+1. Try `routing="path"` with a dedicated sign-in path — may need to switch from HashRouter to
+   BrowserRouter (or MemoryRouter for the sign-in subtree only)
+2. Try Clerk's redirect-based flow instead of embedded: replace `<SignIn>` with `<RedirectToSignIn>`
+   in `ProtectedRoute` and configure Clerk dashboard's "Sign-in URL" to point to Clerk's hosted page
+3. Try `<SignInButton mode="modal">` — avoids URL routing entirely by showing sign-in in a modal
+4. Check if the loop only happens when a Clerk session IS active (i.e. the component detects
+   an existing session and tries to redirect to `afterSignInUrl` which isn't set)
+5. Set `afterSignInUrl="/"` and `afterSignUpUrl="/household/setup"` on `<ClerkProvider>` in
+   `main.tsx` — may give Clerk a destination and stop it from looping
 
 ---
 
 ### Wave 5 — Deploy + Seed (sequential, manual)
 
-1. `wrangler d1 create casita` → copy database ID into `wrangler.toml`
-2. `wrangler d1 execute casita --file worker/src/db/schema.sql`
-3. `wrangler secret put CLERK_SECRET_KEY`
-4. `wrangler deploy`
-5. `pnpm build && gh-pages -d dist` (or deploy frontend)
-6. Both users sign in → get Clerk IDs from dashboard → run seed SQL
-7. Verify data loads correctly
-8. Run migration cleanup steps (remove KV fallback, old routes, ALLOWED_EMAILS)
+**Prerequisites before Wave 5:**
+- Resolve the Clerk sign-in loop (see Wave 4 known issue above)
+- Add `CLERK_SECRET_KEY=sk_test_...` to `worker/.dev.vars` (get from Clerk dashboard → API Keys)
+- Change `VITE_WORKER_URL` in `frontend/.env.local` to `http://localhost:8787` for local testing
+
+**Local test steps (do before deploying to production):**
+1. `wrangler d1 execute casita --local --file worker/src/db/schema.sql` — D1 ID already in wrangler.toml (`19d078e5-4a7c-4dad-9a9c-45ccf66e2bd8`)
+2. `wrangler dev` (worker) + `npm run dev` (frontend) — run both simultaneously
+3. Sign in via Clerk → get your `user_xxx` ID from Clerk dashboard → seed local D1:
+   ```sql
+   INSERT INTO households VALUES ('hh-home', 'Home', NULL, unixepoch() * 1000);
+   INSERT INTO household_notion_config VALUES ('hh-home',
+     '2f2332846c00818498dd000c02f39cdd',
+     '2f2332846c0081f0945f000cd6348876',
+     '331332846c00808b9c33000c300050b2',
+     '332332846c00806480fdfd6be9f5ffa0');
+   INSERT INTO household_members VALUES ('hh-home', '<YOUR_CLERK_USER_ID>', 'owner', unixepoch() * 1000);
+   ```
+   Run with: `wrangler d1 execute casita --local --command "..."`
+4. Verify data loads (shopping list, recipes, todos)
+
+**Production deploy steps (after local test passes):**
+1. `wrangler secret put CLERK_SECRET_KEY`
+2. `wrangler deploy`
+3. Build + deploy frontend
+4. Both users sign in → get Clerk IDs from dashboard → run seed SQL against production D1
+5. Verify data loads correctly
+6. Run migration cleanup: remove KV fallback from `index.ts`, remove old `/auth/*` routes, remove `ALLOWED_EMAILS`
 
 ---
 
