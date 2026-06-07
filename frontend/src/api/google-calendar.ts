@@ -2,8 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import type { UserCalendar } from './types'
 
-const BASE_URL = (import.meta.env.VITE_WORKER_URL as string | undefined) || 'http://localhost:8787'
-
 export const googleCalendarKeys = {
   status:    ['google-calendar', 'status'] as const,
   calendars: ['google-calendar', 'calendars'] as const,
@@ -46,6 +44,7 @@ export function useDisconnectGoogle() {
   })
 }
 
-export function buildGoogleConnectUrl(): string {
-  return `${BASE_URL}/auth/google?session=${localStorage.getItem('casita_token') ?? ''}`
+export async function initiateGoogleConnect(): Promise<void> {
+  const { url } = await api.get<{ url: string }>('/auth/google')
+  window.location.href = url
 }

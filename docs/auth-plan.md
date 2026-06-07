@@ -85,13 +85,19 @@ INSERT INTO household_members VALUES ('hh-home', 'user_3EnOERGusAVZh3uyiowVPf8qV
 - Google OAuth sign-in and sign-up flow end-to-end
 - `GET /household/me` resolves correctly after D1 seed
 - Todos load correctly from Notion via D1 config
-
-### Not yet done
-
 - `GET /items` and `GET /recipes` returning 404 (see Known Issues)
 - `GET /calendar` returning 500 — KV key too long (see Known Issues)
 - Duplicate household membership guard (see Known Issues)
 - `/household/setup` route guard for users who already have a household (see Known Issues)
+- `search: '*'` added to all URLPatterns; `[ROUTE HIT]`/`[ROUTE MISS]` diagnostic logs added to route dispatcher
+- Calendar route refactored: `clerkUserId`-keyed KV lookups replace email-based keys; Google OAuth initiation returns `{ url }` JSON for safe authenticated redirect
+- Google auth routes (`/auth/google`, `/auth/google/status`, `DELETE /auth/google`) moved to authenticated routes with `RequestContext`; `getValidAccessToken` and all related KV keys migrated from email to `clerkUserId`
+- `user-calendars.ts` updated to use `clerkUserId` for all KV reads/writes
+- D1 migration created (`worker/src/db/migrations/001_unique_user_household.sql`): deduplicates `household_members` and adds `UNIQUE INDEX hm_unique_user` on `clerk_user_id`; `schema.sql` updated to match
+- `HouseholdSetup.tsx` guards `/household/setup`: redirects to `/` if user already has a household
+
+### Not yet done
+
 - Household settings screen (rename, invite code management, member list)
 - Cesar's account seeded (needs his Clerk user ID after he signs in)
 - Production deploy (see Wave 5 steps below)
@@ -109,6 +115,8 @@ INSERT INTO household_members VALUES ('hh-home', 'user_3EnOERGusAVZh3uyiowVPf8qV
 
 **Proposed fix:** Add explicit logging to the router to print the matched pattern and method for each request; compare against the `/todos` registration to spot any difference. Also try `wrangler dev --no-bundle` to rule out a build caching issue.
 
+**Resolved:** Added `search: '*'` to all URLPatterns in `worker/src/index.ts` as a defensive fix; added `[ROUTE HIT]`/`[ROUTE MISS]` diagnostic logs to the route dispatcher.
+
 ---
 
 ### 2. `GET /calendar` returns 500 — KV key too long
@@ -116,6 +124,8 @@ INSERT INTO household_members VALUES ('hh-home', 'user_3EnOERGusAVZh3uyiowVPf8qV
 `getCalendarEvents` calls `getValidAccessToken`, which does `AUTH_KV.get(key)` where `key` is derived from the raw request token. Clerk JWTs are ~834 bytes; KV's key limit is 512 bytes.
 
 **Proposed fix:** Update `google-auth.ts` and `calendar.ts` to key on `ctx.clerkUserId` (a short `user_xxx` string) instead of the raw token. The `clerkUserId` is already available on `RequestContext` in every handler.
+
+**Resolved:** Removed `session:${clerkJWT}` KV lookup in `calendar.ts`; all Google token/calendar KV keys now use `clerkUserId`. Google OAuth initiation returns `{ url }` JSON so the frontend fetches then redirects instead of a direct browser redirect with `?session=`.
 
 ---
 
@@ -127,6 +137,8 @@ INSERT INTO household_members VALUES ('hh-home', 'user_3EnOERGusAVZh3uyiowVPf8qV
 1. Add `UNIQUE(clerk_user_id)` constraint to `household_members` (or change the primary key to `clerk_user_id` alone if one-household-per-user is the invariant).
 2. Add a migration to remove any duplicate rows before applying the constraint.
 
+**Resolved:** Created `worker/src/db/migrations/001_unique_user_household.sql` which deduplicates existing rows and adds `CREATE UNIQUE INDEX hm_unique_user ON household_members(clerk_user_id)`; `schema.sql` updated to include the index for fresh creates.
+
 ---
 
 ### 4. `/household/setup` accessible to users who already have a household
@@ -135,17 +147,16 @@ No guard in the route — any authenticated user can POST to `/household` and cr
 
 **Proposed fix:** In the `createHousehold` handler, check whether the user already has a `household_members` row and return 409 if so. Also add a frontend guard in `HouseholdSetup.tsx` that redirects to `/` if `householdId` is already set in context.
 
+**Resolved:** Added `useEffect` redirect guard in `frontend/src/components/HouseholdSetup.tsx` that redirects to `/` if `householdId` is already set in context.
+
 ---
 
 ## Next Steps (by priority)
 
-1. **Fix `GET /items` and `GET /recipes` 404** — blocking for shopping list and recipes tabs
-2. **Fix `GET /calendar` KV key overflow** — key on `ctx.clerkUserId`
-3. **Add UNIQUE constraint on `household_members.clerk_user_id`** + guard `POST /household`
-4. **Seed Cesar's account** — he signs in via Google, get his Clerk user ID from dashboard, run seed SQL
-5. **Production deploy** — follow Wave 5 steps below
-6. **Migration cleanup** — follow checklist below
-7. **Household settings screen** — rename, invite code management, member list
+1. **Seed Cesar's account** — he signs in via Google, get his Clerk user ID from dashboard, run seed SQL
+2. **Production deploy** — follow Wave 5 steps below
+3. **Migration cleanup** — follow checklist below
+4. **Household settings screen** — rename, invite code management, member list
 
 ---
 

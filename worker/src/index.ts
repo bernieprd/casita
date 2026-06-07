@@ -50,46 +50,46 @@ type PublicHandler = (req: Request, env: Env, ...ids: string[]) => Promise<Respo
 type AuthHandler = (req: Request, env: Env, ctx: RequestContext, ...ids: string[]) => Promise<Response>
 
 const publicRoutes: Array<[string, URLPattern, PublicHandler]> = [
-  ['POST',   new URLPattern({ pathname: '/auth/check' }),            checkAuth],
-  ['POST',   new URLPattern({ pathname: '/auth/setup' }),            setupAuth],
-  ['POST',   new URLPattern({ pathname: '/auth/login' }),            loginAuth],
-  ['POST',   new URLPattern({ pathname: '/auth/logout' }),           logoutAuth],
-  ['GET',    new URLPattern({ pathname: '/auth/google/callback' }),  handleGoogleOAuthCallback],
-  ['GET',    new URLPattern({ pathname: '/auth/google/status' }),    getGoogleAuthStatus],
-  ['GET',    new URLPattern({ pathname: '/auth/google' }),           initiateGoogleOAuth],
-  ['DELETE', new URLPattern({ pathname: '/auth/google' }),           disconnectGoogle],
-  ['GET',    new URLPattern({ pathname: '/public/recipes/:token' }), getPublicRecipe],
+  ['POST',   new URLPattern({ pathname: '/auth/check',              search: '*' }), checkAuth],
+  ['POST',   new URLPattern({ pathname: '/auth/setup',              search: '*' }), setupAuth],
+  ['POST',   new URLPattern({ pathname: '/auth/login',              search: '*' }), loginAuth],
+  ['POST',   new URLPattern({ pathname: '/auth/logout',             search: '*' }), logoutAuth],
+  ['GET',    new URLPattern({ pathname: '/auth/google/callback',    search: '*' }), handleGoogleOAuthCallback],
+  ['GET',    new URLPattern({ pathname: '/public/recipes/:token',   search: '*' }), getPublicRecipe],
 ]
 
 const routes: Array<[string, URLPattern, AuthHandler]> = [
-  ['GET',    new URLPattern({ pathname: '/household/me' }),              getHousehold],
-  ['POST',   new URLPattern({ pathname: '/household' }),                 createHousehold],
-  ['POST',   new URLPattern({ pathname: '/household/join' }),            joinHousehold],
-  ['POST',   new URLPattern({ pathname: '/household/invite' }),          generateInvite],
-  ['DELETE', new URLPattern({ pathname: '/household/invite' }),          revokeInvite],
-  ['GET',    new URLPattern({ pathname: '/items' }),                     getItems],
-  ['POST',   new URLPattern({ pathname: '/items' }),                     createItem],
-  ['PATCH',  new URLPattern({ pathname: '/items/:id' }),                 updateItem],
-  ['DELETE', new URLPattern({ pathname: '/items/:id' }),                 deleteItem],
-  ['POST',   new URLPattern({ pathname: '/items/:id/merge' }),           mergeItem],
-  ['POST',   new URLPattern({ pathname: '/recipes' }),                   createRecipe],
-  ['GET',    new URLPattern({ pathname: '/recipes' }),                   getRecipes],
-  ['GET',    new URLPattern({ pathname: '/recipes/:id' }),               getRecipe],
-  ['PATCH',  new URLPattern({ pathname: '/recipes/:id' }),               updateRecipe],
-  ['GET',    new URLPattern({ pathname: '/recipes/:id/ingredients' }),   getRecipeIngredients],
-  ['POST',   new URLPattern({ pathname: '/recipes/:id/share' }),         shareRecipe],
-  ['POST',   new URLPattern({ pathname: '/recipe-ingredients' }),        createRecipeIngredient],
-  ['PATCH',  new URLPattern({ pathname: '/recipe-ingredients/:id' }),    updateRecipeIngredient],
-  ['DELETE', new URLPattern({ pathname: '/recipe-ingredients/:id' }),    deleteRecipeIngredient],
-  ['POST',   new URLPattern({ pathname: '/recipe-photos' }),             uploadRecipePhoto],
-  ['GET',    new URLPattern({ pathname: '/recipe-photos/:key' }),        serveRecipePhoto],
-  ['GET',    new URLPattern({ pathname: '/todos' }),                     getTodos],
-  ['POST',   new URLPattern({ pathname: '/todos' }),                     createTodo],
-  ['PATCH',  new URLPattern({ pathname: '/todos/:id' }),                 updateTodo],
-  ['DELETE', new URLPattern({ pathname: '/todos/:id' }),                 deleteTodo],
-  ['GET',    new URLPattern({ pathname: '/calendar' }),                  getCalendarEvents],
-  ['GET',    new URLPattern({ pathname: '/user-calendars' }),            listUserCalendars],
-  ['PUT',    new URLPattern({ pathname: '/user-calendars' }),            updateUserCalendars],
+  ['GET',    new URLPattern({ pathname: '/household/me',                search: '*' }), getHousehold],
+  ['POST',   new URLPattern({ pathname: '/household',                   search: '*' }), createHousehold],
+  ['POST',   new URLPattern({ pathname: '/household/join',              search: '*' }), joinHousehold],
+  ['POST',   new URLPattern({ pathname: '/household/invite',            search: '*' }), generateInvite],
+  ['DELETE', new URLPattern({ pathname: '/household/invite',            search: '*' }), revokeInvite],
+  ['GET',    new URLPattern({ pathname: '/items',                       search: '*' }), getItems],
+  ['POST',   new URLPattern({ pathname: '/items',                       search: '*' }), createItem],
+  ['PATCH',  new URLPattern({ pathname: '/items/:id',                   search: '*' }), updateItem],
+  ['DELETE', new URLPattern({ pathname: '/items/:id',                   search: '*' }), deleteItem],
+  ['POST',   new URLPattern({ pathname: '/items/:id/merge',             search: '*' }), mergeItem],
+  ['POST',   new URLPattern({ pathname: '/recipes',                     search: '*' }), createRecipe],
+  ['GET',    new URLPattern({ pathname: '/recipes',                     search: '*' }), getRecipes],
+  ['GET',    new URLPattern({ pathname: '/recipes/:id',                 search: '*' }), getRecipe],
+  ['PATCH',  new URLPattern({ pathname: '/recipes/:id',                 search: '*' }), updateRecipe],
+  ['GET',    new URLPattern({ pathname: '/recipes/:id/ingredients',     search: '*' }), getRecipeIngredients],
+  ['POST',   new URLPattern({ pathname: '/recipes/:id/share',           search: '*' }), shareRecipe],
+  ['POST',   new URLPattern({ pathname: '/recipe-ingredients',          search: '*' }), createRecipeIngredient],
+  ['PATCH',  new URLPattern({ pathname: '/recipe-ingredients/:id',      search: '*' }), updateRecipeIngredient],
+  ['DELETE', new URLPattern({ pathname: '/recipe-ingredients/:id',      search: '*' }), deleteRecipeIngredient],
+  ['POST',   new URLPattern({ pathname: '/recipe-photos',               search: '*' }), uploadRecipePhoto],
+  ['GET',    new URLPattern({ pathname: '/recipe-photos/:key',          search: '*' }), serveRecipePhoto],
+  ['GET',    new URLPattern({ pathname: '/todos',                       search: '*' }), getTodos],
+  ['POST',   new URLPattern({ pathname: '/todos',                       search: '*' }), createTodo],
+  ['PATCH',  new URLPattern({ pathname: '/todos/:id',                   search: '*' }), updateTodo],
+  ['DELETE', new URLPattern({ pathname: '/todos/:id',                   search: '*' }), deleteTodo],
+  ['GET',    new URLPattern({ pathname: '/calendar',                    search: '*' }), getCalendarEvents],
+  ['GET',    new URLPattern({ pathname: '/user-calendars',              search: '*' }), listUserCalendars],
+  ['PUT',    new URLPattern({ pathname: '/user-calendars',              search: '*' }), updateUserCalendars],
+  ['GET',    new URLPattern({ pathname: '/auth/google/status',          search: '*' }), getGoogleAuthStatus],
+  ['GET',    new URLPattern({ pathname: '/auth/google',                 search: '*' }), initiateGoogleOAuth],
+  ['DELETE', new URLPattern({ pathname: '/auth/google',                 search: '*' }), disconnectGoogle],
 ]
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -110,6 +110,7 @@ export default {
         if (!match) continue
         const groups = Object.values(match.pathname.groups).map(v => v ?? '')
         const res = await handler(req, env, ...groups)
+        console.log(`[ROUTE HIT] ${req.method} ${req.url}`)
         return withCors(res, origin)
       }
 
@@ -150,9 +151,11 @@ export default {
         if (!match) continue
         const groups = Object.values(match.pathname.groups).map(v => v ?? '')
         const res = await handler(req, env, ctx, ...groups)
+        console.log(`[ROUTE HIT] ${req.method} ${req.url}`)
         return withCors(res, origin)
       }
 
+      console.log(`[ROUTE MISS] ${req.method} ${req.url}`)
       return err(404, 'Not found', origin)
     } catch (e) {
       if (e instanceof NotionError) {

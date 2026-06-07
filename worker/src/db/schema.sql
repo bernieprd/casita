@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS household_members (
   PRIMARY KEY (household_id, clerk_user_id)
 );
 CREATE INDEX IF NOT EXISTS hm_clerk_user_id ON household_members(clerk_user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS hm_unique_user ON household_members(clerk_user_id);
 
 -- Replaces hardcoded env.NOTION_*_DB vars; one row per household
 CREATE TABLE IF NOT EXISTS household_notion_config (

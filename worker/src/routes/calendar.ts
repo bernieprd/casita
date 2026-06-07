@@ -43,15 +43,15 @@ interface FreeBusyResponse {
 }
 
 async function fetchUserOAuthEvents(
-  email: string,
+  clerkUserId: string,
   env: Env,
   timeMin: string,
   timeMax: string,
 ): Promise<CalendarEvent[]> {
-  const accessToken = await getValidAccessToken(email, env)
+  const accessToken = await getValidAccessToken(clerkUserId, env)
   if (!accessToken) return []
 
-  const calendarsRaw = await env.AUTH_KV.get(`user_calendars:${email}`)
+  const calendarsRaw = await env.AUTH_KV.get(`user_calendars:${clerkUserId}`)
   if (!calendarsRaw) return []
 
   const allCalendars = JSON.parse(calendarsRaw) as UserCalendar[]
@@ -70,7 +70,7 @@ async function fetchUserOAuthEvents(
   // Check for 401 from any calendar — revoke tokens and bail out
   for (const result of results) {
     if (result.status === 'fulfilled' && result.value.res.status === 401) {
-      await env.AUTH_KV.delete(`google_tokens:${email}`)
+      await env.AUTH_KV.delete(`google_tokens:${clerkUserId}`)
       return []
     }
   }
@@ -158,7 +158,7 @@ async function fetchFreeBusyCalendar(
 }
 
 async function fetchSharedCalendarEvents(
-  requestingEmail: string,
+  _clerkUserId: string,
   env: Env,
   timeMin: string,
   timeMax: string,
@@ -166,8 +166,7 @@ async function fetchSharedCalendarEvents(
   const raw = await env.AUTH_KV.get('household_shared_calendars')
   if (!raw) return []
 
-  const index = (JSON.parse(raw) as SharedCalendar[])
-    .filter(entry => entry.ownerEmail !== requestingEmail)
+  const index = JSON.parse(raw) as SharedCalendar[]
 
   if (index.length === 0) return []
 
@@ -193,7 +192,7 @@ async function fetchSharedCalendarEvents(
 export async function getCalendarEvents(
   req: Request,
   env: Env,
-  _ctx: RequestContext,
+  ctx: RequestContext,
 ): Promise<Response> {
   const reqUrl = new URL(req.url)
   const now = new Date()
@@ -201,23 +200,12 @@ export async function getCalendarEvents(
   const timeMin = reqUrl.searchParams.get('timeMin') ?? now.toISOString()
   const timeMax = reqUrl.searchParams.get('timeMax') ?? defaultMax.toISOString()
 
-  // Resolve the session email from the Authorization header
-  let email: string | null = null
-  const sessionToken = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (sessionToken) {
-    const sessionRaw = await env.AUTH_KV.get(`session:${sessionToken}`)
-    if (sessionRaw) {
-      const session = JSON.parse(sessionRaw) as { email: string; expiresAt: number }
-      if (session.expiresAt >= Date.now()) {
-        email = session.email
-      }
-    }
-  }
+  const clerkUserId = ctx.clerkUserId
 
   try {
     const [userEvents, sharedEvents] = await Promise.all([
-      email ? fetchUserOAuthEvents(email, env, timeMin, timeMax) : Promise.resolve([] as CalendarEvent[]),
-      email ? fetchSharedCalendarEvents(email, env, timeMin, timeMax) : Promise.resolve([] as CalendarEvent[]),
+      fetchUserOAuthEvents(clerkUserId, env, timeMin, timeMax),
+      fetchSharedCalendarEvents(clerkUserId, env, timeMin, timeMax),
     ])
 
     const events = [...userEvents, ...sharedEvents]

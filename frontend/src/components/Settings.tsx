@@ -15,7 +15,7 @@ import {
   useUserCalendars,
   useUpdateUserCalendars,
   useDisconnectGoogle,
-  buildGoogleConnectUrl,
+  initiateGoogleConnect,
 } from '../api/google-calendar'
 import type { UserCalendar } from '../api/types'
 
@@ -91,7 +91,7 @@ export default function Settings() {
         <Button
           variant="outlined"
           size="small"
-          onClick={() => { window.location.href = buildGoogleConnectUrl() }}
+          onClick={() => initiateGoogleConnect()}
         >
           Connect Google Calendar
         </Button>

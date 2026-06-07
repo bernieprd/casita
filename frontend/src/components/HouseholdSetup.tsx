@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
@@ -14,7 +14,7 @@ import { useHousehold } from '../context/AuthContext'
 
 export default function HouseholdSetup() {
   const navigate = useNavigate()
-  const { refreshHousehold } = useHousehold()
+  const { householdId, isLoading, refreshHousehold } = useHousehold()
   const [tab, setTab] = useState<0 | 1>(0)
 
   // Create flow state
@@ -30,6 +30,10 @@ export default function HouseholdSetup() {
   const [inviteCode, setInviteCode] = useState('')
   const [joinLoading, setJoinLoading] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isLoading && householdId !== null) navigate('/', { replace: true })
+  }, [householdId, isLoading, navigate])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
