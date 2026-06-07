@@ -69,9 +69,20 @@ This is the safest migration path: run the migration, switch the app to D1, and 
 
 ---
 
+## Household Isolation
+
+Every piece of app data is scoped to a household. This works as follows:
+
+- The auth middleware resolves `household_id` from `household_members` using the Clerk user ID from the JWT, and injects it into every Hono request via `c.set('householdId', ...)`.
+- Every D1 route handler must bind `c.get('householdId')` as a `WHERE household_id = ?` clause on every query (SELECT, INSERT, UPDATE, DELETE). This is the only gate preventing cross-household data leakage.
+- Multiple users in the same household (e.g. two household members) automatically share data because they resolve to the same `household_id` via `household_members`.
+- The migration script must iterate over every row in `SELECT id FROM households`, then read that household's `household_notion_config` row to get its Notion DB IDs, then migrate all four resource types with the correct `household_id`.
+
+---
+
 ## D1 Schema
 
-The same D1 database used for households and concepts (`casita`). Add these tables to `worker/src/db/schema.sql`.
+The same D1 database used for households and concepts (`casita`). Add these tables to a new migration file `worker/src/db/migrations/002_app_data.sql` (following the convention of `001_unique_user_household.sql`).
 
 ```sql
 -- ── Items (shopping list + pantry) ────────────────────────────────────────────
@@ -183,8 +194,8 @@ New records use `crypto.randomUUID()`. Migrated records can keep their Notion UU
 - `worker/src/normalize.ts` — Notion → domain converters and denormalizers
 
 ### Files rewritten
-- `worker/src/routes/items.ts` — Notion queries → D1 prepared statements
-- `worker/src/routes/recipes.ts` — includes block children queries → `recipe_blocks` table
+- `worker/src/routes/items.ts` — Notion queries → D1 prepared statements; the `POST /items/:id/merge` endpoint must use `DB.batch([...])` to atomically re-point all `recipe_ingredients` rows from the merged item to the target item and then delete the duplicate
+- `worker/src/routes/recipes.ts` — includes block children queries → `recipe_blocks` table; share token read/write moves from KV to `recipes.share_token` column
 - `worker/src/routes/recipe-ingredients.ts` — N+1 item name fetch → single JOIN
 - `worker/src/routes/todos.ts` — Notion queries → D1 prepared statements
 
@@ -243,17 +254,45 @@ The script uses the existing `notion.ts` functions (before deletion) to read all
 import { queryDatabase, getPage, getBlockChildren } from '../notion'
 import { normalizeItem, normalizeRecipe, normalizeBlock, normalizeRecipeIngredient, normalizeTodo } from '../normalize'
 
-const HOUSEHOLD_ID = 'hh-home'
 const NOW = Date.now()
 
-async function migrateItems(env: Env) {
-  const pages = await queryDatabase(env.NOTION_TOKEN, env.NOTION_SHOPPING_LIST_DB)
+type HouseholdNotionConfig = {
+  household_id: string
+  shopping_list_db: string
+  recipes_db: string
+  recipe_ingredient_db: string
+  todos_db: string
+}
+
+// Entry point: iterate over all households, migrate each independently
+export async function runMigration(env: Env) {
+  const households = await env.DB.prepare('SELECT id FROM households').all<{ id: string }>()
+  for (const { id: householdId } of households.results) {
+    const config = await env.DB.prepare(
+      'SELECT * FROM household_notion_config WHERE household_id = ?'
+    ).bind(householdId).first<HouseholdNotionConfig>()
+    if (!config) {
+      console.log(`No Notion config for household ${householdId}, skipping`)
+      continue
+    }
+    console.log(`Migrating household ${householdId}...`)
+    await migrateItems(env, householdId, config)
+    await migrateRecipes(env, householdId, config)
+    await migrateIngredients(env, householdId, config)
+    await migrateTodos(env, householdId, config)
+  }
+  await migrateShareTokens(env)
+  console.log('Migration complete')
+}
+
+async function migrateItems(env: Env, householdId: string, config: HouseholdNotionConfig) {
+  const pages = await queryDatabase(env.NOTION_TOKEN, config.shopping_list_db)
   for (const page of pages) {
     const item = normalizeItem(page)
     await env.DB.prepare(
       `INSERT OR IGNORE INTO items (id, household_id, name, category, on_shopping_list, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(item.id, HOUSEHOLD_ID, item.name, item.category, item.onShoppingList ? 1 : 0, NOW, NOW).run()
+    ).bind(item.id, householdId, item.name, item.category, item.onShoppingList ? 1 : 0, NOW, NOW).run()
 
     for (const s of item.supermarkets) {
       await env.DB.prepare(
@@ -266,17 +305,17 @@ async function migrateItems(env: Env) {
       ).bind(item.id, t).run()
     }
   }
-  console.log(`Migrated ${pages.length} items`)
+  console.log(`  items: ${pages.length}`)
 }
 
-async function migrateRecipes(env: Env) {
-  const pages = await queryDatabase(env.NOTION_TOKEN, env.NOTION_RECIPES_DB)
+async function migrateRecipes(env: Env, householdId: string, config: HouseholdNotionConfig) {
+  const pages = await queryDatabase(env.NOTION_TOKEN, config.recipes_db)
   for (const page of pages) {
     const recipe = normalizeRecipe(page)
     await env.DB.prepare(
       `INSERT OR IGNORE INTO recipes (id, household_id, name, type, day, url, cover_photo_url, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(recipe.id, HOUSEHOLD_ID, recipe.name, recipe.type, recipe.day, recipe.url, recipe.coverPhotoUrl, NOW, NOW).run()
+    ).bind(recipe.id, householdId, recipe.name, recipe.type, recipe.day, recipe.url, recipe.coverPhotoUrl, NOW, NOW).run()
 
     const blocks = await getBlockChildren(env.NOTION_TOKEN, recipe.id)
     for (let i = 0; i < blocks.length; i++) {
@@ -286,11 +325,11 @@ async function migrateRecipes(env: Env) {
       ).bind(b.id, recipe.id, b.type, b.text, i).run()
     }
   }
-  console.log(`Migrated ${pages.length} recipes`)
+  console.log(`  recipes: ${pages.length}`)
 }
 
-async function migrateIngredients(env: Env) {
-  const pages = await queryDatabase(env.NOTION_TOKEN, env.NOTION_RECIPE_INGREDIENT_DB)
+async function migrateIngredients(env: Env, householdId: string, config: HouseholdNotionConfig) {
+  const pages = await queryDatabase(env.NOTION_TOKEN, config.recipe_ingredient_db)
   for (let i = 0; i < pages.length; i++) {
     const page = pages[i]
     const itemId = page.properties['Ingredient']?.type === 'relation'
@@ -302,29 +341,44 @@ async function migrateIngredients(env: Env) {
     await env.DB.prepare(
       `INSERT OR IGNORE INTO recipe_ingredients (id, household_id, recipe_id, item_id, quantity, section, needs_shopping, sort_order)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(ing.id, HOUSEHOLD_ID, ing.recipeId, ing.itemId, ing.quantity, ing.section, ing.needsShopping ? 1 : 0, i).run()
+    ).bind(ing.id, householdId, ing.recipeId, ing.itemId, ing.quantity, ing.section, ing.needsShopping ? 1 : 0, i).run()
   }
-  console.log(`Migrated ${pages.length} recipe ingredients`)
+  console.log(`  recipe_ingredients: ${pages.length}`)
 }
 
-async function migrateTodos(env: Env) {
-  const pages = await queryDatabase(env.NOTION_TOKEN, env.NOTION_TODOS_DB)
+async function migrateTodos(env: Env, householdId: string, config: HouseholdNotionConfig) {
+  const pages = await queryDatabase(env.NOTION_TOKEN, config.todos_db)
   for (const page of pages) {
     const todo = normalizeTodo(page)
     await env.DB.prepare(
       `INSERT OR IGNORE INTO todos (id, household_id, name, status, priority, due, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(todo.id, HOUSEHOLD_ID, todo.name, todo.status, todo.priority, todo.due, NOW, NOW).run()
+    ).bind(todo.id, householdId, todo.name, todo.status, todo.priority, todo.due, NOW, NOW).run()
   }
-  console.log(`Migrated ${pages.length} todos`)
+  console.log(`  todos: ${pages.length}`)
+}
+
+// Migrate KV share tokens (share-recipe:{recipeId} → token) to recipes.share_token
+async function migrateShareTokens(env: Env) {
+  const list = await env.AUTH_KV.list({ prefix: 'share-recipe:' })
+  for (const key of list.keys) {
+    const recipeId = key.name.replace('share-recipe:', '')
+    const token = await env.AUTH_KV.get(key.name)
+    if (!token) continue
+    await env.DB.prepare(
+      'UPDATE recipes SET share_token = ? WHERE id = ?'
+    ).bind(token, recipeId).run()
+  }
+  console.log(`share tokens: ${list.keys.length}`)
 }
 ```
 
-Run order:
+Run order (per household, then once globally):
 1. `migrateItems` — must run before ingredients (foreign key)
-2. `migrateRecipes` — must run before ingredients
+2. `migrateRecipes` — must run before ingredients + share tokens
 3. `migrateIngredients` — depends on items + recipes
 4. `migrateTodos` — independent
+5. `migrateShareTokens` — after all recipes are inserted (updates `recipes.share_token`)
 
 ---
 
@@ -334,14 +388,17 @@ This migration should happen **after** auth-plan.md Waves 1–4 are complete, si
 
 ### Step 1 — Schema
 
-Add the tables above to `worker/src/db/schema.sql` and run:
+Create `worker/src/db/migrations/002_app_data.sql` with the tables above and run:
 ```bash
-wrangler d1 execute casita --file worker/src/db/schema.sql
+# Dry-run locally first
+wrangler d1 execute casita --file worker/src/db/migrations/002_app_data.sql --local
+# Then against production
+wrangler d1 execute casita --file worker/src/db/migrations/002_app_data.sql
 ```
 
 ### Step 2 — Write D1 route handlers (alongside existing Notion routes)
 
-New files: `worker/src/routes/items-d1.ts`, `recipes-d1.ts`, `todos-d1.ts`. The existing Notion-backed routes stay untouched during this phase — no risk to production.
+New files: `worker/src/routes/items-d1.ts`, `recipes-d1.ts`, `recipe-ingredients-d1.ts`, `todos-d1.ts`. The existing Notion-backed routes stay untouched during this phase — no risk to production.
 
 ### Step 3 — Run migration script (against production D1)
 
