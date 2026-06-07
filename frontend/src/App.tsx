@@ -32,7 +32,6 @@ import PublicRecipeView from './components/PublicRecipeView'
 import Settings from './components/Settings'
 import { SignIn, SignUp, SignedIn, useUser } from '@clerk/clerk-react'
 import { AuthProvider, useAuth, useHousehold } from './context/AuthContext'
-import AccountSetup from './components/AccountSetup'
 import HouseholdSetup from './components/HouseholdSetup'
 
 export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
@@ -234,7 +233,7 @@ export default function App() {
         <Route path="/login" element={<Navigate to="/sign-in" replace />} />
         <Route path="/sign-in/*" element={<SignInPage />} />
         <Route path="/sign-up/*" element={<SignUpPage />} />
-        <Route path="/setup" element={<AccountSetup />} />
+
         <Route path="/share/:token" element={<PublicRecipeView />} />
         <Route path="/household/setup" element={<SignedIn><HouseholdSetup /></SignedIn>} />
         <Route path="/recipes/new" element={
