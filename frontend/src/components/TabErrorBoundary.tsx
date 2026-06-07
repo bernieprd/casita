@@ -25,7 +25,7 @@ export class TabErrorBoundary extends React.Component<{ children: React.ReactNod
         <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
           <Box
             component="img"
-            src="/casita.png"
+            src="/casita.webp"
             alt=""
             sx={{ width: 80, mb: 2, opacity: 0.5 }}
           />

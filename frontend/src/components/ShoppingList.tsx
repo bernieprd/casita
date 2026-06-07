@@ -313,7 +313,7 @@ export default function ShoppingList() {
     return (
       <>
         <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
-          <Box component="img" src="/casita.png" alt="" sx={{ width: 80, mb: 2, opacity: 0.7 }} />
+          <Box component="img" src="/casita.webp" alt="" sx={{ width: 80, mb: 2, opacity: 0.7 }} />
           <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
             Your list is empty
           </Typography>

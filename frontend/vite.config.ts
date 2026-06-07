@@ -25,8 +25,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        globIgnores: ['casita.png'], // 3.5 MB — too large to precache
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,ico,woff2}'],
+        globIgnores: ['casita.png'], // original 3.4 MB file — kept as fallback, not precached
         runtimeCaching: [
           {
             // Cache all worker API calls — shopping list available offline.

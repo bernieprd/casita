@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react'
 import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
@@ -7,6 +7,8 @@ import BottomNavigationAction from '@mui/material/BottomNavigationAction'
 import Paper from '@mui/material/Paper'
 import Box from '@mui/material/Box'
 import Alert from '@mui/material/Alert'
+import CircularProgress from '@mui/material/CircularProgress'
+import LinearProgress from '@mui/material/LinearProgress'
 import IconButton from '@mui/material/IconButton'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import SettingsIcon from '@mui/icons-material/Settings'
@@ -27,12 +29,13 @@ import Calendar from './components/Calendar'
 import Todos from './components/Todos'
 import Shopping from './components/Shopping'
 import Recipes from './components/Recipes'
-import RecipeFormPage from './components/RecipeFormPage'
 import PublicRecipeView from './components/PublicRecipeView'
-import Settings from './components/Settings'
 import { SignIn, SignUp, SignedIn, useUser } from '@clerk/clerk-react'
 import { AuthProvider, useAuth, useHousehold } from './context/AuthContext'
-import HouseholdSetup from './components/HouseholdSetup'
+
+const RecipeFormPage  = lazy(() => import('./components/RecipeFormPage'))
+const Settings        = lazy(() => import('./components/Settings'))
+const HouseholdSetup  = lazy(() => import('./components/HouseholdSetup'))
 
 export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
 
@@ -58,16 +61,14 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isSignedIn: isClerkSignedIn, isLoaded: isClerkLoaded } = useUser()
   const location = useLocation()
 
-  // Wait for Clerk to finish loading before making any auth decision.
-  // Without this, we redirect to /sign-in on every load even for signed-in users.
-  if (!isClerkLoaded) return null
+  if (!isClerkLoaded) return <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
 
   // Not authenticated → sign-in
   if (!user) return <Navigate to="/sign-in" state={{ from: location }} replace />
 
   // Clerk user: wait for household fetch, then redirect to setup if needed
   if (isClerkSignedIn) {
-    if (isHouseholdLoading) return null
+    if (isHouseholdLoading) return <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
     if (householdId === null) return <Navigate to="/household/setup" replace />
   }
 
@@ -76,7 +77,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
 function SignInPage() {
   const { isSignedIn, isLoaded } = useUser()
-  if (!isLoaded) return null
+  if (!isLoaded) return <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
   if (isSignedIn) return <Navigate to="/" replace />
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
@@ -87,7 +88,7 @@ function SignInPage() {
 
 function SignUpPage() {
   const { isSignedIn, isLoaded } = useUser()
-  if (!isLoaded) return null
+  if (!isLoaded) return <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
   if (isSignedIn) return <Navigate to="/household/setup" replace />
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
@@ -199,7 +200,7 @@ function AppShell() {
               <Recipes setToolbar={setRecipeDetailBar} />
             </TabErrorBoundary>
           } />
-          <Route path="/settings" element={<TabErrorBoundary key="settings"><Settings /></TabErrorBoundary>} />
+          <Route path="/settings" element={<TabErrorBoundary key="settings"><Suspense fallback={<LinearProgress />}><Settings /></Suspense></TabErrorBoundary>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Box>
@@ -235,15 +236,15 @@ export default function App() {
         <Route path="/sign-up/*" element={<SignUpPage />} />
 
         <Route path="/share/:token" element={<PublicRecipeView />} />
-        <Route path="/household/setup" element={<SignedIn><HouseholdSetup /></SignedIn>} />
+        <Route path="/household/setup" element={<SignedIn><Suspense fallback={<LinearProgress />}><HouseholdSetup /></Suspense></SignedIn>} />
         <Route path="/recipes/new" element={
           <ProtectedRoute>
-            <RecipeFormPage />
+            <Suspense fallback={<LinearProgress />}><RecipeFormPage /></Suspense>
           </ProtectedRoute>
         } />
         <Route path="/recipes/:id/edit" element={
           <ProtectedRoute>
-            <RecipeFormPage />
+            <Suspense fallback={<LinearProgress />}><RecipeFormPage /></Suspense>
           </ProtectedRoute>
         } />
         <Route path="/*" element={

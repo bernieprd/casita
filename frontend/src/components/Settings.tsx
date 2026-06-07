@@ -33,7 +33,7 @@ import { useAuth } from '../context/AuthContext'
 // ── ConceptSection ─────────────────────────────────────────────────────────────
 
 function ConceptSection({ type, label, addLabel }: { type: ConceptType; label: string; addLabel: string }) {
-  const { data: concepts = [], isLoading } = useConceptList(type)
+  const { data: concepts = [], isLoading, isError } = useConceptList(type)
   const { mutate: create, isPending: creating } = useCreateConcept(type)
   const { mutate: rename } = useRenameConcept(type)
   const { mutate: remove } = useDeleteConcept(type)
@@ -93,6 +93,8 @@ function ConceptSection({ type, label, addLabel }: { type: ConceptType; label: s
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center' }}>
         {isLoading
           ? [0, 1, 2].map(i => <Skeleton key={i} variant="rounded" width={72} height={28} sx={{ borderRadius: 4 }} />)
+          : isError
+          ? <Typography variant="caption" color="error">Could not load — check your connection</Typography>
           : concepts.map(concept =>
             editingId === concept.id ? (
               <TextField

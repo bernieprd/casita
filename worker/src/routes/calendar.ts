@@ -62,7 +62,7 @@ async function fetchUserOAuthEvents(
     enabledCalendars.map(cal =>
       fetch(
         `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
-        { headers: { Authorization: `Bearer ${accessToken}` } },
+        { headers: { Authorization: `Bearer ${accessToken}` }, signal: AbortSignal.timeout(10_000) },
       ).then(async res => ({ cal, res, body: await res.json() as GCalListResponse })),
     ),
   )
@@ -108,7 +108,7 @@ async function fetchFullSharedCalendar(
   })
   const res = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(entry.calendarId)}/events?${params}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
+    { headers: { Authorization: `Bearer ${accessToken}` }, signal: AbortSignal.timeout(10_000) },
   )
   if (!res.ok) return []
   const body = await res.json() as GCalListResponse
@@ -142,6 +142,7 @@ async function fetchFreeBusyCalendar(
       timeMax,
       items: [{ id: entry.calendarId }],
     }),
+    signal: AbortSignal.timeout(10_000),
   })
   if (!res.ok) return []
   const body = await res.json() as FreeBusyResponse

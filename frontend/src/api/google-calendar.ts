@@ -12,7 +12,7 @@ export function useGoogleStatus() {
   return useQuery({
     queryKey: googleCalendarKeys.status,
     queryFn: () => api.get<{ connected: boolean }>('/auth/google/status'),
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
   })
 }
 
