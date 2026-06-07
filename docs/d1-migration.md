@@ -226,10 +226,12 @@ const rows = await env.DB.prepare(`
 ```
 
 ### What stays in KV
-- Google OAuth tokens (`google_tokens:{email}`)
+- Google OAuth tokens (`google_tokens:{clerkUserId}`)
 - Household shared calendar index (`household_shared_calendars`)
-- User calendar settings (`user_calendars:{email}`)
-- OAuth state nonces (10-minute TTL)
+- User calendar settings (`user_calendars:{clerkUserId}`)
+- OAuth state nonces (`oauth_state:{state}`, 10-minute TTL)
+
+Note: KV-based auth sessions (login tokens, session management) were removed as part of the Clerk migration (`1f53b14`). Auth is now handled entirely by Clerk JWT — KV is no longer involved in authentication.
 
 ### What moves from KV to D1
 - Recipe share tokens (→ `recipes.share_token` column)
