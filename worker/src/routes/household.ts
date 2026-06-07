@@ -1,9 +1,19 @@
-import type { Env, RequestContext } from '../types'
+import type { Env, RequestContext, HouseholdNotionConfig } from '../types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function err(status: number, message: string): Response {
   return Response.json({ error: message }, { status })
+}
+
+export async function getNotionConfig(
+  env: Env,
+  householdId: string,
+): Promise<HouseholdNotionConfig | null> {
+  return env.DB
+    .prepare('SELECT * FROM household_notion_config WHERE household_id = ?')
+    .bind(householdId)
+    .first<HouseholdNotionConfig>()
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
@@ -61,9 +71,30 @@ export async function createHousehold(
     return err(409, 'You already belong to a household')
   }
 
-  const { name } = await req.json<{ name: string }>()
+  const body = await req.json<{
+    name: string
+    shoppingListDb: string
+    recipesDb: string
+    recipeIngredientDb: string
+    todosDb: string
+  }>()
+
+  const { name, shoppingListDb, recipesDb, recipeIngredientDb, todosDb } = body
+
   if (!name || typeof name !== 'string' || !name.trim()) {
     return err(400, 'name is required')
+  }
+  if (!shoppingListDb || typeof shoppingListDb !== 'string' || !shoppingListDb.trim()) {
+    return err(400, 'shoppingListDb is required')
+  }
+  if (!recipesDb || typeof recipesDb !== 'string' || !recipesDb.trim()) {
+    return err(400, 'recipesDb is required')
+  }
+  if (!recipeIngredientDb || typeof recipeIngredientDb !== 'string' || !recipeIngredientDb.trim()) {
+    return err(400, 'recipeIngredientDb is required')
+  }
+  if (!todosDb || typeof todosDb !== 'string' || !todosDb.trim()) {
+    return err(400, 'todosDb is required')
   }
 
   const id = crypto.randomUUID()
@@ -77,6 +108,11 @@ export async function createHousehold(
   await env.DB
     .prepare('INSERT INTO household_members (household_id, clerk_user_id, role, joined_at) VALUES (?, ?, ?, ?)')
     .bind(id, ctx.clerkUserId, 'owner', now)
+    .run()
+
+  await env.DB
+    .prepare('INSERT INTO household_notion_config (household_id, shopping_list_db, recipes_db, recipe_ingredient_db, todos_db) VALUES (?, ?, ?, ?, ?)')
+    .bind(id, shoppingListDb.trim(), recipesDb.trim(), recipeIngredientDb.trim(), todosDb.trim())
     .run()
 
   return Response.json({ id, name: name.trim(), role: 'owner' }, { status: 201 })

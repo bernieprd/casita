@@ -1,13 +1,12 @@
 import { queryDatabase, updatePage, createPage, archivePage, getPage } from '../notion'
 import { normalizeItem, itemToProps } from '../normalize'
-import type { Env, RequestContext, HouseholdNotionConfig } from '../types'
+import type { Env, RequestContext } from '../types'
+import { getNotionConfig } from './household'
 
 export async function getItems(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
   if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
 
-  const config = await env.DB.prepare(
-    'SELECT * FROM household_notion_config WHERE household_id = ?'
-  ).bind(ctx.householdId).first<HouseholdNotionConfig>()
+  const config = await getNotionConfig(env, ctx.householdId)
   if (!config) return Response.json({ error: 'Household not configured' }, { status: 403 })
 
   const url = new URL(req.url)
@@ -28,9 +27,7 @@ export async function getItems(req: Request, env: Env, ctx: RequestContext): Pro
 export async function createItem(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
   if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
 
-  const config = await env.DB.prepare(
-    'SELECT * FROM household_notion_config WHERE household_id = ?'
-  ).bind(ctx.householdId).first<HouseholdNotionConfig>()
+  const config = await getNotionConfig(env, ctx.householdId)
   if (!config) return Response.json({ error: 'Household not configured' }, { status: 403 })
 
   const body = await req.json<Record<string, unknown>>()
@@ -58,9 +55,7 @@ export async function deleteItem(_req: Request, env: Env, ctx: RequestContext, i
 export async function mergeItem(req: Request, env: Env, ctx: RequestContext, id: string): Promise<Response> {
   if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
 
-  const config = await env.DB.prepare(
-    'SELECT * FROM household_notion_config WHERE household_id = ?'
-  ).bind(ctx.householdId).first<HouseholdNotionConfig>()
+  const config = await getNotionConfig(env, ctx.householdId)
   if (!config) return Response.json({ error: 'Household not configured' }, { status: 403 })
 
   const { keepId } = await req.json<{ keepId: string }>()

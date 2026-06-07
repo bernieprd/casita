@@ -140,9 +140,6 @@ export function useAuth(): AuthContextValue {
   return ctx
 }
 
-/** Alias kept so callers can import { HouseholdProvider } if they prefer */
-export const HouseholdProvider = AuthProvider
-
 export function useHousehold(): HouseholdState & { refreshHousehold: () => void } {
   const ctx = useContext(HouseholdContext)
   if (!ctx) throw new Error('useHousehold must be used inside AuthProvider')

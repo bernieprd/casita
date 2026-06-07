@@ -6,7 +6,8 @@ import {
   recipeIngredientCreateProps,
   itemToProps,
 } from '../normalize'
-import type { Env, RequestContext, HouseholdNotionConfig } from '../types'
+import type { Env, RequestContext } from '../types'
+import { getNotionConfig } from './household'
 
 export async function updateRecipeIngredient(
   req: Request,
@@ -35,9 +36,7 @@ export async function updateRecipeIngredient(
 export async function createRecipeIngredient(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
   if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
 
-  const config = await env.DB.prepare(
-    'SELECT * FROM household_notion_config WHERE household_id = ?'
-  ).bind(ctx.householdId).first<HouseholdNotionConfig>()
+  const config = await getNotionConfig(env, ctx.householdId)
   if (!config) return Response.json({ error: 'Household not configured' }, { status: 403 })
 
   const body = await req.json<{ recipeId: string; itemId: string; quantity?: string | null; section?: string | null; itemName?: string }>()
