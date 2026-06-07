@@ -32,9 +32,9 @@ export async function getHousehold(
   }
 
   const household = await env.DB
-    .prepare('SELECT id, name FROM households WHERE id = ?')
+    .prepare('SELECT id, name, invite_code FROM households WHERE id = ?')
     .bind(ctx.householdId)
-    .first<{ id: string; name: string }>()
+    .first<{ id: string; name: string; invite_code: string | null }>()
 
   if (!household) {
     return Response.json({ householdId: null })
@@ -49,6 +49,7 @@ export async function getHousehold(
     householdId: household.id,
     householdName: household.name,
     role: ctx.role,
+    inviteCode: household.invite_code ?? null,
     members: members.results.map(m => ({
       clerkUserId: m.clerk_user_id,
       role: m.role,
@@ -184,6 +185,33 @@ export async function generateInvite(
     .run()
 
   return Response.json({ inviteCode })
+}
+
+/**
+ * PATCH /household
+ * Body: { name: string }
+ * Renames the household. Requires caller to be an owner.
+ */
+export async function renameHousehold(
+  req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return err(403, 'Forbidden')
+  if (ctx.role !== 'owner') return err(403, 'Forbidden')
+
+  const body = await req.json<{ name?: unknown }>()
+  if (!body.name || typeof body.name !== 'string' || !body.name.trim()) {
+    return err(400, 'name is required')
+  }
+  const newName = body.name.trim()
+
+  await env.DB
+    .prepare('UPDATE households SET name = ? WHERE id = ?')
+    .bind(newName, ctx.householdId)
+    .run()
+
+  return Response.json({ householdName: newName })
 }
 
 /**

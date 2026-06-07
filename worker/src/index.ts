@@ -7,7 +7,7 @@ import { getCalendarEvents } from './routes/calendar'
 import { checkAuth, setupAuth, loginAuth, logoutAuth } from './routes/auth'
 import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, disconnectGoogle } from './routes/google-auth'
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
-import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite } from './routes/household'
+import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold } from './routes/household'
 import { verifyClerkToken } from './auth/clerk'
 import { NotionError } from './notion'
 import type { Env, RequestContext } from './types'
@@ -61,6 +61,7 @@ const publicRoutes: Array<[string, URLPattern, PublicHandler]> = [
 const routes: Array<[string, URLPattern, AuthHandler]> = [
   ['GET',    new URLPattern({ pathname: '/household/me',                search: '*' }), getHousehold],
   ['POST',   new URLPattern({ pathname: '/household',                   search: '*' }), createHousehold],
+  ['PATCH',  new URLPattern({ pathname: '/household',                   search: '*' }), renameHousehold],
   ['POST',   new URLPattern({ pathname: '/household/join',              search: '*' }), joinHousehold],
   ['POST',   new URLPattern({ pathname: '/household/invite',            search: '*' }), generateInvite],
   ['DELETE', new URLPattern({ pathname: '/household/invite',            search: '*' }), revokeInvite],

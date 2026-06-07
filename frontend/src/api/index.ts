@@ -6,3 +6,5 @@ export { recipeIngredientsApi, useRecipeIngredients, useToggleNeedsShopping } fr
 export { todoKeys, todosApi, useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from './todos'
 export { calendarKeys, useCalendarEvents } from './calendar'
 export { googleCalendarKeys, useGoogleStatus, useUserCalendars, useUpdateUserCalendars, useDisconnectGoogle, initiateGoogleConnect } from './google-calendar'
+export type { HouseholdSettings } from './household'
+export { householdKeys, useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold } from './household'
