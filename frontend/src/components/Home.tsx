@@ -5,7 +5,7 @@ import Skeleton from '@mui/material/Skeleton'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import RefreshIcon from '@mui/icons-material/Refresh'
-import { useShoppingList, useRecipes, useTodos, useCalendarEvents } from '../api'
+import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus } from '../api'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -66,6 +66,7 @@ function timeLabel(dateStr: string): string | null {
 }
 
 function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
+  const { data: googleStatus } = useGoogleStatus()
   const timeMin = useMemo(() => new Date().toISOString(), [])
   const timeMax = useMemo(() => {
     const d = new Date()
@@ -74,6 +75,8 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
   }, [])
 
   const { data: events, isLoading } = useCalendarEvents(timeMin, timeMax)
+
+  if (!googleStatus?.connected) return null
 
   const upcoming = useMemo(() => {
     if (!events) return []
