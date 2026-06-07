@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
+import { calendarKeys } from './calendar'
 import type { UserCalendar } from './types'
 
 export const googleCalendarKeys = {
@@ -29,6 +30,7 @@ export function useUpdateUserCalendars() {
     mutationFn: (calendars: UserCalendar[]) => api.put<{ ok: boolean }>('/user-calendars', calendars),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: googleCalendarKeys.calendars })
+      qc.invalidateQueries({ queryKey: calendarKeys.all })
     },
   })
 }

@@ -158,7 +158,7 @@ async function fetchFreeBusyCalendar(
 }
 
 async function fetchSharedCalendarEvents(
-  _clerkUserId: string,
+  clerkUserId: string,
   env: Env,
   timeMin: string,
   timeMax: string,
@@ -168,10 +168,13 @@ async function fetchSharedCalendarEvents(
 
   const index = JSON.parse(raw) as SharedCalendar[]
 
-  if (index.length === 0) return []
+  // Skip entries owned by the requesting user — already fetched via fetchUserOAuthEvents
+  const othersEntries = index.filter(e => e.ownerEmail !== clerkUserId)
+
+  if (othersEntries.length === 0) return []
 
   const results = await Promise.allSettled(
-    index.map(async entry => {
+    othersEntries.map(async entry => {
       const accessToken = await getValidAccessToken(entry.ownerEmail, env)
       if (!accessToken) return [] as CalendarEvent[]
       if (entry.visibility === 'household') {

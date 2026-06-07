@@ -76,8 +76,6 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
 
   const { data: events, isLoading } = useCalendarEvents(timeMin, timeMax)
 
-  if (!googleStatus?.connected) return null
-
   const upcoming = useMemo(() => {
     if (!events) return []
     const now = new Date()
@@ -86,6 +84,8 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
       .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
       .slice(0, 3)
   }, [events])
+
+  if (!googleStatus?.connected && !isLoading && upcoming.length === 0) return null
 
   return (
     <Box sx={{ mb: 3 }}>
@@ -288,12 +288,12 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
             <Skeleton width="80%" height={14} sx={{ mb: 0.5 }} />
             <Skeleton width="60%" height={14} />
           </Box>
+        ) : storeBreakdown.count === 0 ? (
+          <EmptyState text="Nothing on the list" />
         ) : (
           <Box sx={{ px: 2, py: 1.75 }}>
-            <Typography variant="body2" fontWeight={600} sx={{ mb: storeBreakdown.count ? 1 : 0 }}>
-              {storeBreakdown.count === 0
-                ? 'Nothing on the list'
-                : `${storeBreakdown.count} item${storeBreakdown.count !== 1 ? 's' : ''} to buy`}
+            <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
+              {`${storeBreakdown.count} item${storeBreakdown.count !== 1 ? 's' : ''} to buy`}
             </Typography>
             {allUnassigned && (
               <Typography variant="caption" color="text.secondary">

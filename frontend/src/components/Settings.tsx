@@ -134,42 +134,44 @@ export default function Settings() {
         </Box>
       )}
 
-      {isOwner && (
-        householdData?.inviteCode ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Box
-              sx={{
-                fontFamily: 'monospace',
-                fontSize: 14,
-                bgcolor: 'action.hover',
-                px: 1,
-                py: 0.5,
-                borderRadius: 1,
-                letterSpacing: '0.1em',
-              }}
-            >
-              {householdData.inviteCode}
-            </Box>
-            <IconButton
-              size="small"
-              onClick={() => navigator.clipboard.writeText(householdData.inviteCode!)}
-              title="Copy code"
-            >
-              <ContentCopyIcon fontSize="inherit" />
-            </IconButton>
-            <Button size="small" variant="outlined" onClick={() => generateInvite()} disabled={generatingInvite}>
-              Regenerate
-            </Button>
-            <Button size="small" color="error" variant="outlined" onClick={() => revokeInvite()} disabled={revokingInvite}>
-              Revoke
-            </Button>
+      {householdData?.inviteCode ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Box
+            sx={{
+              fontFamily: 'monospace',
+              fontSize: 14,
+              bgcolor: 'action.hover',
+              px: 1,
+              py: 0.5,
+              borderRadius: 1,
+              letterSpacing: '0.1em',
+            }}
+          >
+            {householdData.inviteCode}
           </Box>
-        ) : (
-          <Button size="small" variant="outlined" onClick={() => generateInvite()} disabled={generatingInvite}>
-            {generatingInvite ? 'Generating…' : 'Generate invite code'}
-          </Button>
-        )
-      )}
+          <IconButton
+            size="small"
+            onClick={() => navigator.clipboard.writeText(householdData.inviteCode!)}
+            title="Copy code"
+          >
+            <ContentCopyIcon fontSize="inherit" />
+          </IconButton>
+          {isOwner && (
+            <>
+              <Button size="small" variant="outlined" onClick={() => generateInvite()} disabled={generatingInvite}>
+                Regenerate
+              </Button>
+              <Button size="small" color="error" variant="outlined" onClick={() => revokeInvite()} disabled={revokingInvite}>
+                Revoke
+              </Button>
+            </>
+          )}
+        </Box>
+      ) : isOwner ? (
+        <Button size="small" variant="outlined" onClick={() => generateInvite()} disabled={generatingInvite}>
+          {generatingInvite ? 'Generating…' : 'Generate invite code'}
+        </Button>
+      ) : null}
 
       <Divider sx={{ my: 2 }} />
 

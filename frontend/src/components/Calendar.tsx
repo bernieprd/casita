@@ -226,16 +226,6 @@ export default function Calendar() {
       {/* Event list */}
       {isLoading ? (
         <AgendaSkeleton />
-      ) : !googleStatus?.connected ? (
-        <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
-          <Box component="img" src="/casita.png" alt="" sx={{ width: 80, mb: 2, opacity: 0.7 }} />
-          <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
-            No calendar connected
-          </Typography>
-          <Typography variant="body2" color="text.disabled">
-            Connect Google Calendar in Settings to see your events
-          </Typography>
-        </Box>
       ) : dayGroups.length === 0 ? (
         <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
           <Box component="img" src="/casita.png" alt="" sx={{ width: 80, mb: 2, opacity: 0.7 }} />
@@ -243,13 +233,24 @@ export default function Calendar() {
             Nothing coming up
           </Typography>
           <Typography variant="body2" color="text.disabled">
-            Enjoy the quiet
+            {!googleStatus?.connected
+              ? 'Connect Google Calendar in Settings to see your events'
+              : 'Enjoy the quiet'}
           </Typography>
         </Box>
       ) : (
-        dayGroups.map(({ dateKey, events: evs }) => (
-          <DaySection key={dateKey} dateKey={dateKey} events={evs} />
-        ))
+        <>
+          {dayGroups.map(({ dateKey, events: evs }) => (
+            <DaySection key={dateKey} dateKey={dateKey} events={evs} />
+          ))}
+          {!googleStatus?.connected && (
+            <Box sx={{ pt: 2, textAlign: 'center', px: 4, pb: 2 }}>
+              <Typography variant="body2" color="text.disabled">
+                Connect Google Calendar in Settings to add your own events
+              </Typography>
+            </Box>
+          )}
+        </>
       )}
     </Box>
   )
