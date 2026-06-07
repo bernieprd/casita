@@ -4,7 +4,6 @@ import { updateRecipeIngredient, createRecipeIngredient, deleteRecipeIngredient 
 import { uploadRecipePhoto, serveRecipePhoto } from './routes/uploads'
 import { getTodos, createTodo, updateTodo, deleteTodo } from './routes/todos'
 import { getCalendarEvents } from './routes/calendar'
-import { checkAuth, setupAuth, loginAuth, logoutAuth } from './routes/auth'
 import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, disconnectGoogle } from './routes/google-auth'
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
 import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold } from './routes/household'
@@ -50,10 +49,6 @@ type PublicHandler = (req: Request, env: Env, ...ids: string[]) => Promise<Respo
 type AuthHandler = (req: Request, env: Env, ctx: RequestContext, ...ids: string[]) => Promise<Response>
 
 const publicRoutes: Array<[string, URLPattern, PublicHandler]> = [
-  ['POST',   new URLPattern({ pathname: '/auth/check',              search: '*' }), checkAuth],
-  ['POST',   new URLPattern({ pathname: '/auth/setup',              search: '*' }), setupAuth],
-  ['POST',   new URLPattern({ pathname: '/auth/login',              search: '*' }), loginAuth],
-  ['POST',   new URLPattern({ pathname: '/auth/logout',             search: '*' }), logoutAuth],
   ['GET',    new URLPattern({ pathname: '/auth/google/callback',    search: '*' }), handleGoogleOAuthCallback],
   ['GET',    new URLPattern({ pathname: '/public/recipes/:token',   search: '*' }), getPublicRecipe],
 ]
@@ -119,20 +114,10 @@ export default {
       const token = req.headers.get('Authorization')?.replace('Bearer ', '')
       if (!token) return err(401, 'Unauthorized', origin)
 
-      let clerkUserId: string | null = null
-
-      // Try Clerk JWT first
+      // Verify Clerk JWT
       const verified = await verifyClerkToken(token, env)
-      if (verified) {
-        clerkUserId = verified.userId
-      }
-
-      // KV fallback for existing sessions (remove after migration)
-      if (!clerkUserId) {
-        const kv = await env.AUTH_KV.get(`session:${token}`, 'json') as { email: string; expiresAt: number } | null
-        if (!kv || kv.expiresAt < Date.now()) return err(401, 'Unauthorized', origin)
-        clerkUserId = `kv:${kv.email}`
-      }
+      if (!verified) return err(401, 'Unauthorized', origin)
+      const clerkUserId = verified.userId
 
       // Resolve household membership from D1
       const membership = await env.DB.prepare(

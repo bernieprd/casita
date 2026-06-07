@@ -98,11 +98,16 @@ INSERT INTO household_members VALUES ('hh-home', 'user_3EnOERGusAVZh3uyiowVPf8qV
 
 ### Not yet done
 
-- ~~Household settings screen (rename, invite code management, member list)~~ ✓ done
 - Production deploy (see Wave 5 steps below)
-- KV session fallback removal
-- Old `/auth/*` routes removal
-- `ALLOWED_EMAILS` removal from `wrangler.toml`
+
+### Done (migration cleanup — merged in cleanup/remove-legacy-auth)
+
+- ~~Household settings screen (rename, invite code management, member list)~~ ✓
+- ~~KV session fallback removal~~ ✓ (`worker/src/index.ts`)
+- ~~Old `/auth/*` routes removal~~ ✓ (`worker/src/routes/auth.ts` deleted, registrations removed)
+- ~~`ALLOWED_EMAILS` removal from `wrangler.toml`~~ ✓
+- ~~`NOTION_TODOS_DB` removal from `wrangler.toml`~~ ✓ (others were already absent)
+- ~~`AccountSetup.tsx` and `/setup` route removed~~ ✓
 
 ---
 
