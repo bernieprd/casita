@@ -2,6 +2,11 @@ import { useState, useCallback, useRef, useMemo } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
+import Drawer from '@mui/material/Drawer'
 import ItemFormDialog from './ItemFormDialog'
 import IncompleteItemsSheet from './IncompleteItemsSheet'
 import List from '@mui/material/List'
@@ -15,7 +20,9 @@ import Typography from '@mui/material/Typography'
 import Skeleton from '@mui/material/Skeleton'
 import ExpandLess from '@mui/icons-material/ExpandLess'
 import ExpandMore from '@mui/icons-material/ExpandMore'
-import { useShoppingList, useToggleShoppingList } from '../api'
+import { useTheme } from '@mui/material/styles'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useShoppingList, useToggleShoppingList, useDeleteItem } from '../api'
 import type { Item } from '../api'
 
 // How long the Collapse exit animation plays before mutate fires.
@@ -58,6 +65,65 @@ function useLongPress(onLongPress: () => void, delay = 500) {
     },
     didFire: () => fired.current,
   }
+}
+
+// ── Delete confirmation ───────────────────────────────────────────────────────
+
+interface DeleteConfirmProps {
+  item: Item | null
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+
+  if (isMobile) {
+    return (
+      <Drawer
+        anchor="bottom"
+        open={!!item}
+        onClose={onCancel}
+        PaperProps={{ sx: { borderRadius: '16px 16px 0 0' } }}
+      >
+        <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5 }}>
+          <Box sx={{ width: 32, height: 4, borderRadius: 2, bgcolor: 'divider' }} />
+        </Box>
+        <Box sx={{ px: 3, pt: 1, pb: 3 }}>
+          <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 0.5 }}>
+            Delete "{item?.name}"?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            This will permanently remove the item from your inventory.
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Button fullWidth variant="contained" color="error" onClick={onConfirm}>
+              Delete
+            </Button>
+            <Button fullWidth color="inherit" onClick={onCancel}>
+              Cancel
+            </Button>
+          </Box>
+        </Box>
+      </Drawer>
+    )
+  }
+
+  return (
+    <Dialog open={!!item} onClose={onCancel} maxWidth="xs" fullWidth>
+      <DialogTitle>Delete "{item?.name}"?</DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary">
+          This will permanently remove the item from your inventory.
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={onCancel} color="inherit">Cancel</Button>
+        <Button variant="contained" color="error" onClick={onConfirm}>Delete</Button>
+      </DialogActions>
+    </Dialog>
+  )
 }
 
 // ── Shopping item row ─────────────────────────────────────────────────────────
@@ -199,8 +265,10 @@ function ShoppingListSkeleton() {
 export default function ShoppingList() {
   const { data: items, isLoading, error } = useShoppingList()
   const toggle = useToggleShoppingList()
+  const deleteItem = useDeleteItem()
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
   const [editItem, setEditItem] = useState<Item | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Item | null>(null)
   const [selectedSupermarkets, setSelectedSupermarkets] = useState<Set<string>>(new Set())
   const [incompleteSheetOpen, setIncompleteSheetOpen] = useState(false)
 
@@ -221,6 +289,17 @@ export default function ShoppingList() {
       setRemovingIds(prev => { const s = new Set(prev); s.delete(id); return s })
     }, EXIT_DURATION_MS + 50)
   }, [toggle])
+
+  function handleDeleteRequest() {
+    const target = editItem
+    setEditItem(null)
+    setTimeout(() => setDeleteTarget(target), 150)
+  }
+
+  function handleDeleteConfirm() {
+    if (deleteTarget) deleteItem.mutate(deleteTarget.id)
+    setDeleteTarget(null)
+  }
 
   if (isLoading) return <ShoppingListSkeleton />
 
@@ -246,7 +325,12 @@ export default function ShoppingList() {
           open={editItem !== null}
           item={editItem}
           onClose={() => setEditItem(null)}
-          onDeleteRequest={editItem ? () => setEditItem(null) : undefined}
+          onDeleteRequest={editItem ? handleDeleteRequest : undefined}
+        />
+        <DeleteConfirm
+          item={deleteTarget}
+          onConfirm={handleDeleteConfirm}
+          onCancel={() => setDeleteTarget(null)}
         />
       </>
     )
@@ -335,7 +419,12 @@ export default function ShoppingList() {
         open={editItem !== null}
         item={editItem}
         onClose={() => setEditItem(null)}
-        onDeleteRequest={editItem ? () => setEditItem(null) : undefined}
+        onDeleteRequest={editItem ? handleDeleteRequest : undefined}
+      />
+      <DeleteConfirm
+        item={deleteTarget}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
       />
       <IncompleteItemsSheet
         open={incompleteSheetOpen}

@@ -1,13 +1,14 @@
-import { getItems, createItem, updateItem, deleteItem, mergeItem } from './routes/items'
-import { createRecipe, getRecipes, getRecipe, updateRecipe, getRecipeIngredients, shareRecipe, getPublicRecipe } from './routes/recipes'
-import { updateRecipeIngredient, createRecipeIngredient, deleteRecipeIngredient } from './routes/recipe-ingredients'
+import { getItems, createItem, updateItem, deleteItem, mergeItem } from './routes/items-d1'
+import { createRecipe, getRecipes, getRecipe, updateRecipe, getRecipeIngredients, shareRecipe, getPublicRecipe } from './routes/recipes-d1'
+import { updateRecipeIngredient, createRecipeIngredient, deleteRecipeIngredient } from './routes/recipe-ingredients-d1'
 import { uploadRecipePhoto, serveRecipePhoto } from './routes/uploads'
-import { getTodos, createTodo, updateTodo, deleteTodo } from './routes/todos'
+import { getTodos, createTodo, updateTodo, deleteTodo } from './routes/todos-d1'
 import { getCalendarEvents } from './routes/calendar'
 import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, disconnectGoogle } from './routes/google-auth'
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
 import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold } from './routes/household'
 import { verifyClerkToken } from './auth/clerk'
+import { runMigrationItems, runMigrationRecipes, runMigrationIngredients, runMigrationTodos, runMigrationTokens } from './db/migrate-from-notion'
 import { NotionError } from './notion'
 import type { Env, RequestContext } from './types'
 
@@ -51,7 +52,37 @@ type AuthHandler = (req: Request, env: Env, ctx: RequestContext, ...ids: string[
 const publicRoutes: Array<[string, URLPattern, PublicHandler]> = [
   ['GET',    new URLPattern({ pathname: '/auth/google/callback',    search: '*' }), handleGoogleOAuthCallback],
   ['GET',    new URLPattern({ pathname: '/public/recipes/:token',   search: '*' }), getPublicRecipe],
+  ['POST',   new URLPattern({ pathname: '/admin/migrate',           search: '*' }), handleAdminMigrate],
 ]
+
+async function handleAdminMigrate(req: Request, env: Env): Promise<Response> {
+  const secret = req.headers.get('X-Admin-Secret')
+  if (!secret || secret !== env.ADMIN_MIGRATE_SECRET) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  const url = new URL(req.url)
+  const type = url.searchParams.get('type')
+  const householdId = url.searchParams.get('household_id')
+
+  let log: string[]
+  if (type === 'tokens') {
+    log = await runMigrationTokens(env)
+  } else if (!householdId) {
+    return Response.json({ error: 'household_id required for type=' + type }, { status: 400 })
+  } else if (type === 'items') {
+    log = await runMigrationItems(env, householdId)
+  } else if (type === 'recipes') {
+    log = await runMigrationRecipes(env, householdId)
+  } else if (type === 'ingredients') {
+    log = await runMigrationIngredients(env, householdId)
+  } else if (type === 'todos') {
+    log = await runMigrationTodos(env, householdId)
+  } else {
+    return Response.json({ error: 'type must be one of: items, recipes, ingredients, todos, tokens' }, { status: 400 })
+  }
+
+  return Response.json({ ok: true, log })
+}
 
 const routes: Array<[string, URLPattern, AuthHandler]> = [
   ['GET',    new URLPattern({ pathname: '/household/me',                search: '*' }), getHousehold],

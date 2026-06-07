@@ -36,12 +36,14 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
   const [name, setName] = useState('')
   const [category, setCategory] = useState<string | null>(null)
   const [supermarkets, setSupermarkets] = useState<string[]>([])
+  const [supermarketInput, setSupermarketInput] = useState('')
 
   useEffect(() => {
     if (open) {
       setName(item?.name ?? '')
       setCategory(item?.category ?? null)
       setSupermarkets(item?.supermarkets ?? [])
+      setSupermarketInput('')
     }
   }, [open, item])
 
@@ -58,7 +60,10 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
   const canSubmit = name.trim().length > 0 && !isPending
 
   function handleSubmit() {
-    const data = { name: name.trim(), category, supermarkets, tags: [], onShoppingList: item?.onShoppingList ?? false }
+    const finalSupermarkets = supermarketInput.trim()
+      ? [...new Set([...supermarkets, supermarketInput.trim()])]
+      : supermarkets
+    const data = { name: name.trim(), category, supermarkets: finalSupermarkets, tags: [], onShoppingList: item?.onShoppingList ?? false }
     if (isEdit) {
       update.mutate({ id: item.id, data }, { onSuccess: onClose })
     } else {
@@ -83,7 +88,7 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
         value={category}
         onChange={(_, v) => setCategory(v)}
         onInputChange={(_, v, reason) => {
-          if (reason === 'input') setCategory(v || null)
+          if (reason === 'input') setCategory(v.replace(/,/g, '') || null)
         }}
         slotProps={{ popper: { placement: 'top-start' } }}
         renderInput={params => (
@@ -96,7 +101,17 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
         disableCloseOnSelect
         options={supermarketOptions}
         value={supermarkets}
+        inputValue={supermarketInput}
         onChange={(_, v) => setSupermarkets(v as string[])}
+        onInputChange={(_, v) => {
+          if (v.includes(',')) {
+            const newItem = v.replace(/,/g, '').trim()
+            if (newItem) setSupermarkets(prev => [...new Set([...prev, newItem])])
+            setSupermarketInput('')
+          } else {
+            setSupermarketInput(v)
+          }
+        }}
         slotProps={{ popper: { placement: 'top-start' } }}
         renderInput={params => (
           <TextField {...params} label="Supermarkets" size="small" />
