@@ -168,7 +168,7 @@ export async function shareRecipe(_req: Request, env: Env, ctx: RequestContext, 
 
   const token = crypto.randomUUID()
   await Promise.all([
-    env.AUTH_KV.put(`share:${token}`, recipeId),
+    env.AUTH_KV.put(`share:${token}`, JSON.stringify({ recipeId, householdId: ctx.householdId })),
     env.AUTH_KV.put(`share-recipe:${recipeId}`, token),
   ])
 
@@ -177,13 +177,28 @@ export async function shareRecipe(_req: Request, env: Env, ctx: RequestContext, 
 }
 
 export async function getPublicRecipe(_req: Request, env: Env, token: string): Promise<Response> {
-  const recipeId = await env.AUTH_KV.get(`share:${token}`)
-  if (!recipeId) return Response.json({ error: 'Not found' }, { status: 404 })
+  const raw = await env.AUTH_KV.get(`share:${token}`)
+  if (!raw) return Response.json({ error: 'Not found' }, { status: 404 })
+
+  // Support both new JSON format { recipeId, householdId } and old plain string format
+  let recipeId: string
+  let householdId: string
+  try {
+    const parsed = JSON.parse(raw) as { recipeId: string; householdId: string }
+    recipeId = parsed.recipeId
+    householdId = parsed.householdId
+  } catch {
+    recipeId = raw
+    householdId = 'hh-home'
+  }
+
+  const config = await getNotionConfig(env, householdId)
+  if (!config) return Response.json({ error: 'Not found' }, { status: 404 })
 
   const [page, blocks, ingredientPages] = await Promise.all([
     getPage(env.NOTION_TOKEN, recipeId),
     getBlockChildren(env.NOTION_TOKEN, recipeId),
-    queryDatabase(env.NOTION_TOKEN, env.NOTION_RECIPE_INGREDIENT_DB, {
+    queryDatabase(env.NOTION_TOKEN, config.recipe_ingredient_db, {
       property: 'Recipe',
       relation: { contains: recipeId },
     }),
