@@ -2,6 +2,7 @@ packages:
   - 'frontend'
   - 'worker'
 allowBuilds:
+  '@clerk/shared': true
   esbuild: true
   sharp: true
   workerd: true

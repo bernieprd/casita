@@ -30,9 +30,10 @@ import Recipes from './components/Recipes'
 import RecipeFormPage from './components/RecipeFormPage'
 import PublicRecipeView from './components/PublicRecipeView'
 import Settings from './components/Settings'
-import { AuthProvider, useAuth } from './context/AuthContext'
-import Login from './components/Login'
+import { SignIn, SignUp, SignedIn, useUser } from '@clerk/clerk-react'
+import { AuthProvider, useAuth, useHousehold } from './context/AuthContext'
 import AccountSetup from './components/AccountSetup'
+import HouseholdSetup from './components/HouseholdSetup'
 
 export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
 
@@ -54,9 +55,46 @@ function pathnameToTab(pathname: string): TabId {
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user } = useAuth()
+  const { householdId, isLoading: isHouseholdLoading } = useHousehold()
+  const { isSignedIn: isClerkSignedIn, isLoaded: isClerkLoaded } = useUser()
   const location = useLocation()
-  if (!user) return <Navigate to="/login" state={{ from: location }} replace />
+
+  // Wait for Clerk to finish loading before making any auth decision.
+  // Without this, we redirect to /sign-in on every load even for signed-in users.
+  if (!isClerkLoaded) return null
+
+  // Not authenticated → sign-in
+  if (!user) return <Navigate to="/sign-in" state={{ from: location }} replace />
+
+  // Clerk user: wait for household fetch, then redirect to setup if needed
+  if (isClerkSignedIn) {
+    if (isHouseholdLoading) return null
+    if (householdId === null) return <Navigate to="/household/setup" replace />
+  }
+
   return <>{children}</>
+}
+
+function SignInPage() {
+  const { isSignedIn, isLoaded } = useUser()
+  if (!isLoaded) return null
+  if (isSignedIn) return <Navigate to="/" replace />
+  return (
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
+      <SignIn routing="path" path="/sign-in" />
+    </Box>
+  )
+}
+
+function SignUpPage() {
+  const { isSignedIn, isLoaded } = useUser()
+  if (!isLoaded) return null
+  if (isSignedIn) return <Navigate to="/household/setup" replace />
+  return (
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
+      <SignUp routing="path" path="/sign-up" />
+    </Box>
+  )
 }
 
 function AppShell() {
@@ -193,9 +231,12 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Navigate to="/sign-in" replace />} />
+        <Route path="/sign-in/*" element={<SignInPage />} />
+        <Route path="/sign-up/*" element={<SignUpPage />} />
         <Route path="/setup" element={<AccountSetup />} />
         <Route path="/share/:token" element={<PublicRecipeView />} />
+        <Route path="/household/setup" element={<SignedIn><HouseholdSetup /></SignedIn>} />
         <Route path="/recipes/new" element={
           <ProtectedRoute>
             <RecipeFormPage />

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
@@ -10,13 +10,18 @@ import Switch from '@mui/material/Switch'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import FormControl from '@mui/material/FormControl'
+import IconButton from '@mui/material/IconButton'
+import TextField from '@mui/material/TextField'
+import EditIcon from '@mui/icons-material/Edit'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import {
   useGoogleStatus,
   useUserCalendars,
   useUpdateUserCalendars,
   useDisconnectGoogle,
-  buildGoogleConnectUrl,
+  initiateGoogleConnect,
 } from '../api/google-calendar'
+import { useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold } from '../api/household'
 import type { UserCalendar } from '../api/types'
 
 export default function Settings() {
@@ -28,6 +33,29 @@ export default function Settings() {
       setSearchParams({}, { replace: true })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Household ──────────────────────────────────────────────────────────────
+
+  const { data: householdData, isLoading: householdLoading } = useHouseholdSettings()
+  const isOwner = householdData?.role === 'owner'
+
+  const [renaming, setRenaming] = useState(false)
+  const [nameInput, setNameInput] = useState('')
+  const { mutate: generateInvite, isPending: generatingInvite } = useGenerateInvite()
+  const { mutate: revokeInvite, isPending: revokingInvite } = useRevokeInvite()
+  const { mutate: renameHousehold, isPending: renamePending } = useRenameHousehold()
+
+  function handleRenameOpen() {
+    setNameInput(householdData?.householdName ?? '')
+    setRenaming(true)
+  }
+
+  function handleRenameSave() {
+    if (!nameInput.trim()) return
+    renameHousehold(nameInput.trim(), { onSuccess: () => setRenaming(false) })
+  }
+
+  // ── Google Calendar ────────────────────────────────────────────────────────
 
   const { data: googleStatus, isLoading: statusLoading } = useGoogleStatus()
   const isConnected = googleStatus?.connected ?? false
@@ -68,6 +96,85 @@ export default function Settings() {
         </Alert>
       )}
 
+      {/* Household section */}
+      <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1 }}>
+        Household
+      </Typography>
+
+      {householdLoading ? (
+        <Skeleton width={180} height={28} sx={{ borderRadius: 1, mb: 1 }} />
+      ) : renaming ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <TextField
+            value={nameInput}
+            onChange={e => setNameInput(e.target.value)}
+            size="small"
+            autoFocus
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleRenameSave()
+              if (e.key === 'Escape') setRenaming(false)
+            }}
+            sx={{ flex: 1 }}
+          />
+          <Button size="small" variant="contained" onClick={handleRenameSave} disabled={renamePending}>
+            Save
+          </Button>
+          <Button size="small" onClick={() => setRenaming(false)} disabled={renamePending}>
+            Cancel
+          </Button>
+        </Box>
+      ) : (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+          <Typography variant="body2">{householdData?.householdName ?? '—'}</Typography>
+          {isOwner && (
+            <IconButton size="small" onClick={handleRenameOpen}>
+              <EditIcon fontSize="inherit" />
+            </IconButton>
+          )}
+        </Box>
+      )}
+
+      {householdData?.inviteCode ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Box
+            sx={{
+              fontFamily: 'monospace',
+              fontSize: 14,
+              bgcolor: 'action.hover',
+              px: 1,
+              py: 0.5,
+              borderRadius: 1,
+              letterSpacing: '0.1em',
+            }}
+          >
+            {householdData.inviteCode}
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => navigator.clipboard.writeText(householdData.inviteCode!)}
+            title="Copy code"
+          >
+            <ContentCopyIcon fontSize="inherit" />
+          </IconButton>
+          {isOwner && (
+            <>
+              <Button size="small" variant="outlined" onClick={() => generateInvite()} disabled={generatingInvite}>
+                Regenerate
+              </Button>
+              <Button size="small" color="error" variant="outlined" onClick={() => revokeInvite()} disabled={revokingInvite}>
+                Revoke
+              </Button>
+            </>
+          )}
+        </Box>
+      ) : isOwner ? (
+        <Button size="small" variant="outlined" onClick={() => generateInvite()} disabled={generatingInvite}>
+          {generatingInvite ? 'Generating…' : 'Generate invite code'}
+        </Button>
+      ) : null}
+
+      <Divider sx={{ my: 2 }} />
+
       {/* Google Account section */}
       <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1 }}>
         Google Account
@@ -91,7 +198,7 @@ export default function Settings() {
         <Button
           variant="outlined"
           size="small"
-          onClick={() => { window.location.href = buildGoogleConnectUrl() }}
+          onClick={() => initiateGoogleConnect()}
         >
           Connect Google Calendar
         </Button>

@@ -5,8 +5,9 @@ import Skeleton from '@mui/material/Skeleton'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import RefreshIcon from '@mui/icons-material/Refresh'
-import { useShoppingList, useRecipes, useTodos, useCalendarEvents } from '../api'
+import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus } from '../api'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
@@ -65,6 +66,7 @@ function timeLabel(dateStr: string): string | null {
 }
 
 function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
+  const { data: googleStatus } = useGoogleStatus()
   const timeMin = useMemo(() => new Date().toISOString(), [])
   const timeMax = useMemo(() => {
     const d = new Date()
@@ -82,6 +84,8 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
       .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
       .slice(0, 3)
   }, [events])
+
+  if (!googleStatus?.connected && !isLoading && upcoming.length === 0) return null
 
   return (
     <Box sx={{ mb: 3 }}>
@@ -284,12 +288,12 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
             <Skeleton width="80%" height={14} sx={{ mb: 0.5 }} />
             <Skeleton width="60%" height={14} />
           </Box>
+        ) : storeBreakdown.count === 0 ? (
+          <EmptyState text="Nothing on the list" />
         ) : (
           <Box sx={{ px: 2, py: 1.75 }}>
-            <Typography variant="body2" fontWeight={600} sx={{ mb: storeBreakdown.count ? 1 : 0 }}>
-              {storeBreakdown.count === 0
-                ? 'Nothing on the list'
-                : `${storeBreakdown.count} item${storeBreakdown.count !== 1 ? 's' : ''} to buy`}
+            <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
+              {`${storeBreakdown.count} item${storeBreakdown.count !== 1 ? 's' : ''} to buy`}
             </Typography>
             {allUnassigned && (
               <Typography variant="caption" color="text.secondary">
@@ -423,12 +427,23 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
 
 export default function Home() {
   const navigate = useNavigate()
+  const { logout } = useAuth()
   return (
     <Box sx={{ pb: 2 }}>
       <CalendarSection onNavigate={() => navigate('/calendar')} />
       <TodoSection     onSeeAll={() => navigate('/todos')} />
       <ShoppingSection onNavigate={() => navigate('/shopping')} />
       <RecipeSection   onNavigate={id => navigate(`/recipes/${id}`)} />
+      <Box sx={{ textAlign: 'center', pt: 1 }}>
+        <Typography
+          variant="caption"
+          color="text.disabled"
+          sx={{ cursor: 'pointer', '&:hover': { color: 'text.secondary' } }}
+          onClick={logout}
+        >
+          Sign out
+        </Typography>
+      </Box>
     </Box>
   )
 }

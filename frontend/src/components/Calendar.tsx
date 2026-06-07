@@ -5,7 +5,7 @@ import IconButton from '@mui/material/IconButton'
 import Skeleton from '@mui/material/Skeleton'
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
-import { useCalendarEvents } from '../api'
+import { useCalendarEvents, useGoogleStatus } from '../api'
 import type { CalendarEvent } from '../api/types'
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -149,7 +149,9 @@ export default function Calendar() {
   const timeMin = useMemo(() => timeMinFor(viewYear, viewMonth),          [viewYear, viewMonth])
   const timeMax = useMemo(() => endOfMonth(viewYear, viewMonth).toISOString(), [viewYear, viewMonth])
 
-  const { data: events, isLoading } = useCalendarEvents(timeMin, timeMax)
+  const { data: googleStatus, isLoading: statusLoading } = useGoogleStatus()
+  const { data: events, isLoading: eventsLoading } = useCalendarEvents(timeMin, timeMax)
+  const isLoading = statusLoading || eventsLoading
 
   // Group events by day, sorted chronologically
   const dayGroups = useMemo((): Array<{ dateKey: string; events: CalendarEvent[] }> => {
@@ -231,13 +233,24 @@ export default function Calendar() {
             Nothing coming up
           </Typography>
           <Typography variant="body2" color="text.disabled">
-            Enjoy the quiet
+            {!googleStatus?.connected
+              ? 'Connect Google Calendar in Settings to see your events'
+              : 'Enjoy the quiet'}
           </Typography>
         </Box>
       ) : (
-        dayGroups.map(({ dateKey, events: evs }) => (
-          <DaySection key={dateKey} dateKey={dateKey} events={evs} />
-        ))
+        <>
+          {dayGroups.map(({ dateKey, events: evs }) => (
+            <DaySection key={dateKey} dateKey={dateKey} events={evs} />
+          ))}
+          {!googleStatus?.connected && (
+            <Box sx={{ pt: 2, textAlign: 'center', px: 4, pb: 2 }}>
+              <Typography variant="body2" color="text.disabled">
+                Connect Google Calendar in Settings to add your own events
+              </Typography>
+            </Box>
+          )}
+        </>
       )}
     </Box>
   )

@@ -10,12 +10,17 @@ export class ApiError extends Error {
 let onUnauthorized: (() => void) | null = null
 export function setUnauthorizedHandler(fn: () => void) { onUnauthorized = fn }
 
-function getToken(): string | null {
+// Module-level async token getter. When set (e.g. by Clerk), used instead of localStorage.
+let getTokenFn: (() => Promise<string | null>) | null = null
+export function setTokenGetter(fn: () => Promise<string | null>) { getTokenFn = fn }
+
+async function getToken(): Promise<string | null> {
+  if (getTokenFn) return getTokenFn()
   return localStorage.getItem('casita_token')
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getToken()
+  const token = await getToken()
   const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
@@ -54,7 +59,7 @@ export async function publicGet<T>(path: string): Promise<T> {
 export async function uploadPhoto(file: File): Promise<string> {
   const form = new FormData()
   form.append('file', file)
-  const token = getToken()
+  const token = await getToken()
   const res = await fetch(`${BASE_URL}/recipe-photos`, {
     method: 'POST',
     body: form,

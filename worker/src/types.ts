@@ -152,4 +152,23 @@ export interface Env {
   RECIPE_PHOTOS: R2Bucket
   AUTH_KV: KVNamespace
   ALLOWED_EMAILS: string
+  DB: D1Database
+  CLERK_PUBLISHABLE_KEY: string
+  CLERK_SECRET_KEY: string
+}
+
+// ── Auth / household context ──────────────────────────────────────────────────
+
+export interface RequestContext {
+  clerkUserId: string
+  householdId: string | null
+  role: 'owner' | 'member' | null
+}
+
+export interface HouseholdNotionConfig {
+  household_id: string
+  shopping_list_db: string
+  recipes_db: string
+  recipe_ingredient_db: string
+  todos_db: string
 }

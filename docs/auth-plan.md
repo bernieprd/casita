@@ -1,47 +1,25 @@
-# Auth — Implementation Plan
+# Auth — Status Document
 
 ## What & Why
 
-Casita currently uses a naive auth system: email whitelist, SHA-256 unsalted passwords, UUID session tokens in Cloudflare KV. The two existing users share a single set of Notion databases with no per-user or per-household isolation.
-
-This plan replaces that with proper OAuth (Google + Apple + email/password) via Clerk, introduces a "household" concept so multiple households can use the app independently, and allows new users to sign up, create a household, or join one with an invite code.
+Casita previously used a naive auth system: email whitelist, SHA-256 unsalted passwords, and UUID session tokens in Cloudflare KV. This has been replaced with OAuth via Clerk (Google enabled), a D1-backed "household" concept for per-household Notion DB isolation, and an invite-code join flow so new users can be added without manual seeding. Clerk is the identity source of truth; D1 owns the household graph. The KV session path is kept as a fallback during migration and will be removed once both users are on Clerk.
 
 ---
 
 ## Architecture Decisions
 
-- **Clerk for identity** — handles Google, Apple, and email/password out of the box; issues JWTs the Worker validates. Replaceable later: Clerk's footprint is limited to the auth layer only.
-- **D1 for households** — `households`, `household_members`, and `household_notion_config` tables. Clerk is the source of truth for users; D1 owns the household graph.
-- **Same D1 database as editable-concepts plan** — extend it, don't create a new one.
-- **Notion DB IDs move to D1** — each household row stores its own Notion DB IDs, replacing the hardcoded `env.NOTION_*_DB` vars. No Notion data migration needed.
-- **KV sessions kept as fallback during migration** — existing sessions remain valid until both users confirm OAuth works, then removed.
+- **Clerk for identity** — Google OAuth (and optionally email/password) out of the box; Worker validates Clerk JWTs. Clerk's footprint is limited to the auth layer and is replaceable.
+- **D1 for households** — `households`, `household_members`, `household_notion_config` tables in the existing `casita` D1 database.
+- **Notion DB IDs moved to D1** — each household row stores its own Notion DB IDs, replacing hardcoded `env.NOTION_*_DB` vars. No Notion data migration needed.
+- **`BrowserRouter` instead of `HashRouter`** — required for Clerk path routing; Cloudflare Pages SPA routing handled by `frontend/public/_redirects`.
+- **KV sessions kept as fallback** — existing sessions remain valid until both users confirm OAuth works, then removed in migration cleanup.
 - **Households use invite codes** — owner generates a short code; new users enter it after signing in to join.
 
 ---
 
-## Prerequisites — Clerk + Google Cloud (manual, do first)
+## D1 Schema
 
-1. Create a Clerk application at [clerk.com](https://clerk.com)
-   - Enable: Google, Apple, Email/Password
-   - Allowed redirect URLs: `https://casita.bernardoprd.com`, `http://localhost:5173`
-2. Get `CLERK_PUBLISHABLE_KEY` (goes in `wrangler.toml` vars + `.env.local`) and `CLERK_SECRET_KEY` (secret)
-3. Apple: requires an Apple Developer account — configure in Clerk dashboard (Clerk handles the complexity)
-4. Run:
-   ```bash
-   wrangler secret put CLERK_SECRET_KEY
-   ```
-5. Add to `.env.local`:
-   ```
-   VITE_CLERK_PUBLISHABLE_KEY=pk_live_...
-   ```
-
-> Nothing deploys until this step is done.
-
----
-
-## D1 Schema — `worker/src/db/schema.sql`
-
-Add to the same D1 database planned for editable concepts.
+Database: `casita` (`19d078e5-4a7c-4dad-9a9c-45ccf66e2bd8`)
 
 ```sql
 CREATE TABLE IF NOT EXISTS households (
@@ -68,372 +46,155 @@ CREATE TABLE IF NOT EXISTS household_notion_config (
   recipe_ingredient_db TEXT NOT NULL,
   todos_db             TEXT NOT NULL
 );
+```
 
--- Seed (run after both users log in once and you have their Clerk user IDs):
--- INSERT INTO households VALUES ('hh-home', 'Home', NULL, unixepoch() * 1000);
--- INSERT INTO household_notion_config VALUES ('hh-home', '<shopping_db>', '<recipes_db>', '<ingredient_db>', '<todos_db>');
--- INSERT INTO household_members VALUES ('hh-home', '<bernardo_clerk_id>', 'owner', unixepoch() * 1000);
--- INSERT INTO household_members VALUES ('hh-home', '<cesar_clerk_id>', 'member', unixepoch() * 1000);
+Seed SQL used locally (already applied to local D1):
+```sql
+INSERT INTO households VALUES ('hh-home', 'Home', NULL, unixepoch() * 1000);
+INSERT INTO household_notion_config VALUES ('hh-home',
+  '2f2332846c00818498dd000c02f39cdd',
+  '2f2332846c0081f0945f000cd6348876',
+  '331332846c00808b9c33000c300050b2',
+  '332332846c00806480fdfd6be9f5ffa0');
+INSERT INTO household_members VALUES ('hh-home', 'user_3EnOERGusAVZh3uyiowVPf8qVYe', 'owner', unixepoch() * 1000);
 ```
 
 ---
 
-## New Types — `worker/src/types.ts`
+## Status
 
-Add to `Env`:
-```typescript
-DB: D1Database
-CLERK_PUBLISHABLE_KEY: string
-CLERK_SECRET_KEY: string
-```
+### Done (verified working locally)
 
-New shared type passed to all route handlers:
-```typescript
-export interface RequestContext {
-  clerkUserId: string
-  householdId: string | null   // null = user exists but has no household yet
-  role: 'owner' | 'member' | null
-}
-```
+- Clerk app created, Google OAuth enabled
+- `CLERK_SECRET_KEY` in `worker/.dev.vars`; `VITE_CLERK_PUBLISHABLE_KEY` in `frontend/.env.local`
+- D1 database created; schema migrated locally
+- `household_notion_config` seeded for `hh-home` with all four Notion DB IDs
+- `household_members` seeded: `user_3EnOERGusAVZh3uyiowVPf8qVYe` → `hh-home` (owner)
+- `ClerkProvider` wired in `main.tsx` with sign-in/sign-up URLs and fallback redirects
+- `BrowserRouter` replacing `HashRouter`
+- `frontend/public/_redirects` added for Cloudflare Pages SPA routing
+- `APP_BASE_URL` corrected in `wrangler.toml` and `.dev.vars`
+- `AuthContext` updated: Clerk JWT token getter registered, household state from `/household/me`
+- `householdName` field mismatch fixed (`data.name` → `data.householdName`)
+- Worker auth middleware: Clerk JWT verification + KV session fallback + D1 household lookup
+- All household CRUD routes implemented (`/household/me`, `POST /household`, `POST /household/join`, `POST/DELETE /household/invite`)
+- All data routes updated to accept `RequestContext` and look up Notion DB IDs from `household_notion_config`
+- Sign-in (`/sign-in`) and sign-up (`/sign-up`) routes with Clerk path routing
+- `HouseholdSetup` screen for first-time users (create or join)
+- Logout link on Home tab
+- Google OAuth sign-in and sign-up flow end-to-end
+- `GET /household/me` resolves correctly after D1 seed
+- Todos load correctly from Notion via D1 config
+- `GET /items` and `GET /recipes` returning 404 (see Known Issues)
+- `GET /calendar` returning 500 — KV key too long (see Known Issues)
+- Duplicate household membership guard (see Known Issues)
+- `/household/setup` route guard for users who already have a household (see Known Issues)
+- `search: '*'` added to all URLPatterns; `[ROUTE HIT]`/`[ROUTE MISS]` diagnostic logs added to route dispatcher
+- Calendar route refactored: `clerkUserId`-keyed KV lookups replace email-based keys; Google OAuth initiation returns `{ url }` JSON for safe authenticated redirect
+- Google auth routes (`/auth/google`, `/auth/google/status`, `DELETE /auth/google`) moved to authenticated routes with `RequestContext`; `getValidAccessToken` and all related KV keys migrated from email to `clerkUserId`
+- `user-calendars.ts` updated to use `clerkUserId` for all KV reads/writes
+- D1 migration created (`worker/src/db/migrations/001_unique_user_household.sql`): deduplicates `household_members` and adds `UNIQUE INDEX hm_unique_user` on `clerk_user_id`; `schema.sql` updated to match
+- `HouseholdSetup.tsx` guards `/household/setup`: redirects to `/` if user already has a household
 
-`wrangler.toml` additions:
-```toml
-[[d1_databases]]
-binding = "DB"
-database_name = "casita"
-database_id = "..."   # from: wrangler d1 create casita
+### Not yet done
 
-[vars]
-CLERK_PUBLISHABLE_KEY = "pk_live_..."
-# Remove ALLOWED_EMAILS after migration is complete
-```
-
----
-
-## Backend Changes
-
-### New — `worker/src/auth/clerk.ts`
-
-Clerk JWT verification using `@clerk/backend` (Workers-compatible):
-
-```typescript
-import { createClerkClient } from '@clerk/backend'
-
-export function getClerkClient(env: Env) {
-  return createClerkClient({ secretKey: env.CLERK_SECRET_KEY })
-}
-
-export async function verifyClerkToken(
-  token: string,
-  env: Env
-): Promise<{ userId: string } | null>
-// Returns null on invalid/expired token
-```
+- ~~Household settings screen (rename, invite code management, member list)~~ ✓ done
+- Production deploy (see Wave 5 steps below)
+- KV session fallback removal
+- Old `/auth/*` routes removal
+- `ALLOWED_EMAILS` removal from `wrangler.toml`
 
 ---
 
-### New — `worker/src/routes/household.ts`
+## Known Issues
 
-All routes require an authenticated `RequestContext`. Return 403 if `householdId` is required but null.
+### 1. `GET /items` and `GET /recipes` return 404
 
-**`GET /household/me`**
-- Returns `{ householdId, householdName, role, members: [{ clerkUserId, role }] }`
-- Returns `{ householdId: null }` if user has no household (triggers frontend setup flow)
+`GET /todos` works with the same `URLPattern` format; `GET /items` and `GET /recipes` do not match despite being registered identically in the routes array. Root cause not yet identified — possible URLPattern behavior specific to those path strings in `wrangler dev`, or a stale compilation artifact.
 
-**`POST /household`** — create new household
-- Body: `{ name: string }`
-- Creates household row + member row (role: `owner`) + `household_notion_config` row with provided Notion DB IDs
-- Returns the new household
+**Proposed fix:** Add explicit logging to the router to print the matched pattern and method for each request; compare against the `/todos` registration to spot any difference. Also try `wrangler dev --no-bundle` to rule out a build caching issue.
 
-**`POST /household/join`** — join by invite code
-- Body: `{ inviteCode: string }`
-- Looks up household by `invite_code`; adds member row (role: `member`)
-- Returns the joined household
-
-**`POST /household/invite`** — generate/rotate invite code (owner only)
-- Generates `crypto.randomUUID().slice(0, 8).toUpperCase()` as invite code
-- Updates household row; returns `{ inviteCode }`
-
-**`DELETE /household/invite`** — revoke invite code (owner only)
-- Sets `invite_code = NULL`
+**Resolved:** Added `search: '*'` to all URLPatterns in `worker/src/index.ts` as a defensive fix; added `[ROUTE HIT]`/`[ROUTE MISS]` diagnostic logs to the route dispatcher.
 
 ---
 
-### Modified — `worker/src/index.ts`
+### 2. `GET /calendar` returns 500 — KV key too long
 
-Replace the KV session lookup (lines 88–95) with Clerk JWT verification + D1 household lookup.
+`getCalendarEvents` calls `getValidAccessToken`, which does `AUTH_KV.get(key)` where `key` is derived from the raw request token. Clerk JWTs are ~834 bytes; KV's key limit is 512 bytes.
 
-During migration: check D1 Clerk session first, fall back to KV session for existing unexpired tokens.
+**Proposed fix:** Update `google-auth.ts` and `calendar.ts` to key on `ctx.clerkUserId` (a short `user_xxx` string) instead of the raw token. The `clerkUserId` is already available on `RequestContext` in every handler.
 
-```typescript
-// New session resolution (replaces lines 88-95):
-const token = req.headers.get('Authorization')?.replace('Bearer ', '')
-if (!token) return err(401, 'Unauthorized', origin)
-
-// Try Clerk JWT first
-let clerkUserId: string | null = null
-try {
-  const clerk = getClerkClient(env)
-  const { userId } = await clerk.verifyToken(token)
-  clerkUserId = userId
-} catch { /* fall through to KV */ }
-
-// KV fallback for existing sessions (remove after migration)
-if (!clerkUserId) {
-  const kv = await env.AUTH_KV.get(`session:${token}`, 'json') as { email: string; expiresAt: number } | null
-  if (!kv || kv.expiresAt < Date.now()) return err(401, 'Unauthorized', origin)
-  // Treat KV session email as a synthetic ctx (householdId resolved below)
-  clerkUserId = `kv:${kv.email}`   // temporary marker
-}
-
-// Resolve household from D1
-const membership = await env.DB.prepare(
-  'SELECT household_id, role FROM household_members WHERE clerk_user_id = ?'
-).bind(clerkUserId).first<{ household_id: string; role: string }>()
-
-const ctx: RequestContext = {
-  clerkUserId,
-  householdId: membership?.household_id ?? null,
-  role: (membership?.role as 'owner' | 'member') ?? null,
-}
-// Pass ctx as additional arg to all route handlers
-```
-
-Add new routes:
-```typescript
-['GET',    new URLPattern({ pathname: '/household/me' }),      getHousehold],
-['POST',   new URLPattern({ pathname: '/household' }),         createHousehold],
-['POST',   new URLPattern({ pathname: '/household/join' }),    joinHousehold],
-['POST',   new URLPattern({ pathname: '/household/invite' }),  generateInvite],
-['DELETE', new URLPattern({ pathname: '/household/invite' }),  revokeInvite],
-```
+**Resolved:** Removed `session:${clerkJWT}` KV lookup in `calendar.ts`; all Google token/calendar KV keys now use `clerkUserId`. Google OAuth initiation returns `{ url }` JSON so the frontend fetches then redirects instead of a direct browser redirect with `?session=`.
 
 ---
 
-### Modified — `worker/src/routes/items.ts`, `todos.ts`, `recipes.ts`
+### 3. User can belong to multiple households
 
-All data routes receive `ctx: RequestContext`. Replace hardcoded `env.NOTION_*_DB` with a D1 lookup:
+`household_members` has no `UNIQUE` constraint on `clerk_user_id`. A user who hits `HouseholdSetup` before seed data is inserted ends up with two rows; the auth middleware's `.first()` resolves to whichever row was inserted first, which may not be the seeded household.
 
-```typescript
-// Add at the top of each handler:
-if (!ctx.householdId) return err(403, 'No household', origin)
+**Proposed fix:**
+1. Add `UNIQUE(clerk_user_id)` constraint to `household_members` (or change the primary key to `clerk_user_id` alone if one-household-per-user is the invariant).
+2. Add a migration to remove any duplicate rows before applying the constraint.
 
-const config = await env.DB.prepare(
-  'SELECT * FROM household_notion_config WHERE household_id = ?'
-).bind(ctx.householdId).first<HouseholdNotionConfig>()
-
-if (!config) return err(403, 'Household not configured', origin)
-
-// Then replace:
-env.NOTION_SHOPPING_LIST_DB  →  config.shopping_list_db
-env.NOTION_RECIPES_DB        →  config.recipes_db
-env.NOTION_RECIPE_INGREDIENT_DB → config.recipe_ingredient_db
-env.NOTION_TODOS_DB          →  config.todos_db
-```
+**Resolved:** Created `worker/src/db/migrations/001_unique_user_household.sql` which deduplicates existing rows and adds `CREATE UNIQUE INDEX hm_unique_user ON household_members(clerk_user_id)`; `schema.sql` updated to include the index for fresh creates.
 
 ---
 
-## Frontend Changes
+### 4. `/household/setup` accessible to users who already have a household
 
-### Modified — `frontend/src/main.tsx`
+No guard in the route — any authenticated user can POST to `/household` and create a second household, compounding issue 3.
 
-Wrap the app:
-```tsx
-import { ClerkProvider } from '@clerk/clerk-react'
+**Proposed fix:** In the `createHousehold` handler, check whether the user already has a `household_members` row and return 409 if so. Also add a frontend guard in `HouseholdSetup.tsx` that redirects to `/` if `householdId` is already set in context.
 
-<ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
-  <App />
-</ClerkProvider>
-```
+**Resolved:** Added `useEffect` redirect guard in `frontend/src/components/HouseholdSetup.tsx` that redirects to `/` if `householdId` is already set in context.
 
 ---
 
-### Modified — `frontend/src/context/AuthContext.tsx`
+## Next Steps (by priority)
 
-Replace custom auth state with a thin wrapper around Clerk + household context:
-
-```typescript
-interface HouseholdContext {
-  householdId: string | null
-  householdName: string | null
-  role: 'owner' | 'member' | null
-  isLoading: boolean
-}
-
-// Uses useUser() from @clerk/clerk-react for identity
-// Fetches /household/me for household state (on mount, after sign-in)
-// Exposes: { householdId, householdName, role }
-```
+1. **Production deploy** — follow Wave 5 steps below
+2. **Cesare joins via invite** — share the invite code from Household Settings; he signs in and joins
+3. **Migration cleanup** — follow checklist below after both users confirm the Clerk flow works
 
 ---
 
-### Modified — `frontend/src/api/client.ts`
+## Wave 5 — Production Deploy Steps
 
-Replace `localStorage.getItem('casita_token')` with Clerk's `getToken()`:
+Run these in order after all known issues are resolved and local testing is clean.
 
-```typescript
-import { useAuth } from '@clerk/clerk-react'
-
-// In the request helper:
-const token = await getToken()   // Clerk issues a fresh, validated JWT
-```
-
-The 401 handler (`onUnauthorized`) stays — Clerk's `getToken()` returns null if signed out, which triggers the same redirect.
-
----
-
-### Modified — `frontend/src/components/Login.tsx`
-
-Replace email/password form with Clerk's hosted component:
-```tsx
-import { SignIn } from '@clerk/clerk-react'
-
-// Route: /sign-in
-<SignIn routing="hash" />
-```
-
-Or use Clerk's redirect-based flow: remove the Login page entirely and let Clerk's `<RedirectToSignIn />` handle unauthenticated users. Style via Clerk's appearance API to match MUI theme colors.
-
----
-
-### New — `frontend/src/components/HouseholdSetup.tsx`
-
-Shown to signed-in users whose `/household/me` returns `householdId: null`:
-- "Create a household" — text field for name + Notion DB IDs → `POST /household`
-- "Join with a code" — text field for invite code → `POST /household/join`
-
-After either action, redirect to `/`.
+1. Push secrets to production:
+   ```bash
+   wrangler secret put CLERK_SECRET_KEY
+   ```
+2. Deploy the Worker:
+   ```bash
+   wrangler deploy
+   ```
+3. Run D1 schema migration against production:
+   ```bash
+   wrangler d1 execute casita --file worker/src/db/schema.sql
+   ```
+4. Build and deploy the frontend to Cloudflare Pages.
+5. Sign in with Google on production → get your Clerk user ID from the Clerk dashboard (Users tab).
+6. Seed production D1 with Bernardo's ID and household config:
+   ```bash
+   wrangler d1 execute casita --command "INSERT INTO households VALUES ('hh-home', 'Home', NULL, unixepoch() * 1000);"
+   wrangler d1 execute casita --command "INSERT INTO household_notion_config VALUES ('hh-home', '2f2332846c00818498dd000c02f39cdd', '2f2332846c0081f0945f000cd6348876', '331332846c00808b9c33000c300050b2', '332332846c00806480fdfd6be9f5ffa0');"
+   wrangler d1 execute casita --command "INSERT INTO household_members VALUES ('hh-home', '<BERNARDO_CLERK_ID>', 'owner', unixepoch() * 1000);"
+   ```
+7. Verify all tabs load correctly on production.
+8. Generate an invite code from Household Settings and share it with Cesare — he signs in and joins via the invite flow (no manual SQL needed).
 
 ---
 
-### Modified — `frontend/src/App.tsx`
+## Migration Cleanup Checklist
 
-```tsx
-import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react'
+Do this only after both users have confirmed the Clerk flow works on production.
 
-// Replace ProtectedRoute with:
-function ProtectedRoute({ children }) {
-  const { householdId, isLoading } = useHousehold()
-  if (isLoading) return <LoadingScreen />
-  if (householdId === null) return <Navigate to="/household/setup" replace />
-  return <>{children}</>
-}
-
-// Add routes:
-<Route path="/sign-in/*" element={<SignIn routing="path" path="/sign-in" />} />
-<Route path="/household/setup" element={<SignedIn><HouseholdSetup /></SignedIn>} />
-<Route path="*" element={<SignedOut><RedirectToSignIn /></SignedOut>} />
-```
-
----
-
-## Migration of Existing Two Users
-
-1. Deploy all phases above with KV fallback active
-2. Bernardo + Cesar sign in with Google via Clerk (Clerk creates their accounts)
-3. Get Clerk user IDs from Clerk dashboard (`Users` tab)
-4. Run seed SQL with real IDs (see schema section above)
-5. Both users confirm data is visible
-6. Remove KV fallback from `index.ts`
-7. Remove `/auth/check`, `/auth/setup`, `/auth/login` routes from `auth.ts`
-8. Delete `frontend/src/components/AccountSetup.tsx`
-9. Remove `ALLOWED_EMAILS` from `wrangler.toml`
-
----
-
-## Agent-Optimized Implementation Order
-
-Agents within the same wave run **in parallel**.
-
-### Wave 1 — Foundation (1 agent, ~5 min)
-
-Single agent updates type files and config before anything imports from them:
-- `worker/src/types.ts` — add `DB: D1Database`, `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `RequestContext`
-- `worker/src/db/schema.sql` — create file with full schema
-- `worker/wrangler.toml` — add `[[d1_databases]]` binding and `CLERK_PUBLISHABLE_KEY` var
-
----
-
-### Wave 2 — Parallel build (4 agents simultaneously, ~15 min)
-
-**Agent A — `worker/src/auth/clerk.ts`**
-- Install `@clerk/backend` in the worker package
-- Implement `getClerkClient` and `verifyClerkToken`
-- No dependencies on other Wave 2 agents
-
-**Agent B — `worker/src/routes/household.ts`**
-- Implement all 5 household routes using D1
-- Imports `RequestContext` from `../types`
-- Invite code generation, role checks, D1 CRUD
-
-**Agent C — `frontend/src/api/client.ts` + `frontend/src/context/AuthContext.tsx`**
-- Install `@clerk/clerk-react` in the frontend package
-- Update `client.ts` to use Clerk `getToken()`
-- Replace `AuthContext` with `useUser()` + `/household/me` fetch
-- No backend needed — types-only dependency on the agreed API shape
-
-**Agent D — `frontend/src/components/HouseholdSetup.tsx` + `frontend/src/main.tsx`**
-- Wrap app with `<ClerkProvider>` in `main.tsx`
-- Build `HouseholdSetup.tsx` UI (create + join flows)
-- Uses `useHousehold()` from Agent C's context; no backend needed
-
----
-
-### Wave 3 — Integration (2 agents simultaneously, after Wave 2)
-
-**Agent E — `worker/src/index.ts`**
-- Depends on Agent A (Clerk verifier) and Agent B (household routes)
-- Replace session middleware with Clerk JWT check + D1 household lookup
-- Add KV fallback (remove in migration step)
-- Register 5 new household routes
-
-**Agent F — `worker/src/routes/items.ts` + `todos.ts` + `recipes.ts`**
-- Update all 3 route files to accept `ctx: RequestContext`
-- Replace `env.NOTION_*_DB` with `household_notion_config` D1 lookup
-- Return 403 if `ctx.householdId` is null
-
----
-
-### Wave 4 — Frontend routing (1 agent, after Wave 2)
-
-**Agent G — `frontend/src/App.tsx` + `frontend/src/components/Login.tsx`**
-- Depends on Agent C + D (context and household setup ready)
-- Replace `ProtectedRoute` with Clerk-aware version
-- Add `/sign-in`, `/household/setup` routes
-- Add gear icon to AppBar (also planned in calendar-sync and editable-concepts — done here once)
-
----
-
-### Wave 5 — Deploy + Seed (sequential, manual)
-
-1. `wrangler d1 create casita` → copy database ID into `wrangler.toml`
-2. `wrangler d1 execute casita --file worker/src/db/schema.sql`
-3. `wrangler secret put CLERK_SECRET_KEY`
-4. `wrangler deploy`
-5. `pnpm build && gh-pages -d dist` (or deploy frontend)
-6. Both users sign in → get Clerk IDs from dashboard → run seed SQL
-7. Verify data loads correctly
-8. Run migration cleanup steps (remove KV fallback, old routes, ALLOWED_EMAILS)
-
----
-
-## Verification
-
-**New user:**
-1. Open app → redirected to Clerk sign-in
-2. Sign in with Google → redirected to `/household/setup`
-3. Create household → home page loads with empty lists
-
-**Existing user:**
-1. Sign in with Google → home page loads with existing Notion data
-
-**Join flow:**
-1. Household owner generates invite code from settings
-2. New user signs in → enters code in `/household/setup` → joins household
-3. Both users see the same shopping list
-
-**Isolation:**
-- Sign in with a user from a different household → verify different Notion DB IDs are used → different data returned
-
-**Session expiry:**
-- Clerk JWTs expire automatically; `getToken()` refreshes them silently → verify no unexpected 401s during normal use
+- [ ] Remove KV session fallback from `worker/src/index.ts` (the `kv:` synthetic user block)
+- [ ] Delete or empty `worker/src/routes/auth.ts` (the old `/auth/login`, `/auth/check`, `/auth/setup` routes)
+- [ ] Remove old auth route registrations from `worker/src/index.ts`
+- [ ] Delete `frontend/src/components/AccountSetup.tsx` (if it still exists)
+- [ ] Remove `ALLOWED_EMAILS` from `wrangler.toml`
+- [ ] Remove `NOTION_SHOPPING_LIST_DB`, `NOTION_RECIPES_DB`, `NOTION_RECIPE_INGREDIENT_DB`, `NOTION_TODOS_DB` from `wrangler.toml` vars (now in D1)
+- [ ] Redeploy Worker and frontend after cleanup

@@ -1,24 +1,11 @@
-import type { Env, UserCalendar } from '../types'
+import type { Env, UserCalendar, RequestContext } from '../types'
 import { getValidAccessToken } from './google-auth'
 import { rebuildSharedIndex } from './shared-calendar-index'
 
-async function getEmailFromRequest(req: Request, env: Env): Promise<string | null> {
-  const token = req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!token) return null
-  const raw = await env.AUTH_KV.get(`session:${token}`)
-  if (!raw) return null
-  const { email, expiresAt } = JSON.parse(raw) as { email: string; expiresAt: number }
-  if (Date.now() > expiresAt) return null
-  return email
-}
+export async function listUserCalendars(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
+  const clerkUserId = ctx.clerkUserId
 
-export async function listUserCalendars(req: Request, env: Env): Promise<Response> {
-  const email = await getEmailFromRequest(req, env)
-  if (!email) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  const accessToken = await getValidAccessToken(email, env)
+  const accessToken = await getValidAccessToken(clerkUserId, env)
   if (!accessToken) {
     return Response.json({ calendars: [], connected: false })
   }
@@ -28,7 +15,7 @@ export async function listUserCalendars(req: Request, env: Env): Promise<Respons
   })
   const googleData = await googleRes.json() as { items: Array<{ id: string; summary: string; backgroundColor?: string }> }
 
-  const storedRaw = await env.AUTH_KV.get(`user_calendars:${email}`)
+  const storedRaw = await env.AUTH_KV.get(`user_calendars:${clerkUserId}`)
   const stored: UserCalendar[] = storedRaw ? JSON.parse(storedRaw) : []
 
   const calendars: UserCalendar[] = (googleData.items ?? []).map(item => {
@@ -45,15 +32,12 @@ export async function listUserCalendars(req: Request, env: Env): Promise<Respons
   return Response.json({ calendars, connected: true })
 }
 
-export async function updateUserCalendars(req: Request, env: Env): Promise<Response> {
-  const email = await getEmailFromRequest(req, env)
-  if (!email) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+export async function updateUserCalendars(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
+  const clerkUserId = ctx.clerkUserId
 
   const calendars = await req.json() as UserCalendar[]
-  await env.AUTH_KV.put(`user_calendars:${email}`, JSON.stringify(calendars))
-  await rebuildSharedIndex(email, calendars, env)
+  await env.AUTH_KV.put(`user_calendars:${clerkUserId}`, JSON.stringify(calendars))
+  await rebuildSharedIndex(clerkUserId, calendars, env)
 
   return Response.json({ ok: true })
 }

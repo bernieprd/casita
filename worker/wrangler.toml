@@ -14,8 +14,13 @@ preview_id = "8f83fdfdf2254528b98ec78c65e1b88f"
 #   wrangler secret put NOTION_TOKEN
 NOTION_TODOS_DB = "332332846c00806480fdfd6be9f5ffa0"
 ALLOWED_EMAILS = "bernardo.prd@gmail.com,cesareditimoteo@gmail.com"
-APP_BASE_URL = "https://casita.bernardoprd.com/#"
+APP_BASE_URL = "https://casita.bernardoprd.com"
 GOOGLE_REDIRECT_URI = "https://casita-worker.bernardoprd.workers.dev/auth/google/callback"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "casita"
+database_id = "19d078e5-4a7c-4dad-9a9c-45ccf66e2bd8"
 
 [[r2_buckets]]
 binding = "RECIPE_PHOTOS"
