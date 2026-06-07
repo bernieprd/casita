@@ -19,10 +19,6 @@ export default function HouseholdSetup() {
 
   // Create flow state
   const [householdName, setHouseholdName] = useState('')
-  const [shoppingListDb, setShoppingListDb] = useState('')
-  const [recipesDb, setRecipesDb] = useState('')
-  const [recipeIngredientDb, setRecipeIngredientDb] = useState('')
-  const [todosDb, setTodosDb] = useState('')
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
 
@@ -42,10 +38,6 @@ export default function HouseholdSetup() {
     try {
       await api.post<{ id: string; name: string }>('/household', {
         name: householdName.trim(),
-        shoppingListDb: shoppingListDb.trim(),
-        recipesDb: recipesDb.trim(),
-        recipeIngredientDb: recipeIngredientDb.trim(),
-        todosDb: todosDb.trim(),
       })
       refreshHousehold()
       navigate('/', { replace: true })
@@ -116,43 +108,11 @@ export default function HouseholdSetup() {
                   autoFocus
                   placeholder="e.g. The Smith House"
                 />
-                <TextField
-                  label="Shopping list Notion DB ID"
-                  value={shoppingListDb}
-                  onChange={e => setShoppingListDb(e.target.value)}
-                  required
-                  fullWidth
-                  placeholder="e.g. 2f2332846c008184…"
-                />
-                <TextField
-                  label="Recipes Notion DB ID"
-                  value={recipesDb}
-                  onChange={e => setRecipesDb(e.target.value)}
-                  required
-                  fullWidth
-                  placeholder="e.g. 2f2332846c008184…"
-                />
-                <TextField
-                  label="Recipe ingredients Notion DB ID"
-                  value={recipeIngredientDb}
-                  onChange={e => setRecipeIngredientDb(e.target.value)}
-                  required
-                  fullWidth
-                  placeholder="e.g. 2f2332846c008184…"
-                />
-                <TextField
-                  label="Todos Notion DB ID"
-                  value={todosDb}
-                  onChange={e => setTodosDb(e.target.value)}
-                  required
-                  fullWidth
-                  placeholder="e.g. 2f2332846c008184…"
-                />
                 {createError && <Alert severity="error">{createError}</Alert>}
                 <Button
                   type="submit"
                   variant="contained"
-                  disabled={createLoading || !householdName.trim() || !shoppingListDb.trim() || !recipesDb.trim() || !recipeIngredientDb.trim() || !todosDb.trim()}
+                  disabled={createLoading || !householdName.trim()}
                   fullWidth
                   size="large"
                   startIcon={createLoading ? <CircularProgress size={18} color="inherit" /> : null}
