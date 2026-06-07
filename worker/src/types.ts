@@ -155,6 +155,7 @@ export interface Env {
   DB: D1Database
   CLERK_PUBLISHABLE_KEY: string
   CLERK_SECRET_KEY: string
+  CLERK_JWT_KEY?: string // PEM public key — enables local JWT verification (no network call)
   ADMIN_MIGRATE_SECRET?: string
 }
 

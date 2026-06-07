@@ -32,19 +32,20 @@ export async function getHousehold(
     return Response.json({ householdId: null })
   }
 
-  const household = await env.DB
-    .prepare('SELECT id, name, invite_code FROM households WHERE id = ?')
-    .bind(ctx.householdId)
-    .first<{ id: string; name: string; invite_code: string | null }>()
+  const [household, members] = await Promise.all([
+    env.DB
+      .prepare('SELECT id, name, invite_code FROM households WHERE id = ?')
+      .bind(ctx.householdId)
+      .first<{ id: string; name: string; invite_code: string | null }>(),
+    env.DB
+      .prepare('SELECT clerk_user_id, role FROM household_members WHERE household_id = ?')
+      .bind(ctx.householdId)
+      .all<{ clerk_user_id: string; role: string }>(),
+  ])
 
   if (!household) {
     return Response.json({ householdId: null })
   }
-
-  const members = await env.DB
-    .prepare('SELECT clerk_user_id, role FROM household_members WHERE household_id = ?')
-    .bind(ctx.householdId)
-    .all<{ clerk_user_id: string; role: string }>()
 
   return Response.json({
     householdId: household.id,
