@@ -246,7 +246,7 @@ export default function ShoppingList() {
           open={editItem !== null}
           item={editItem}
           onClose={() => setEditItem(null)}
-          onDeleteRequest={editItem ? () => setEditItem(null) : undefined}
+          onDeleteRequest={editItem ? () => { handleRemove(editItem.id); setEditItem(null) } : undefined}
         />
       </>
     )
@@ -335,7 +335,7 @@ export default function ShoppingList() {
         open={editItem !== null}
         item={editItem}
         onClose={() => setEditItem(null)}
-        onDeleteRequest={editItem ? () => setEditItem(null) : undefined}
+        onDeleteRequest={editItem ? () => { handleRemove(editItem.id); setEditItem(null) } : undefined}
       />
       <IncompleteItemsSheet
         open={incompleteSheetOpen}
