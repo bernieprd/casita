@@ -7,6 +7,7 @@ import IconButton from '@mui/material/IconButton'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import { useShoppingList, useRecipes, useTodos, useCalendarEvents } from '../api'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
@@ -423,12 +424,23 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
 
 export default function Home() {
   const navigate = useNavigate()
+  const { logout } = useAuth()
   return (
     <Box sx={{ pb: 2 }}>
       <CalendarSection onNavigate={() => navigate('/calendar')} />
       <TodoSection     onSeeAll={() => navigate('/todos')} />
       <ShoppingSection onNavigate={() => navigate('/shopping')} />
       <RecipeSection   onNavigate={id => navigate(`/recipes/${id}`)} />
+      <Box sx={{ textAlign: 'center', pt: 1 }}>
+        <Typography
+          variant="caption"
+          color="text.disabled"
+          sx={{ cursor: 'pointer', '&:hover': { color: 'text.secondary' } }}
+          onClick={logout}
+        >
+          Sign out
+        </Typography>
+      </Box>
     </Box>
   )
 }

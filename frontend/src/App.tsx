@@ -30,7 +30,7 @@ import Recipes from './components/Recipes'
 import RecipeFormPage from './components/RecipeFormPage'
 import PublicRecipeView from './components/PublicRecipeView'
 import Settings from './components/Settings'
-import { SignIn, SignedIn, useUser } from '@clerk/clerk-react'
+import { SignIn, SignUp, SignedIn, useUser } from '@clerk/clerk-react'
 import { AuthProvider, useAuth, useHousehold } from './context/AuthContext'
 import AccountSetup from './components/AccountSetup'
 import HouseholdSetup from './components/HouseholdSetup'
@@ -75,15 +75,24 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-// Redirects already-signed-in users away from the sign-in page to prevent
-// Clerk from looping when it detects a live session on its own SignIn component.
 function SignInPage() {
   const { isSignedIn, isLoaded } = useUser()
   if (!isLoaded) return null
   if (isSignedIn) return <Navigate to="/" replace />
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
-      <SignIn routing="virtual" />
+      <SignIn routing="path" path="/sign-in" />
+    </Box>
+  )
+}
+
+function SignUpPage() {
+  const { isSignedIn, isLoaded } = useUser()
+  if (!isLoaded) return null
+  if (isSignedIn) return <Navigate to="/household/setup" replace />
+  return (
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
+      <SignUp routing="path" path="/sign-up" />
     </Box>
   )
 }
@@ -223,7 +232,8 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Navigate to="/sign-in" replace />} />
-        <Route path="/sign-in" element={<SignInPage />} />
+        <Route path="/sign-in/*" element={<SignInPage />} />
+        <Route path="/sign-up/*" element={<SignUpPage />} />
         <Route path="/setup" element={<AccountSetup />} />
         <Route path="/share/:token" element={<PublicRecipeView />} />
         <Route path="/household/setup" element={<SignedIn><HouseholdSetup /></SignedIn>} />

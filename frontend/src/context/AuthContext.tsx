@@ -103,12 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setHouseholdState(prev => ({ ...prev, isLoading: true }))
 
     api
-      .get<{ householdId: string; name: string; role: 'owner' | 'member' }>('/household/me')
+      .get<{ householdId: string; householdName: string; role: 'owner' | 'member' }>('/household/me')
       .then(data => {
         if (cancelled) return
         setHouseholdState({
           householdId: data.householdId,
-          householdName: data.name,
+          householdName: data.householdName,
           role: data.role,
           isLoading: false,
         })
