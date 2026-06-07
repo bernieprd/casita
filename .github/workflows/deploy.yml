@@ -62,9 +62,9 @@ jobs:
 
       - run: pnpm build:frontend
         env:
-          # Set VITE_WORKER_URL in repo Settings → Variables → Actions
-          # to point at your deployed Cloudflare Worker.
+          # Set these in repo Settings → Secrets and variables → Actions → Variables
           VITE_WORKER_URL: ${{ vars.VITE_WORKER_URL }}
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
 
       - uses: actions/upload-pages-artifact@v3
         with:
