@@ -14,7 +14,7 @@ import IconButton from '@mui/material/IconButton'
 import CloseIcon from '@mui/icons-material/Close'
 import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
-import { useItems, useCreateItem, useUpdateItem } from '../api'
+import { useItems, useCreateItem, useUpdateItem, useConceptList } from '../api'
 import type { Item } from '../api'
 import { useKeyboardOffset } from '../useKeyboardOffset'
 
@@ -27,6 +27,8 @@ interface Props {
 
 export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }: Props) {
   const { data: allItems = [] } = useItems()
+  const { data: categoryConcepts = [] } = useConceptList('categories')
+  const { data: supermarketConcepts = [] } = useConceptList('supermarkets')
   const create = useCreateItem()
   const update = useUpdateItem()
   const theme = useTheme()
@@ -47,13 +49,17 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
     }
   }, [open, item])
 
-  const categoryOptions = useMemo(() =>
-    [...new Set(allItems?.map(i => i.category).filter((c): c is string => !!c))].sort()
-  , [allItems])
+  const categoryOptions = useMemo(() => {
+    const fromConcepts = categoryConcepts.map(c => c.name)
+    const fromItems = allItems.map(i => i.category).filter((c): c is string => !!c)
+    return [...new Set([...fromConcepts, ...fromItems])].sort()
+  }, [categoryConcepts, allItems])
 
-  const supermarketOptions = useMemo(() =>
-    [...new Set(allItems?.flatMap(i => i.supermarkets))].sort()
-  , [allItems])
+  const supermarketOptions = useMemo(() => {
+    const fromConcepts = supermarketConcepts.map(c => c.name)
+    const fromItems = allItems.flatMap(i => i.supermarkets)
+    return [...new Set([...fromConcepts, ...fromItems])].sort()
+  }, [supermarketConcepts, allItems])
 
   const isEdit = !!item
   const isPending = create.isPending || update.isPending

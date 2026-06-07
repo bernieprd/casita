@@ -9,11 +9,13 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 import { useNavigate } from 'react-router-dom'
+import { useClerk } from '@clerk/clerk-react'
 import { api } from '../api/client'
 import { useHousehold } from '../context/AuthContext'
 
 export default function HouseholdSetup() {
   const navigate = useNavigate()
+  const { signOut } = useClerk()
   const { householdId, isLoading, refreshHousehold } = useHousehold()
   const [tab, setTab] = useState<0 | 1>(0)
 
@@ -151,6 +153,16 @@ export default function HouseholdSetup() {
               </Stack>
             )}
           </Box>
+        </Box>
+        <Box sx={{ textAlign: 'center', pt: 2 }}>
+          <Typography
+            variant="caption"
+            color="text.disabled"
+            sx={{ cursor: 'pointer', '&:hover': { color: 'text.secondary' } }}
+            onClick={() => signOut(() => navigate('/sign-in', { replace: true }))}
+          >
+            Sign out
+          </Typography>
         </Box>
       </Box>
     </Box>

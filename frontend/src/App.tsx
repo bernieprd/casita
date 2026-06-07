@@ -129,7 +129,7 @@ function AppShell() {
           {recipeDetailBar ?? (
             isSettings ? (
               <>
-                <IconButton onClick={() => navigate('/calendar')} size="small" color="inherit" edge="start">
+                <IconButton onClick={() => navigate('/')} size="small" color="inherit" edge="start">
                   <ArrowBackIcon />
                 </IconButton>
                 <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ flex: 1 }}>
@@ -146,7 +146,7 @@ function AppShell() {
                     <RefreshIcon />
                   </IconButton>
                 )}
-                {activeTab === 'calendar' && (
+                {activeTab === 'home' && (
                   <IconButton onClick={() => navigate('/settings')} size="small" color="inherit">
                     <SettingsIcon />
                   </IconButton>

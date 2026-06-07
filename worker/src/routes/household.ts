@@ -1,4 +1,5 @@
 import type { Env, RequestContext, HouseholdNotionConfig } from '../types'
+import { seedHouseholdConcepts } from './concepts-d1'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -91,6 +92,8 @@ export async function createHousehold(
     .prepare('INSERT INTO household_members (household_id, clerk_user_id, role, joined_at) VALUES (?, ?, ?, ?)')
     .bind(id, ctx.clerkUserId, 'owner', now)
     .run()
+
+  await seedHouseholdConcepts(env, id)
 
   return Response.json({ id, name: name.trim(), role: 'owner' }, { status: 201 })
 }

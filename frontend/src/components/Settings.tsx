@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
 import Skeleton from '@mui/material/Skeleton'
 import Switch from '@mui/material/Switch'
 import Select from '@mui/material/Select'
@@ -14,6 +15,7 @@ import IconButton from '@mui/material/IconButton'
 import TextField from '@mui/material/TextField'
 import EditIcon from '@mui/icons-material/Edit'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import Avatar from '@mui/material/Avatar'
 import {
   useGoogleStatus,
   useUserCalendars,
@@ -22,9 +24,133 @@ import {
   initiateGoogleConnect,
 } from '../api/google-calendar'
 import { useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold } from '../api/household'
+import { useConceptList, useCreateConcept, useRenameConcept, useDeleteConcept } from '../api/concepts'
+import type { ConceptType } from '../api/concepts'
 import type { UserCalendar } from '../api/types'
+import { useUser } from '@clerk/clerk-react'
+import { useAuth } from '../context/AuthContext'
+
+// ── ConceptSection ─────────────────────────────────────────────────────────────
+
+function ConceptSection({ type, label, addLabel }: { type: ConceptType; label: string; addLabel: string }) {
+  const { data: concepts = [], isLoading } = useConceptList(type)
+  const { mutate: create, isPending: creating } = useCreateConcept(type)
+  const { mutate: rename } = useRenameConcept(type)
+  const { mutate: remove } = useDeleteConcept(type)
+
+  const [addingNew, setAddingNew] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const addInputRef = useRef<HTMLInputElement>(null)
+
+  function handleStartAdd() {
+    setAddingNew(true)
+    setNewName('')
+    setTimeout(() => addInputRef.current?.focus(), 0)
+  }
+
+  function handleConfirmAdd() {
+    const name = newName.trim()
+    if (!name) { setAddingNew(false); return }
+    create(name, { onSettled: () => { setAddingNew(false); setNewName('') } })
+  }
+
+  function handleStartEdit(id: string, name: string) {
+    setEditingId(id)
+    setEditName(name)
+  }
+
+  function handleConfirmEdit(id: string) {
+    const name = editName.trim()
+    if (name) rename({ id, name })
+    setEditingId(null)
+  }
+
+  function handleDelete(id: string) {
+    setDeleteError(null)
+    remove(id, {
+      onError: (err: unknown) => {
+        const msg = (err as { message?: string })?.message ?? 'Could not delete'
+        setDeleteError(msg)
+      },
+    })
+  }
+
+  return (
+    <Box sx={{ mb: 2.5 }}>
+      <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
+        {label}
+      </Typography>
+
+      {deleteError && (
+        <Alert severity="warning" sx={{ mb: 1, py: 0 }} onClose={() => setDeleteError(null)}>
+          {deleteError}
+        </Alert>
+      )}
+
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center' }}>
+        {isLoading
+          ? [0, 1, 2].map(i => <Skeleton key={i} variant="rounded" width={72} height={28} sx={{ borderRadius: 4 }} />)
+          : concepts.map(concept =>
+            editingId === concept.id ? (
+              <TextField
+                key={concept.id}
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                size="small"
+                autoFocus
+                sx={{ width: 120 }}
+                inputProps={{ style: { fontSize: 13, padding: '4px 8px' } }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleConfirmEdit(concept.id)
+                  if (e.key === 'Escape') setEditingId(null)
+                }}
+                onBlur={() => handleConfirmEdit(concept.id)}
+              />
+            ) : (
+              <Chip
+                key={concept.id}
+                label={concept.name}
+                size="small"
+                onClick={() => handleStartEdit(concept.id, concept.name)}
+                onDelete={() => handleDelete(concept.id)}
+                sx={{ cursor: 'pointer' }}
+              />
+            )
+          )
+        }
+
+        {addingNew ? (
+          <TextField
+            inputRef={addInputRef}
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            size="small"
+            placeholder={addLabel}
+            sx={{ width: 140 }}
+            inputProps={{ style: { fontSize: 13, padding: '4px 8px' } }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleConfirmAdd()
+              if (e.key === 'Escape') setAddingNew(false)
+            }}
+            onBlur={handleConfirmAdd}
+            disabled={creating}
+          />
+        ) : (
+          <Button size="small" variant="text" sx={{ fontSize: 12, px: 1, minWidth: 0 }} onClick={handleStartAdd}>
+            + {addLabel}
+          </Button>
+        )}
+      </Box>
+    </Box>
+  )
+}
 
 export default function Settings() {
+  const { user } = useUser()
+  const { logout } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const oauthResult = searchParams.get('google') // "connected" | "error" | null
 
@@ -95,6 +221,40 @@ export default function Settings() {
           Failed to connect Google Calendar. Please try again.
         </Alert>
       )}
+
+      {/* Account section */}
+      <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1.5 }}>
+        Account
+      </Typography>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+        <Avatar
+          src={user?.imageUrl}
+          alt={user?.fullName ?? ''}
+          sx={{ width: 40, height: 40 }}
+        />
+        <Box sx={{ minWidth: 0 }}>
+          {user?.fullName && (
+            <Typography variant="body2" fontWeight={500} noWrap>
+              {user.fullName}
+            </Typography>
+          )}
+          <Typography variant="caption" color="text.secondary" noWrap>
+            {user?.primaryEmailAddress?.emailAddress ?? ''}
+          </Typography>
+        </Box>
+      </Box>
+
+      <Typography
+        variant="caption"
+        color="text.disabled"
+        sx={{ cursor: 'pointer', '&:hover': { color: 'text.secondary' } }}
+        onClick={logout}
+      >
+        Sign out
+      </Typography>
+
+      <Divider sx={{ my: 2 }} />
 
       {/* Household section */}
       <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1 }}>
@@ -172,6 +332,26 @@ export default function Settings() {
           {generatingInvite ? 'Generating…' : 'Generate invite code'}
         </Button>
       ) : null}
+
+      {isOwner && (
+        <>
+          <Divider sx={{ my: 2 }} />
+
+          <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1.5 }}>
+            Items
+          </Typography>
+          <ConceptSection type="categories"   label="Categories"   addLabel="Add category" />
+          <ConceptSection type="supermarkets" label="Supermarkets"  addLabel="Add supermarket" />
+
+          <Divider sx={{ my: 2 }} />
+
+          <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1.5 }}>
+            Recipes
+          </Typography>
+          <ConceptSection type="recipe-types" label="Recipe Types" addLabel="Add type" />
+          <ConceptSection type="tags"         label="Tags"          addLabel="Add tag" />
+        </>
+      )}
 
       <Divider sx={{ my: 2 }} />
 

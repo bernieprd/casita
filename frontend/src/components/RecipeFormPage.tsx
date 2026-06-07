@@ -30,7 +30,7 @@ import {
   useDraggable,
 } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
-import { useItems, useRecipes, useCreateRecipe, useEditRecipe, useRecipe, useRecipeIngredients } from '../api'
+import { useItems, useRecipes, useCreateRecipe, useEditRecipe, useRecipe, useRecipeIngredients, useConceptList } from '../api'
 import type { Item } from '../api'
 import { uploadPhoto } from '../api/client'
 
@@ -51,7 +51,6 @@ interface IngRow {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const DAY_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-const TYPE_OPTIONS = ['Favourite', 'Try again', 'New']
 const NO_SECTION = ''
 
 // ── Droppable section container ───────────────────────────────────────────────
@@ -300,11 +299,11 @@ export default function RecipeFormPage() {
 
   const { data: allItems = [] } = useItems()
 
+  const { data: recipeTypeConcepts = [] } = useConceptList('recipe-types')
+  const typeOptions = useMemo(() =>
+    recipeTypeConcepts.map(c => c.name)
+  , [recipeTypeConcepts])
   const { data: recipes } = useRecipes()
-  const typeOptions = useMemo(() => {
-    const fromDb = (recipes ?? []).map(r => r.type).filter(Boolean) as string[]
-    return [...new Set([...TYPE_OPTIONS, ...fromDb])].sort()
-  }, [recipes])
   const dayOptions = useMemo(() => {
     const fromDb = (recipes ?? []).map(r => r.day).filter(Boolean) as string[]
     return [...new Set([...DAY_OPTIONS, ...fromDb])].sort()

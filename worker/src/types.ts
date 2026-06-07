@@ -158,6 +158,12 @@ export interface Env {
   ADMIN_MIGRATE_SECRET?: string
 }
 
+export interface ConceptItem {
+  id: string
+  name: string
+  sort_order: number
+}
+
 // ── Auth / household context ──────────────────────────────────────────────────
 
 export interface RequestContext {

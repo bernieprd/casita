@@ -7,6 +7,7 @@ import { getCalendarEvents } from './routes/calendar'
 import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, disconnectGoogle } from './routes/google-auth'
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
 import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold } from './routes/household'
+import { listConcepts, createConcept, updateConcept, deleteConcept } from './routes/concepts-d1'
 import { verifyClerkToken } from './auth/clerk'
 import { runMigrationItems, runMigrationRecipes, runMigrationIngredients, runMigrationTodos, runMigrationTokens } from './db/migrate-from-notion'
 import { NotionError } from './notion'
@@ -117,6 +118,10 @@ const routes: Array<[string, URLPattern, AuthHandler]> = [
   ['GET',    new URLPattern({ pathname: '/auth/google/status',          search: '*' }), getGoogleAuthStatus],
   ['GET',    new URLPattern({ pathname: '/auth/google',                 search: '*' }), initiateGoogleOAuth],
   ['DELETE', new URLPattern({ pathname: '/auth/google',                 search: '*' }), disconnectGoogle],
+  ['GET',    new URLPattern({ pathname: '/concepts/:type',              search: '*' }), listConcepts],
+  ['POST',   new URLPattern({ pathname: '/concepts/:type',              search: '*' }), createConcept],
+  ['PATCH',  new URLPattern({ pathname: '/concepts/:type/:id',          search: '*' }), updateConcept],
+  ['DELETE', new URLPattern({ pathname: '/concepts/:type/:id',          search: '*' }), deleteConcept],
 ]
 
 // ── Entry point ───────────────────────────────────────────────────────────────
