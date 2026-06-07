@@ -98,8 +98,7 @@ INSERT INTO household_members VALUES ('hh-home', 'user_3EnOERGusAVZh3uyiowVPf8qV
 
 ### Not yet done
 
-- Household settings screen (rename, invite code management, member list)
-- Cesar's account seeded (needs his Clerk user ID after he signs in)
+- ~~Household settings screen (rename, invite code management, member list)~~ ✓ done
 - Production deploy (see Wave 5 steps below)
 - KV session fallback removal
 - Old `/auth/*` routes removal
@@ -153,10 +152,9 @@ No guard in the route — any authenticated user can POST to `/household` and cr
 
 ## Next Steps (by priority)
 
-1. **Seed Cesar's account** — he signs in via Google, get his Clerk user ID from dashboard, run seed SQL
-2. **Production deploy** — follow Wave 5 steps below
-3. **Migration cleanup** — follow checklist below
-4. **Household settings screen** — rename, invite code management, member list
+1. **Production deploy** — follow Wave 5 steps below
+2. **Cesare joins via invite** — share the invite code from Household Settings; he signs in and joins
+3. **Migration cleanup** — follow checklist below after both users confirm the Clerk flow works
 
 ---
 
@@ -177,15 +175,15 @@ Run these in order after all known issues are resolved and local testing is clea
    wrangler d1 execute casita --file worker/src/db/schema.sql
    ```
 4. Build and deploy the frontend to Cloudflare Pages.
-5. Both users sign in with Google on production → get their Clerk user IDs from the Clerk dashboard (Users tab).
-6. Seed production D1 with real user IDs:
+5. Sign in with Google on production → get your Clerk user ID from the Clerk dashboard (Users tab).
+6. Seed production D1 with Bernardo's ID and household config:
    ```bash
    wrangler d1 execute casita --command "INSERT INTO households VALUES ('hh-home', 'Home', NULL, unixepoch() * 1000);"
    wrangler d1 execute casita --command "INSERT INTO household_notion_config VALUES ('hh-home', '2f2332846c00818498dd000c02f39cdd', '2f2332846c0081f0945f000cd6348876', '331332846c00808b9c33000c300050b2', '332332846c00806480fdfd6be9f5ffa0');"
    wrangler d1 execute casita --command "INSERT INTO household_members VALUES ('hh-home', '<BERNARDO_CLERK_ID>', 'owner', unixepoch() * 1000);"
-   wrangler d1 execute casita --command "INSERT INTO household_members VALUES ('hh-home', '<CESAR_CLERK_ID>', 'member', unixepoch() * 1000);"
    ```
-7. Verify all tabs load correctly for both users on production.
+7. Verify all tabs load correctly on production.
+8. Generate an invite code from Household Settings and share it with Cesare — he signs in and joins via the invite flow (no manual SQL needed).
 
 ---
 
