@@ -58,7 +58,7 @@ function GroupSection({ label, items, onEdit, onToggle }: GroupSectionProps) {
       <Collapsible open={open} onOpenChange={setOpen}>
         <button
           onClick={() => setOpen(o => !o)}
-          className={`w-full flex items-center px-4 py-3 sticky top-[98px] z-[8] bg-card hover:bg-background transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
+          className={`w-full flex items-center px-4 py-3 sticky top-[57px] z-[8] bg-card hover:bg-background transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
         >
           <span className="flex-1 text-left text-xs font-semibold uppercase tracking-[.08em] text-muted-foreground leading-none">
             {label}
