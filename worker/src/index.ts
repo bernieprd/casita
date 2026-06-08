@@ -54,6 +54,7 @@ const publicRoutes: Array<[string, URLPattern, PublicHandler]> = [
   ['GET',    new URLPattern({ pathname: '/auth/google/callback',    search: '*' }), handleGoogleOAuthCallback],
   ['GET',    new URLPattern({ pathname: '/public/recipes/:token',   search: '*' }), getPublicRecipe],
   ['POST',   new URLPattern({ pathname: '/admin/migrate',           search: '*' }), handleAdminMigrate],
+  ['GET',    new URLPattern({ pathname: '/recipe-photos/:key',      search: '*' }), serveRecipePhoto],
 ]
 
 async function handleAdminMigrate(req: Request, env: Env): Promise<Response> {
@@ -110,7 +111,6 @@ const routes: Array<[string, URLPattern, AuthHandler]> = [
   ['PATCH',  new URLPattern({ pathname: '/recipe-ingredients/:id',      search: '*' }), updateRecipeIngredient],
   ['DELETE', new URLPattern({ pathname: '/recipe-ingredients/:id',      search: '*' }), deleteRecipeIngredient],
   ['POST',   new URLPattern({ pathname: '/recipe-photos',               search: '*' }), uploadRecipePhoto],
-  ['GET',    new URLPattern({ pathname: '/recipe-photos/:key',          search: '*' }), serveRecipePhoto],
   ['GET',    new URLPattern({ pathname: '/todos',                       search: '*' }), getTodos],
   ['POST',   new URLPattern({ pathname: '/todos',                       search: '*' }), createTodo],
   ['PATCH',  new URLPattern({ pathname: '/todos/:id',                   search: '*' }), updateTodo],

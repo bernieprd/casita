@@ -78,5 +78,11 @@ export function useUpdateHouseholdTheme() {
     onSuccess: (data) => {
       qc.setQueryData(householdThemeKeys.theme, data)
     },
+    onError: () => {
+      // onError callback is forwarded per-call via mutate(prefs, { onError })
+      // This hook-level handler is intentionally left as a no-op so callers
+      // (e.g. useTheme) can supply their own per-invocation onError without
+      // it being swallowed.
+    },
   })
 }

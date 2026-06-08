@@ -17,9 +17,10 @@ interface ThemeCustomizerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   readOnly?: boolean
+  isPending?: boolean
 }
 
-export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly }: ThemeCustomizerProps) {
+export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly, isPending }: ThemeCustomizerProps) {
   const isMobile = useIsMobile()
   const radiusValue = Math.round(parseFloat(prefs.radius) / 0.0625)
 
@@ -33,10 +34,10 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly 
           type="single"
           value={prefs.colorScheme}
           onValueChange={(value) => {
-            if (!value) return
+            if (!value || isPending) return
             setPrefs({ ...prefs, colorScheme: value as ThemePrefs['colorScheme'] })
           }}
-          className="justify-start [&_[data-state=on]]:bg-primary [&_[data-state=on]]:text-primary-foreground"
+          className={cn('justify-start [&_[data-state=on]]:bg-primary [&_[data-state=on]]:text-primary-foreground', isPending && 'opacity-50 pointer-events-none')}
         >
           <ToggleGroupItem value="light" aria-label="Light mode">
             <Sun className="h-4 w-4" />
@@ -59,7 +60,7 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly 
         <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Color
         </Label>
-        <div className={readOnly ? 'opacity-50 pointer-events-none' : ''}>
+        <div className={(readOnly || isPending) ? 'opacity-50 pointer-events-none' : ''}>
           <div className="flex gap-2">
             {COLOR_PRESETS.map((preset) => (
               <button
@@ -89,7 +90,7 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly 
         <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Heading Font
         </Label>
-        <div className={readOnly ? 'opacity-50 pointer-events-none' : ''}>
+        <div className={(readOnly || isPending) ? 'opacity-50 pointer-events-none' : ''}>
           <Select
             value={prefs.headingFont}
             onValueChange={(value) => {
@@ -118,7 +119,7 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly 
         <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Body Font
         </Label>
-        <div className={readOnly ? 'opacity-50 pointer-events-none' : ''}>
+        <div className={(readOnly || isPending) ? 'opacity-50 pointer-events-none' : ''}>
           <Select
             value={prefs.bodyFont}
             onValueChange={(value) => {
@@ -147,7 +148,7 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly 
         <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Radius
         </Label>
-        <div className={readOnly ? 'opacity-50 pointer-events-none' : ''}>
+        <div className={(readOnly || isPending) ? 'opacity-50 pointer-events-none' : ''}>
           <Slider
             min={0}
             max={16}
@@ -168,7 +169,7 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly 
       {!readOnly && (
         <>
           <Separator />
-          <Button variant="ghost" onClick={() => setPrefs(DEFAULT_THEME)} className="w-full">
+          <Button variant="ghost" onClick={() => setPrefs(DEFAULT_THEME)} className="w-full" disabled={isPending}>
             Reset to defaults
           </Button>
         </>

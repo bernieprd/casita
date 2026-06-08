@@ -97,7 +97,7 @@ export function loadTheme(): ThemePrefs {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       const parsed = JSON.parse(stored) as Partial<ThemePrefs> & { fontFamily?: string }
-      // Migrate old fontFamily key to bodyFont/headingFont
+      // Backward-compat: themes stored before bodyFont/headingFont split used a single fontFamily key.
       if (parsed.fontFamily) {
         parsed.bodyFont = parsed.bodyFont ?? parsed.fontFamily
         parsed.headingFont = parsed.headingFont ?? parsed.fontFamily
@@ -105,7 +105,9 @@ export function loadTheme(): ThemePrefs {
       }
       return { ...DEFAULT_THEME, ...parsed }
     }
-  } catch { /* ignore */ }
+  } catch (err) {
+    console.warn('[theme] Failed to load stored theme preferences, falling back to defaults.', err)
+  }
   return DEFAULT_THEME
 }
 

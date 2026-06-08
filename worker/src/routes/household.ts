@@ -266,6 +266,10 @@ export async function updateHouseholdSettings(
       if (!/^\d{1,3}\s+\d{1,3}%\s+\d{1,3}%$/.test(val)) {
         return err(400, `primaryHsl must be in HSL format like "220 9% 30%"`)
       }
+      const [h, s, l] = val.split(/\s+/).map(v => parseFloat(v))
+      if (h < 0 || h > 360 || s < 0 || s > 100 || l < 0 || l > 100) {
+        return err(400, `primaryHsl must be in HSL format like "220 9% 30%"`)
+      }
     } else if (key === 'headingFont' || key === 'bodyFont') {
       if (!ALLOWED_FONTS.includes(val)) {
         return err(400, `${key} is not an allowed font value`)
@@ -273,6 +277,9 @@ export async function updateHouseholdSettings(
     } else if (key === 'radius') {
       if (!/^\d+(\.\d+)?rem$/.test(val)) {
         return err(400, `radius must be in rem units like "0.25rem"`)
+      }
+      if (parseFloat(val) > 4) {
+        return err(400, `radius must be 4rem or less`)
       }
     } else {
       return err(400, `Unknown setting key: ${key}`)

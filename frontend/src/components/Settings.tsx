@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Pencil, Copy, X } from 'lucide-react'
@@ -19,7 +20,7 @@ import {
   useDisconnectGoogle,
   initiateGoogleConnect,
 } from '../api/google-calendar'
-import { useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold, useHouseholdTheme, useUpdateHouseholdTheme } from '../api/household'
+import { useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold, useHouseholdTheme, useUpdateHouseholdTheme, householdThemeKeys } from '../api/household'
 import { useConceptList, useCreateConcept, useRenameConcept, useDeleteConcept, useBackfillConcepts } from '../api/concepts'
 import type { ConceptType } from '../api/concepts'
 import type { UserCalendar } from '../api/types'
@@ -156,6 +157,7 @@ export default function Settings() {
   const { user } = useUser()
   const { logout } = useAuth()
   const { refreshHousehold } = useHousehold()
+  const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const oauthResult = searchParams.get('google')
 
@@ -181,7 +183,7 @@ export default function Settings() {
   // ── Theme customizer ───────────────────────────────────────────────────────
 
   const { data: householdTheme } = useHouseholdTheme()
-  const { mutate: updateHouseholdTheme } = useUpdateHouseholdTheme()
+  const { mutate: updateHouseholdTheme, isPending: themeSaving } = useUpdateHouseholdTheme()
   const { prefs, setPrefs } = useTheme(
     householdTheme,
     isOwner ? updateHouseholdTheme : undefined,
@@ -205,6 +207,7 @@ export default function Settings() {
       onSuccess: () => {
         setRenaming(false)
         refreshHousehold()
+        queryClient.invalidateQueries({ queryKey: householdThemeKeys.theme })
       },
     })
   }
@@ -284,7 +287,7 @@ export default function Settings() {
         Appearance
       </p>
 
-      <ThemeCustomizer prefs={prefs} setPrefs={setPrefs} open={themeOpen} onOpenChange={setThemeOpen} readOnly={!isOwner} />
+      <ThemeCustomizer prefs={prefs} setPrefs={setPrefs} open={themeOpen} onOpenChange={setThemeOpen} readOnly={!isOwner} isPending={themeSaving} />
       <Button variant="outline" size="sm" className="mb-1" onClick={() => setThemeOpen(true)}>
         {isOwner ? 'Customize theme' : 'View theme'}
       </Button>
