@@ -11,6 +11,8 @@ import ItemFormDialog from './ItemFormDialog'
 import { useItems, useToggleShoppingList, useCreateItem } from '../api'
 import type { Item } from '../api'
 
+const EMPTY_ITEMS: Item[] = []
+
 type SubTab = 'list' | 'inventory'
 
 export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | null) => void }) {
@@ -20,7 +22,7 @@ export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | 
   const [query, setQuery] = useState('')
   const [editItem, setEditItem] = useState<Item | null>(null)
 
-  const { data: allItems = [] } = useItems()
+  const { data: allItems = EMPTY_ITEMS } = useItems()
   const toggle = useToggleShoppingList()
   const create = useCreateItem()
 
@@ -145,7 +147,8 @@ export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | 
       </div>
     )
     return () => setHeader(null)
-  }, [query, q, filtered, showCreate, create.isPending, setHeader])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, allItems, create.isPending, setHeader])
 
   return (
     <div>

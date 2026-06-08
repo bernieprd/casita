@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -216,6 +217,9 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
       <DialogContent className="max-w-xs" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit item' : 'New item'}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {isEdit ? 'Update item details.' : 'Add a new item to your inventory.'}
+          </DialogDescription>
         </DialogHeader>
         <div className="pt-1">
           {formContent}

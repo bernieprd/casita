@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Drawer, DrawerContent } from '@/components/ui/drawer'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from '../api'
 import type { Todo } from '../api'
 import { useKeyboardOffset } from '../useKeyboardOffset'
@@ -270,6 +270,7 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit To-do</DialogTitle>
+          <DialogDescription className="sr-only">Update the to-do details.</DialogDescription>
         </DialogHeader>
         {formBody}
       </DialogContent>
@@ -299,31 +300,33 @@ function Section({ status, todos, pendingDeleteId, onOpen, onClearDone }: Sectio
       onOpenChange={setExpanded}
       className="bg-card rounded-lg overflow-hidden border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2"
     >
-      <button
-        type="button"
-        onClick={() => setExpanded(v => !v)}
-        aria-label={`${expanded ? 'Collapse' : 'Expand'} ${status}`}
-        aria-expanded={expanded}
-        className="w-full flex items-center px-4 py-3 hover:bg-accent/50 transition-colors"
-      >
-        <span className="flex-1 text-left text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">
-          {status}
-        </span>
-        <span className="text-xs text-muted-foreground mr-2">{visible.length}</span>
-        {onClearDone && visible.length > 0 && (
-          <button
-            type="button"
-            onClick={e => { e.stopPropagation(); onClearDone() }}
-            className="mr-1.5 text-xs text-destructive hover:text-destructive/80 px-2 py-0.5 rounded"
-          >
-            Clear all
-          </button>
-        )}
-        {expanded
-          ? <ChevronUp className="size-4 text-muted-foreground" />
-          : <ChevronDown className="size-4 text-muted-foreground" />
-        }
-      </button>
+      <CollapsibleTrigger asChild>
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label={`${expanded ? 'Collapse' : 'Expand'} ${status}`}
+          aria-expanded={expanded}
+          className="w-full flex items-center px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer"
+        >
+          <span className="flex-1 text-left text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">
+            {status}
+          </span>
+          <span className="text-xs text-muted-foreground mr-2">{visible.length}</span>
+          {onClearDone && visible.length > 0 && (
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); onClearDone() }}
+              className="mr-1.5 text-xs text-destructive hover:text-destructive/80 px-2 py-0.5 rounded"
+            >
+              Clear all
+            </button>
+          )}
+          {expanded
+            ? <ChevronUp className="size-4 text-muted-foreground" />
+            : <ChevronDown className="size-4 text-muted-foreground" />
+          }
+        </div>
+      </CollapsibleTrigger>
 
       <CollapsibleContent>
         <Separator />

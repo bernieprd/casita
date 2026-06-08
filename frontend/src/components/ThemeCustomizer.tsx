@@ -1,7 +1,7 @@
 import { type ThemePrefs, COLOR_PRESETS, FONT_OPTIONS, HEADING_FONT_OPTIONS, DEFAULT_THEME, loadGoogleFont } from '@/lib/theme'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
@@ -197,6 +197,7 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly,
       <DialogContent className="sm:max-w-sm flex flex-col gap-6">
         <DialogHeader>
           <DialogTitle>Customize Theme</DialogTitle>
+          <DialogDescription className="sr-only">Customize the app's appearance.</DialogDescription>
         </DialogHeader>
         {innerContent}
       </DialogContent>
