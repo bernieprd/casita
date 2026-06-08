@@ -160,11 +160,14 @@ async function fetchFreeBusyCalendar(
 
 async function fetchSharedCalendarEvents(
   clerkUserId: string,
+  householdId: string | null,
   env: Env,
   timeMin: string,
   timeMax: string,
 ): Promise<CalendarEvent[]> {
-  const raw = await env.AUTH_KV.get('household_shared_calendars')
+  if (!householdId) return []
+
+  const raw = await env.AUTH_KV.get(`household_shared_calendars:${householdId}`)
   if (!raw) return []
 
   const index = JSON.parse(raw) as SharedCalendar[]
@@ -209,7 +212,7 @@ export async function getCalendarEvents(
   try {
     const [userEvents, sharedEvents] = await Promise.all([
       fetchUserOAuthEvents(clerkUserId, env, timeMin, timeMax),
-      fetchSharedCalendarEvents(clerkUserId, env, timeMin, timeMax),
+      fetchSharedCalendarEvents(clerkUserId, ctx.householdId, env, timeMin, timeMax),
     ])
 
     const events = [...userEvents, ...sharedEvents]

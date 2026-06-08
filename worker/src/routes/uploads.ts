@@ -19,7 +19,7 @@ export async function uploadRecipePhoto(req: Request, env: Env, _ctx: RequestCon
   return Response.json({ url: `${origin}/recipe-photos/${key}` }, { status: 201 })
 }
 
-export async function serveRecipePhoto(_req: Request, env: Env, _ctx: RequestContext, key: string): Promise<Response> {
+export async function serveRecipePhoto(_req: Request, env: Env, key: string): Promise<Response> {
   const object = await env.RECIPE_PHOTOS.get(key)
   if (!object) return Response.json({ error: 'Not found' }, { status: 404 })
 

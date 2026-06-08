@@ -218,3 +218,79 @@ export async function revokeInvite(
 
   return new Response(null, { status: 204 })
 }
+
+export async function getHouseholdSettings(
+  _req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return err(403, 'Forbidden')
+
+  const row = await env.DB
+    .prepare('SELECT settings FROM households WHERE id = ?')
+    .bind(ctx.householdId)
+    .first<{ settings: string | null }>()
+
+  let parsed: Record<string, unknown> = {}
+  if (row?.settings) {
+    try { parsed = JSON.parse(row.settings) } catch { parsed = {} }
+  }
+  return Response.json(parsed)
+}
+
+export async function updateHouseholdSettings(
+  req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return err(403, 'Forbidden')
+  if (ctx.role !== 'owner') return err(403, 'Forbidden')
+
+  const body = await req.json<Record<string, unknown>>()
+  const { colorScheme: _dropped, ...rest } = body
+
+  const ALLOWED_FONTS = [
+    '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    '"Inter", sans-serif',
+    '"Lato", sans-serif',
+    '"Merriweather", serif',
+    '"Playfair Display", serif',
+  ]
+
+  for (const [key, val] of Object.entries(rest)) {
+    if (val === undefined) continue
+    if (typeof val !== 'string') {
+      return err(400, `${key} must be a string`)
+    }
+    if (key === 'primaryHsl') {
+      if (!/^\d{1,3}\s+\d{1,3}%\s+\d{1,3}%$/.test(val)) {
+        return err(400, `primaryHsl must be in HSL format like "220 9% 30%"`)
+      }
+      const [h, s, l] = val.split(/\s+/).map(v => parseFloat(v))
+      if (h < 0 || h > 360 || s < 0 || s > 100 || l < 0 || l > 100) {
+        return err(400, `primaryHsl must be in HSL format like "220 9% 30%"`)
+      }
+    } else if (key === 'headingFont' || key === 'bodyFont') {
+      if (!ALLOWED_FONTS.includes(val)) {
+        return err(400, `${key} is not an allowed font value`)
+      }
+    } else if (key === 'radius') {
+      if (!/^\d+(\.\d+)?rem$/.test(val)) {
+        return err(400, `radius must be in rem units like "0.25rem"`)
+      }
+      if (parseFloat(val) > 4) {
+        return err(400, `radius must be 4rem or less`)
+      }
+    } else {
+      return err(400, `Unknown setting key: ${key}`)
+    }
+  }
+
+  const serialized = JSON.stringify(rest)
+  await env.DB
+    .prepare('UPDATE households SET settings = ? WHERE id = ?')
+    .bind(serialized, ctx.householdId)
+    .run()
+
+  return Response.json(rest)
+}

@@ -1,30 +1,11 @@
 import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react'
-import AppBar from '@mui/material/AppBar'
-import Toolbar from '@mui/material/Toolbar'
-import Typography from '@mui/material/Typography'
-import BottomNavigation from '@mui/material/BottomNavigation'
-import BottomNavigationAction from '@mui/material/BottomNavigationAction'
-import Paper from '@mui/material/Paper'
-import Box from '@mui/material/Box'
-import Alert from '@mui/material/Alert'
-import CircularProgress from '@mui/material/CircularProgress'
-import LinearProgress from '@mui/material/LinearProgress'
-import IconButton from '@mui/material/IconButton'
-import RefreshIcon from '@mui/icons-material/Refresh'
-import SettingsIcon from '@mui/icons-material/Settings'
-import WifiOffIcon from '@mui/icons-material/WifiOff'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import HomeIcon from '@mui/icons-material/Home'
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
-import CheckBoxIcon from '@mui/icons-material/CheckBox'
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
-import MenuBookIcon from '@mui/icons-material/MenuBook'
+import { Settings, WifiOff, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { itemKeys, itemsApi, todoKeys, todosApi, recipeKeys } from './api'
+import { itemKeys, itemsApi, todoKeys, todosApi } from './api'
 import { useOnlineStatus } from './useOnlineStatus'
 import { TabErrorBoundary } from './components/TabErrorBoundary'
-import Home from './components/Home'
+import HomeComponent from './components/Home'
 import Calendar from './components/Calendar'
 import Todos from './components/Todos'
 import Shopping from './components/Shopping'
@@ -32,10 +13,13 @@ import Recipes from './components/Recipes'
 import PublicRecipeView from './components/PublicRecipeView'
 import { SignIn, SignUp, SignedIn, useUser } from '@clerk/clerk-react'
 import { AuthProvider, useAuth, useHousehold } from './context/AuthContext'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 const RecipeFormPage  = lazy(() => import('./components/RecipeFormPage'))
-const Settings        = lazy(() => import('./components/Settings'))
+const SettingsPage    = lazy(() => import('./components/Settings'))
 const HouseholdSetup  = lazy(() => import('./components/HouseholdSetup'))
+const ThemePreview    = lazy(() => import('./components/ThemePreview'))
 
 export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
 
@@ -55,20 +39,36 @@ function pathnameToTab(pathname: string): TabId {
   return 'home'
 }
 
+function Spinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+    </div>
+  )
+}
+
+function SuspenseFallback() {
+  return (
+    <div className="w-full h-1 bg-primary/20 overflow-hidden">
+      <div className="h-full bg-primary animate-pulse" />
+    </div>
+  )
+}
+
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user } = useAuth()
   const { householdId, isLoading: isHouseholdLoading } = useHousehold()
   const { isSignedIn: isClerkSignedIn, isLoaded: isClerkLoaded } = useUser()
   const location = useLocation()
 
-  if (!isClerkLoaded) return <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
+  if (!isClerkLoaded) return <Spinner />
 
   // Not authenticated → sign-in
   if (!user) return <Navigate to="/sign-in" state={{ from: location }} replace />
 
   // Clerk user: wait for household fetch, then redirect to setup if needed
   if (isClerkSignedIn) {
-    if (isHouseholdLoading) return <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
+    if (isHouseholdLoading) return <Spinner />
     if (householdId === null) return <Navigate to="/household/setup" replace />
   }
 
@@ -77,28 +77,29 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
 function SignInPage() {
   const { isSignedIn, isLoaded } = useUser()
-  if (!isLoaded) return <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
+  if (!isLoaded) return <Spinner />
   if (isSignedIn) return <Navigate to="/" replace />
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <SignIn routing="path" path="/sign-in" />
-    </Box>
+    </div>
   )
 }
 
 function SignUpPage() {
   const { isSignedIn, isLoaded } = useUser()
-  if (!isLoaded) return <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress /></Box>
+  if (!isLoaded) return <Spinner />
   if (isSignedIn) return <Navigate to="/household/setup" replace />
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <SignUp routing="path" path="/sign-up" />
-    </Box>
+    </div>
   )
 }
 
 function AppShell() {
-  const [recipeDetailBar, setRecipeDetailBar] = useState<ReactNode | null>(null)
+  const [headerContent, setHeaderContent] = useState<ReactNode | null>(null)
+  const { householdName } = useHousehold()
   const qc = useQueryClient()
   const isOnline = useOnlineStatus()
   const navigate = useNavigate()
@@ -112,118 +113,113 @@ function AppShell() {
     qc.prefetchQuery({ queryKey: todoKeys.all,      queryFn: todosApi.list })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleRefresh() {
-    if (activeTab === 'shopping') {
-      qc.invalidateQueries({ queryKey: itemKeys.shopping })
-      qc.invalidateQueries({ queryKey: itemKeys.all })
-    } else if (activeTab === 'recipes') {
-      qc.invalidateQueries({ queryKey: recipeKeys.all })
-    }
-  }
-
-  const canRefresh = activeTab === 'shopping' || activeTab === 'recipes'
-
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar position="sticky" color="inherit" sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Toolbar sx={{ px: { xs: 2 } }}>
-          {recipeDetailBar ?? (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 bg-background border-b">
+        <div className="max-w-xl mx-auto flex items-center px-2 h-14">
+          {headerContent ?? (
             isSettings ? (
               <>
-                <IconButton onClick={() => navigate('/')} size="small" color="inherit" edge="start">
-                  <ArrowBackIcon />
-                </IconButton>
-                <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ flex: 1 }}>
-                  Settings
-                </Typography>
+                <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="-ml-2">
+                  <ArrowLeft />
+                </Button>
+                <h1 className="flex-1 text-lg font-bold">Settings</h1>
               </>
             ) : (
               <>
-                <Typography variant="h6" fontWeight={700} color="text.primary" sx={{ flex: 1 }}>
-                  Casita
-                </Typography>
-                {canRefresh && (
-                  <IconButton onClick={handleRefresh} size="small" color="inherit">
-                    <RefreshIcon />
-                  </IconButton>
-                )}
+                <h1 className="flex-1 text-lg font-bold">{householdName ?? 'Casita'}</h1>
                 {activeTab === 'home' && (
-                  <IconButton onClick={() => navigate('/settings')} size="small" color="inherit">
-                    <SettingsIcon />
-                  </IconButton>
+                  <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
+                    <Settings />
+                  </Button>
                 )}
               </>
             )
           )}
-        </Toolbar>
-      </AppBar>
+        </div>
+      </header>
 
       {!isOnline && (
-        <Alert
-          severity="warning"
-          icon={<WifiOffIcon fontSize="small" />}
-          sx={{ borderRadius: 0, py: 0.5 }}
-        >
+        <div className="flex items-center gap-2 px-4 py-1.5 bg-yellow-50 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 text-sm border-b border-yellow-200 dark:border-yellow-800">
+          <WifiOff className="size-4 shrink-0" />
           Offline — showing cached data
-        </Alert>
+        </div>
       )}
 
-      <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, pt: 2, paddingBottom: isSettings ? 2 : 'calc(80px + env(safe-area-inset-bottom))' }}>
+      <div
+        className={cn(
+          'max-w-xl mx-auto px-4 pt-4',
+          isSettings ? 'pb-2' : 'pb-[calc(80px+env(safe-area-inset-bottom))]'
+        )}
+      >
         <Routes>
           <Route path="/" element={
             <TabErrorBoundary key="home">
-              <Home />
+              <HomeComponent />
             </TabErrorBoundary>
           } />
           <Route path="/calendar" element={
             <TabErrorBoundary key="calendar">
-              <Calendar />
+              <Calendar setHeader={setHeaderContent} />
             </TabErrorBoundary>
           } />
           <Route path="/todos" element={
             <TabErrorBoundary key="todos">
-              <Todos />
+              <Todos setHeader={setHeaderContent} />
             </TabErrorBoundary>
           } />
           <Route path="/shopping/*" element={
             <TabErrorBoundary key="shopping">
-              <Shopping />
+              <Shopping setHeader={setHeaderContent} />
             </TabErrorBoundary>
           } />
           <Route path="/recipes" element={
             <TabErrorBoundary key="recipes">
-              <Recipes setToolbar={setRecipeDetailBar} />
+              <Recipes setToolbar={setHeaderContent} />
             </TabErrorBoundary>
           } />
           <Route path="/recipes/:id" element={
             <TabErrorBoundary key="recipes">
-              <Recipes setToolbar={setRecipeDetailBar} />
+              <Recipes setToolbar={setHeaderContent} />
             </TabErrorBoundary>
           } />
-          <Route path="/settings" element={<TabErrorBoundary key="settings"><Suspense fallback={<LinearProgress />}><Settings /></Suspense></TabErrorBoundary>} />
+          <Route path="/settings" element={<TabErrorBoundary key="settings"><Suspense fallback={<SuspenseFallback />}><SettingsPage /></Suspense></TabErrorBoundary>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </Box>
+      </div>
 
       {!isSettings && (
-        <Paper
-          elevation={0}
-          sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100, paddingBottom: 'env(safe-area-inset-bottom)', borderTop: '1px solid', borderColor: 'divider' }}
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
-          <BottomNavigation
-            value={activeTab}
-            onChange={(_, v: TabId) => navigate(TAB_PATHS[v])}
-            sx={{ maxWidth: 600, mx: 'auto' }}
-          >
-            <BottomNavigationAction label="Home"     value="home"     icon={<HomeIcon />} />
-            <BottomNavigationAction label="Calendar" value="calendar" icon={<CalendarMonthIcon />} />
-            <BottomNavigationAction label="Todos"    value="todos"    icon={<CheckBoxIcon />} />
-            <BottomNavigationAction label="Shopping" value="shopping" icon={<ShoppingCartIcon />} />
-            <BottomNavigationAction label="Recipes"  value="recipes"  icon={<MenuBookIcon />} />
-          </BottomNavigation>
-        </Paper>
+          <div className="max-w-xl mx-auto flex">
+            {(
+              [
+                { id: 'home'     as TabId, label: 'Home',     icon: <Home className="size-5" /> },
+                { id: 'calendar' as TabId, label: 'Calendar', icon: <CalendarDays className="size-5" /> },
+                { id: 'todos'    as TabId, label: 'Todos',    icon: <CheckSquare className="size-5" /> },
+                { id: 'shopping' as TabId, label: 'Shopping', icon: <ShoppingCart className="size-5" /> },
+                { id: 'recipes'  as TabId, label: 'Recipes',  icon: <BookOpen className="size-5" /> },
+              ] satisfies { id: TabId; label: string; icon: ReactNode }[]
+            ).map(({ id, label, icon }) => (
+              <button
+                key={id}
+                onClick={() => navigate(TAB_PATHS[id])}
+                aria-current={activeTab === id ? 'page' : undefined}
+                className={cn(
+                  'flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition-colors',
+                  activeTab === id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {icon}
+                {label}
+              </button>
+            ))}
+          </div>
+        </nav>
       )}
-    </Box>
+    </div>
   )
 }
 
@@ -231,20 +227,25 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/theme-preview" element={
+          <Suspense fallback={null}>
+            <ThemePreview />
+          </Suspense>
+        } />
         <Route path="/login" element={<Navigate to="/sign-in" replace />} />
         <Route path="/sign-in/*" element={<SignInPage />} />
         <Route path="/sign-up/*" element={<SignUpPage />} />
 
         <Route path="/share/:token" element={<PublicRecipeView />} />
-        <Route path="/household/setup" element={<SignedIn><Suspense fallback={<LinearProgress />}><HouseholdSetup /></Suspense></SignedIn>} />
+        <Route path="/household/setup" element={<SignedIn><Suspense fallback={<SuspenseFallback />}><HouseholdSetup /></Suspense></SignedIn>} />
         <Route path="/recipes/new" element={
           <ProtectedRoute>
-            <Suspense fallback={<LinearProgress />}><RecipeFormPage /></Suspense>
+            <Suspense fallback={<SuspenseFallback />}><RecipeFormPage /></Suspense>
           </ProtectedRoute>
         } />
         <Route path="/recipes/:id/edit" element={
           <ProtectedRoute>
-            <Suspense fallback={<LinearProgress />}><RecipeFormPage /></Suspense>
+            <Suspense fallback={<SuspenseFallback />}><RecipeFormPage /></Suspense>
           </ProtectedRoute>
         } />
         <Route path="/*" element={

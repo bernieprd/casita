@@ -3,9 +3,13 @@ import type { Env, UserCalendar, SharedCalendar } from '../types'
 export async function rebuildSharedIndex(
   updatedEmail: string,
   updatedCalendars: UserCalendar[],
+  householdId: string | null,
   env: Env,
 ): Promise<void> {
-  const existing = await env.AUTH_KV.get('household_shared_calendars')
+  if (!householdId) return
+
+  const key = `household_shared_calendars:${householdId}`
+  const existing = await env.AUTH_KV.get(key)
   const current: SharedCalendar[] = existing ? JSON.parse(existing) : []
   const others = current.filter(e => e.ownerEmail !== updatedEmail)
 
@@ -19,8 +23,5 @@ export async function rebuildSharedIndex(
       visibility: cal.visibility as 'household' | 'free-busy',
     }))
 
-  await env.AUTH_KV.put(
-    'household_shared_calendars',
-    JSON.stringify([...others, ...newEntries]),
-  )
+  await env.AUTH_KV.put(key, JSON.stringify([...others, ...newEntries]))
 }

@@ -88,7 +88,7 @@ export async function disconnectGoogle(_req: Request, env: Env, ctx: RequestCont
     env.AUTH_KV.delete(`google_tokens:${clerkUserId}`),
     env.AUTH_KV.delete(`user_calendars:${clerkUserId}`),
   ])
-  await rebuildSharedIndex(clerkUserId, [], env)
+  await rebuildSharedIndex(clerkUserId, [], ctx.householdId, env)
 
   return Response.json({ ok: true })
 }

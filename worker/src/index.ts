@@ -6,7 +6,7 @@ import { getTodos, createTodo, updateTodo, deleteTodo } from './routes/todos-d1'
 import { getCalendarEvents } from './routes/calendar'
 import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, disconnectGoogle } from './routes/google-auth'
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
-import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold } from './routes/household'
+import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings } from './routes/household'
 import { listConcepts, createConcept, updateConcept, deleteConcept, backfillConceptsRoute } from './routes/concepts-d1'
 import { verifyClerkToken } from './auth/clerk'
 import { runMigrationItems, runMigrationRecipes, runMigrationIngredients, runMigrationTodos, runMigrationTokens } from './db/migrate-from-notion'
@@ -54,6 +54,7 @@ const publicRoutes: Array<[string, URLPattern, PublicHandler]> = [
   ['GET',    new URLPattern({ pathname: '/auth/google/callback',    search: '*' }), handleGoogleOAuthCallback],
   ['GET',    new URLPattern({ pathname: '/public/recipes/:token',   search: '*' }), getPublicRecipe],
   ['POST',   new URLPattern({ pathname: '/admin/migrate',           search: '*' }), handleAdminMigrate],
+  ['GET',    new URLPattern({ pathname: '/recipe-photos/:key',      search: '*' }), serveRecipePhoto],
 ]
 
 async function handleAdminMigrate(req: Request, env: Env): Promise<Response> {
@@ -92,6 +93,8 @@ const routes: Array<[string, URLPattern, AuthHandler]> = [
   ['POST',   new URLPattern({ pathname: '/household/join',              search: '*' }), joinHousehold],
   ['POST',   new URLPattern({ pathname: '/household/invite',            search: '*' }), generateInvite],
   ['DELETE', new URLPattern({ pathname: '/household/invite',            search: '*' }), revokeInvite],
+  ['GET',    new URLPattern({ pathname: '/household/settings',          search: '*' }), getHouseholdSettings],
+  ['PATCH',  new URLPattern({ pathname: '/household/settings',          search: '*' }), updateHouseholdSettings],
   ['GET',    new URLPattern({ pathname: '/items',                       search: '*' }), getItems],
   ['POST',   new URLPattern({ pathname: '/items',                       search: '*' }), createItem],
   ['PATCH',  new URLPattern({ pathname: '/items/:id',                   search: '*' }), updateItem],
@@ -108,7 +111,6 @@ const routes: Array<[string, URLPattern, AuthHandler]> = [
   ['PATCH',  new URLPattern({ pathname: '/recipe-ingredients/:id',      search: '*' }), updateRecipeIngredient],
   ['DELETE', new URLPattern({ pathname: '/recipe-ingredients/:id',      search: '*' }), deleteRecipeIngredient],
   ['POST',   new URLPattern({ pathname: '/recipe-photos',               search: '*' }), uploadRecipePhoto],
-  ['GET',    new URLPattern({ pathname: '/recipe-photos/:key',          search: '*' }), serveRecipePhoto],
   ['GET',    new URLPattern({ pathname: '/todos',                       search: '*' }), getTodos],
   ['POST',   new URLPattern({ pathname: '/todos',                       search: '*' }), createTodo],
   ['PATCH',  new URLPattern({ pathname: '/todos/:id',                   search: '*' }), updateTodo],

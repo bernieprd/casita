@@ -1,21 +1,14 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
-import TextField from '@mui/material/TextField'
-import Button from '@mui/material/Button'
-import List from '@mui/material/List'
-import ListItemButton from '@mui/material/ListItemButton'
-import ListItemText from '@mui/material/ListItemText'
-import Chip from '@mui/material/Chip'
-import Collapse from '@mui/material/Collapse'
-import Divider from '@mui/material/Divider'
-import Snackbar from '@mui/material/Snackbar'
-import Alert from '@mui/material/Alert'
-import Skeleton from '@mui/material/Skeleton'
-import Drawer from '@mui/material/Drawer'
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import ExpandLess from '@mui/icons-material/ExpandLess'
-import ExpandMore from '@mui/icons-material/ExpandMore'
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
+import { useIsMobile } from '../hooks/useIsMobile'
+import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Drawer, DrawerContent } from '@/components/ui/drawer'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from '../api'
 import type { Todo } from '../api'
 import { useKeyboardOffset } from '../useKeyboardOffset'
@@ -25,11 +18,11 @@ import { useKeyboardOffset } from '../useKeyboardOffset'
 const STATUSES = ['Todo', 'In progress', 'On hold', 'Done'] as const
 type Status = (typeof STATUSES)[number]
 
-const STATUS_COLORS: Record<Status, 'default' | 'primary' | 'warning' | 'success'> = {
-  'Todo':        'default',
-  'In progress': 'primary',
-  'On hold':     'warning',
-  'Done':        'success',
+const STATUS_SELECTED_CLASSES: Record<Status, string> = {
+  'Todo':        'bg-secondary text-secondary-foreground border-secondary',
+  'In progress': 'bg-primary text-primary-foreground border-primary',
+  'On hold':     'bg-amber-500 text-white border-amber-500',
+  'Done':        'bg-green-600 text-white border-green-600',
 }
 
 const PRIORITY_OPTIONS: Array<{ label: string; value: string | null }> = [
@@ -39,10 +32,16 @@ const PRIORITY_OPTIONS: Array<{ label: string; value: string | null }> = [
   { label: 'High',   value: 'High' },
 ]
 
-const PRIORITY_COLORS: Record<string, { bg: string; color: string }> = {
-  High:   { bg: '#fde8e8', color: '#c62828' },
-  Medium: { bg: '#fff8e1', color: '#e65100' },
-  Low:    { bg: '#f3f3f3', color: '#616161' },
+const PRIORITY_CHIP_CLASSES: Record<string, string> = {
+  High:   'bg-destructive/10 text-destructive border-destructive',
+  Medium: 'bg-yellow-50 dark:bg-yellow-950/30 text-orange-700 dark:text-orange-400',
+  Low:    'bg-secondary text-secondary-foreground',
+}
+
+const PRIORITY_SELECTED_CLASSES: Record<string, string> = {
+  High:   'bg-destructive text-white border-destructive',
+  Medium: 'bg-amber-500 text-white border-amber-500',
+  Low:    'bg-secondary text-secondary-foreground border-secondary',
 }
 
 // ── Date formatting ───────────────────────────────────────────────────────────
@@ -62,21 +61,13 @@ function formatDue(due: string | null): string | null {
 
 function PriorityChip({ priority }: { priority: string | null }) {
   if (!priority) return null
-  const style = PRIORITY_COLORS[priority] ?? { bg: '#f3f3f3', color: '#616161' }
+  const chipClass = PRIORITY_CHIP_CLASSES[priority] ?? 'bg-secondary text-secondary-foreground'
   return (
-    <Chip
-      label={priority}
-      size="small"
-      sx={{
-        height: 18,
-        fontSize: '0.65rem',
-        fontWeight: 600,
-        bgcolor: style.bg,
-        color: style.color,
-        border: 'none',
-        flexShrink: 0,
-      }}
-    />
+    <span
+      className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[0.65rem] font-semibold leading-none ${chipClass}`}
+    >
+      {priority}
+    </span>
   )
 }
 
@@ -93,44 +84,29 @@ function TodoRow({ todo, onOpen }: TodoRowProps) {
   const hasSecondary = !!(todo.priority || dueLabel)
 
   return (
-    <ListItemButton
+    <button
+      type="button"
       onClick={() => onOpen(todo)}
-      sx={{ px: 2, py: 0.75 }}
+      className="w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors"
     >
-        <ListItemText
-          primary={
-            <Typography
-              variant="body2"
-              sx={{
-                textDecoration: isDone ? 'line-through' : 'none',
-                color: isDone ? 'text.disabled' : 'text.primary',
-              }}
+      <span
+        className={`block text-sm ${isDone ? 'line-through text-muted-foreground' : 'text-foreground'}`}
+      >
+        {todo.name}
+      </span>
+      {hasSecondary && (
+        <span className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          <PriorityChip priority={todo.priority} />
+          {dueLabel && (
+            <span
+              className={`text-xs shrink-0 ${dueLabel === 'Today' ? 'text-destructive' : 'text-muted-foreground'}`}
             >
-              {todo.name}
-            </Typography>
-          }
-          secondary={
-            hasSecondary ? (
-              <Box
-                component="span"
-                sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25, flexWrap: 'wrap' }}
-              >
-                <PriorityChip priority={todo.priority} />
-                {dueLabel && (
-                  <Typography
-                    variant="caption"
-                    component="span"
-                    sx={{ color: dueLabel === 'Today' ? 'error.main' : 'text.secondary', flexShrink: 0 }}
-                  >
-                    {dueLabel}
-                  </Typography>
-                )}
-              </Box>
-            ) : null
-          }
-          secondaryTypographyProps={{ component: 'span' }}
-        />
-    </ListItemButton>
+              {dueLabel}
+            </span>
+          )}
+        </span>
+      )}
+    </button>
   )
 }
 
@@ -150,6 +126,7 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
   const [draftPriority, setDraftPriority] = useState<string | null>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const keyboardOffset = useKeyboardOffset()
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     if (!todo) return
@@ -174,135 +151,130 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
     onClose()
   }
 
-  function handleStatusChip(status: Status) {
-    setDraftStatus(status)
-  }
+  const formBody = (
+    <div className="overflow-y-auto px-5 pt-1 pb-6 overscroll-contain">
+      {/* Name */}
+      <Input
+        ref={nameRef}
+        value={draftName}
+        onChange={e => setDraftName(e.target.value)}
+        placeholder="To-do name"
+        aria-label="Todo name"
+        enterKeyHint="done"
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); nameRef.current?.blur() } }}
+        className="border-0 border-b rounded-none px-0 text-base shadow-none focus-visible:ring-0 mb-1"
+      />
 
-  function handlePriorityChip(value: string | null) {
-    setDraftPriority(value)
+      <Separator className="my-4" />
+
+      {/* Status */}
+      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">
+        Status
+      </p>
+      <div className="flex gap-2 flex-wrap mt-2">
+        {STATUSES.map(s => {
+          const selected = draftStatus === s
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setDraftStatus(s)}
+              className={`inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-medium transition-colors ${
+                selected
+                  ? STATUS_SELECTED_CLASSES[s]
+                  : 'border-border bg-background text-foreground hover:bg-accent'
+              }`}
+            >
+              {s}
+            </button>
+          )
+        })}
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Priority */}
+      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">
+        Priority
+      </p>
+      <div className="flex gap-2 flex-wrap mt-2">
+        {PRIORITY_OPTIONS.map(({ label, value }) => {
+          const selected = draftPriority === value
+          const selectedClass = value ? PRIORITY_SELECTED_CLASSES[value] : 'bg-secondary text-secondary-foreground border-secondary'
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setDraftPriority(value)}
+              className={`inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-medium transition-colors ${
+                selected
+                  ? selectedClass
+                  : 'border-border bg-background text-foreground hover:bg-accent'
+              }`}
+            >
+              {label}
+            </button>
+          )
+        })}
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Due date */}
+      <Input
+        type="date"
+        aria-label="Due date"
+        value={draftDue}
+        onChange={e => setDraftDue(e.target.value)}
+        className="text-sm"
+      />
+
+      <Separator className="my-4" />
+
+      {/* Actions */}
+      <div className="flex justify-between items-center">
+        <Button
+          variant="ghost"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5"
+          onClick={() => { if (todo) { onDelete(todo); onClose() } }}
+        >
+          <Trash2 className="size-4" />
+          Delete
+        </Button>
+        <Button onClick={handleSave}>
+          Save
+        </Button>
+      </div>
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer
+        open={!!todo}
+        onOpenChange={open => { if (!open) onClose() }}
+        direction="bottom"
+      >
+        <DrawerContent
+          style={{ bottom: keyboardOffset, transition: 'bottom 150ms ease-out' }}
+          className="rounded-t-2xl flex flex-col max-h-[90vh]"
+        >
+          {formBody}
+        </DrawerContent>
+      </Drawer>
+    )
   }
 
   return (
-    <Drawer
-      anchor="bottom"
-      open={!!todo}
-      onClose={onClose}
-      ModalProps={{ disableScrollLock: true }}
-      PaperProps={{
-        sx: {
-          borderRadius: '16px 16px 0 0',
-          display: 'flex',
-          flexDirection: 'column',
-          bottom: keyboardOffset,
-          transition: 'bottom 150ms ease-out',
-        },
-      }}
-    >
-      {/* Drag handle */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5, flexShrink: 0 }}>
-        <Box sx={{ width: 32, height: 4, borderRadius: 2, bgcolor: 'divider' }} />
-      </Box>
-
-      {/* Scrollable content */}
-      <Box sx={{ overflowY: 'auto', px: 2.5, pt: 1, pb: 3, overscrollBehavior: 'contain' }}>
-        {/* Name */}
-        <TextField
-          value={draftName}
-          onChange={e => setDraftName(e.target.value)}
-          variant="standard"
-          fullWidth
-          inputRef={nameRef}
-          inputProps={{ enterKeyHint: 'done', 'aria-label': 'Todo name' }}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); nameRef.current?.blur() } }}
-          sx={{ mb: 0.5 }}
-        />
-
-        <Divider sx={{ my: 2 }} />
-
-        {/* Status */}
-        <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1, letterSpacing: '.08em' }}>
-          Status
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.75 }}>
-          {STATUSES.map(s => {
-            const selected = draftStatus === s
-            return (
-              <Chip
-                key={s}
-                label={s}
-                clickable
-                size="small"
-                onClick={() => handleStatusChip(s)}
-                variant={selected ? 'filled' : 'outlined'}
-                color={selected ? STATUS_COLORS[s] : 'default'}
-                sx={{ fontSize: '0.8rem' }}
-              />
-            )
-          })}
-        </Box>
-
-        <Divider sx={{ my: 2 }} />
-
-        {/* Priority */}
-        <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1, letterSpacing: '.08em' }}>
-          Priority
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 0.75 }}>
-          {PRIORITY_OPTIONS.map(({ label, value }) => {
-            const selected = draftPriority === value
-            const chipColor = value === 'High' ? 'error' : value === 'Medium' ? 'warning' : 'default'
-            return (
-              <Chip
-                key={label}
-                label={label}
-                clickable
-                size="small"
-                onClick={() => handlePriorityChip(value)}
-                variant={selected ? 'filled' : 'outlined'}
-                color={selected ? chipColor : 'default'}
-                sx={{ fontSize: '0.8rem' }}
-              />
-            )
-          })}
-        </Box>
-
-        <Divider sx={{ my: 2 }} />
-
-        {/* Due date */}
-        <TextField
-          type="date"
-          label="Due date"
-          size="small"
-          fullWidth
-          value={draftDue}
-          onChange={e => setDraftDue(e.target.value)}
-          InputLabelProps={{ shrink: true }}
-        />
-
-        <Divider sx={{ my: 2 }} />
-
-        {/* Actions */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Button
-            color="error"
-            variant="text"
-            startIcon={<DeleteOutlineIcon />}
-            onClick={() => { if (todo) { onDelete(todo); onClose() } }}
-            sx={{ textTransform: 'none' }}
-          >
-            Delete
-          </Button>
-          <Button
-            variant="contained"
-            disableElevation
-            onClick={handleSave}
-            sx={{ textTransform: 'none' }}
-          >
-            Save
-          </Button>
-        </Box>
-      </Box>
-    </Drawer>
+    <Dialog open={!!todo} onOpenChange={open => { if (!open) onClose() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit To-do</DialogTitle>
+          <DialogDescription className="sr-only">Update the to-do details.</DialogDescription>
+        </DialogHeader>
+        {formBody}
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -317,53 +289,57 @@ interface SectionProps {
 }
 
 function Section({ status, todos, pendingDeleteId, onOpen, onClearDone }: SectionProps) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(status !== 'Done')
   const visible = todos.filter(t => t.id !== pendingDeleteId)
 
   if (visible.length === 0) return null
 
   return (
-    <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,.06)', mb: 1 }}>
-      <ListItemButton onClick={() => setExpanded(v => !v)} sx={{ px: 2, py: 1.25 }}>
-        <ListItemText
-          primary={
-            <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1, letterSpacing: '.08em' }}>
-              {status}
-            </Typography>
+    <Collapsible
+      open={expanded}
+      onOpenChange={setExpanded}
+      className="bg-card rounded-lg overflow-hidden border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2"
+    >
+      <CollapsibleTrigger asChild>
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label={`${expanded ? 'Collapse' : 'Expand'} ${status}`}
+          aria-expanded={expanded}
+          className="w-full flex items-center px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer"
+        >
+          <span className="flex-1 text-left text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">
+            {status}
+          </span>
+          <span className="text-xs text-muted-foreground mr-2">{visible.length}</span>
+          {onClearDone && visible.length > 0 && (
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); onClearDone() }}
+              className="mr-1.5 text-xs text-destructive hover:text-destructive/80 px-2 py-0.5 rounded"
+            >
+              Clear all
+            </button>
+          )}
+          {expanded
+            ? <ChevronUp className="size-4 text-muted-foreground" />
+            : <ChevronDown className="size-4 text-muted-foreground" />
           }
-        />
-        <Typography variant="caption" color="text.disabled" sx={{ mr: 1 }}>
-          {visible.length}
-        </Typography>
-        {onClearDone && visible.length > 0 && (
-          <Button
-            size="small"
-            color="error"
-            variant="text"
-            onClick={e => { e.stopPropagation(); onClearDone() }}
-            sx={{ mr: 0.5, textTransform: 'none', fontSize: '0.75rem', minWidth: 0, px: 1, py: 0.25 }}
-          >
-            Clear all
-          </Button>
-        )}
-        {expanded
-          ? <ExpandLess fontSize="small" sx={{ color: 'text.disabled' }} />
-          : <ExpandMore fontSize="small" sx={{ color: 'text.disabled' }} />
-        }
-      </ListItemButton>
+        </div>
+      </CollapsibleTrigger>
 
-      <Collapse in={expanded} timeout="auto" unmountOnExit>
-        <Divider />
-        <List disablePadding>
+      <CollapsibleContent>
+        <Separator />
+        <ul>
           {visible.map((todo, idx) => (
-            <span key={todo.id}>
-              {idx > 0 && <Divider component="li" sx={{ ml: 2 }} />}
+            <li key={todo.id}>
+              {idx > 0 && <Separator className="ml-4" />}
               <TodoRow todo={todo} onOpen={onOpen} />
-            </span>
+            </li>
           ))}
-        </List>
-      </Collapse>
-    </Box>
+        </ul>
+      </CollapsibleContent>
+    </Collapsible>
   )
 }
 
@@ -371,25 +347,25 @@ function Section({ status, todos, pendingDeleteId, onOpen, onClearDone }: Sectio
 
 function TodosSkeleton() {
   return (
-    <Box>
+    <div>
       {[3, 2].map((rows, gi) => (
-        <Box key={gi} sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,.06)', mb: 1 }}>
-          <Box sx={{ px: 2, py: 1.25 }}>
-            <Skeleton width={80} height={14} />
-          </Box>
-          <Divider />
+        <div key={gi} className="bg-background rounded-lg overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
+          <div className="px-4 py-3">
+            <Skeleton className="w-20 h-3.5" />
+          </div>
+          <Separator />
           {Array.from({ length: rows }).map((_, i) => (
-            <Box key={i}>
-              {i > 0 && <Divider sx={{ ml: 7 }} />}
-              <Box sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1.5, minHeight: 48 }}>
-                <Skeleton variant="rectangular" width={18} height={18} sx={{ borderRadius: 0.5, flexShrink: 0 }} />
-                <Skeleton width={`${45 + i * 20}%`} height={16} />
-              </Box>
-            </Box>
+            <div key={i}>
+              {i > 0 && <Separator className="ml-7" />}
+              <div className="px-4 py-2.5 flex items-center gap-3 min-h-12">
+                <Skeleton className="size-[18px] rounded shrink-0" />
+                <Skeleton className="h-4" style={{ width: `${45 + i * 20}%` }} />
+              </div>
+            </div>
           ))}
-        </Box>
+        </div>
       ))}
-    </Box>
+    </div>
   )
 }
 
@@ -402,7 +378,7 @@ interface PendingDelete {
   timeoutId: ReturnType<typeof setTimeout>
 }
 
-export default function Todos() {
+export default function Todos({ setHeader }: { setHeader: (node: ReactNode | null) => void }) {
   const { data: todos, isLoading, error } = useTodos()
   const createTodo = useCreateTodo()
   const updateTodo = useUpdateTodo()
@@ -410,7 +386,6 @@ export default function Todos() {
 
   const [inputValue, setInputValue] = useState('')
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
-  const [undoVisible, setUndoVisible] = useState(false)
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
   const pendingDeleteRef = useRef<PendingDelete | null>(null)
 
@@ -418,18 +393,42 @@ export default function Todos() {
     pendingDeleteRef.current = pendingDelete
   }, [pendingDelete])
 
-  function handleAdd() {
-    const name = inputValue.trim()
+  const inputValueRef = useRef(inputValue)
+  useEffect(() => { inputValueRef.current = inputValue })
+
+  const handleAdd = useCallback(() => {
+    const name = inputValueRef.current.trim()
     if (!name) return
     setInputValue('')
     createTodo.mutate({ name })
-  }
+  }, [createTodo.mutate])
+
+  useEffect(() => {
+    setHeader(
+      <form
+        onSubmit={e => { e.preventDefault(); handleAdd() }}
+        className="flex-1 flex gap-2 px-2"
+      >
+        <Input
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          placeholder="Add a to-do…"
+          autoComplete="off"
+          aria-label="New to-do name"
+          className="flex-1"
+        />
+        <Button type="submit" disabled={!inputValue.trim()} className="shrink-0">
+          Add
+        </Button>
+      </form>
+    )
+    return () => setHeader(null)
+  }, [inputValue, setHeader])
 
   const commitDelete = useCallback((todo: Todo) => {
     deleteTodo.mutate(todo.id)
     setPendingDelete(null)
-    setUndoVisible(false)
-  }, [deleteTodo])
+  }, [deleteTodo.mutate])
 
   function handleDelete(todo: Todo) {
     const existing = pendingDeleteRef.current
@@ -442,21 +441,20 @@ export default function Todos() {
     const next: PendingDelete = { todo, timeoutId }
     setPendingDelete(next)
     pendingDeleteRef.current = next
-    setUndoVisible(true)
-  }
 
-  function handleUndo() {
-    const existing = pendingDeleteRef.current
-    if (!existing) return
-    clearTimeout(existing.timeoutId)
-    setPendingDelete(null)
-    pendingDeleteRef.current = null
-    setUndoVisible(false)
-  }
-
-  function handleUndoClose(_: React.SyntheticEvent | Event, reason?: string) {
-    if (reason === 'clickaway') return
-    setUndoVisible(false)
+    toast('To-do deleted', {
+      duration: UNDO_DURATION_MS,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const existing = pendingDeleteRef.current
+          if (!existing) return
+          clearTimeout(existing.timeoutId)
+          setPendingDelete(null)
+          pendingDeleteRef.current = null
+        },
+      },
+    })
   }
 
   function handleOpen(todo: Todo) {
@@ -481,65 +479,20 @@ export default function Todos() {
 
   return (
     <>
-      {/* Sticky add bar — matches Recipes search bar pattern */}
-      <Box
-        component="form"
-        onSubmit={e => { e.preventDefault(); handleAdd() }}
-        sx={{
-          position: 'sticky',
-          top: { xs: '57px', sm: '65px' },
-          ml: 'calc(50% - 50vw)',
-          width: '100vw',
-          mt: -2,
-          zIndex: 10,
-          mb: 1.5,
-          bgcolor: 'background.paper',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, py: 1.5, display: 'flex', gap: 1 }}>
-          <TextField
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
-            placeholder="Add a to-do…"
-            size="small"
-            fullWidth
-            autoComplete="off"
-            inputProps={{ 'aria-label': 'New to-do name' }}
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            disableElevation
-            disabled={!inputValue.trim()}
-            sx={{ flexShrink: 0, textTransform: 'none' }}
-          >
-            Add
-          </Button>
-        </Box>
-      </Box>
-
       {/* List */}
-      <Box sx={{ pb: 4 }}>
+      <div className="pb-8">
         {isLoading && <TodosSkeleton />}
 
         {error && (
-          <Typography color="error" sx={{ p: 2 }}>
-            Failed to load todos.
-          </Typography>
+          <p className="text-destructive p-4">Failed to load todos.</p>
         )}
 
         {!isLoading && !error && todos?.length === 0 && (
-          <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
-            <Box component="img" src="/casita.webp" alt="" sx={{ width: 80, mb: 2, opacity: 0.7 }} />
-            <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
-              All caught up
-            </Typography>
-            <Typography variant="body2" color="text.disabled">
-              Add a to-do above to get started
-            </Typography>
-          </Box>
+          <div className="pt-10 text-center px-8">
+            <img src="/casita.webp" alt="" className="w-20 mb-4 mx-auto opacity-70" />
+            <p className="text-sm font-medium text-muted-foreground mb-1">All caught up</p>
+            <p className="text-sm text-muted-foreground/60">Add a to-do above to get started</p>
+          </div>
         )}
 
         {!isLoading && !error && !!todos?.length && STATUSES.map(status => (
@@ -552,29 +505,7 @@ export default function Todos() {
             onClearDone={status === 'Done' ? handleClearDone : undefined}
           />
         ))}
-      </Box>
-
-      {/* Undo toast */}
-      <Snackbar
-        open={undoVisible}
-        autoHideDuration={UNDO_DURATION_MS}
-        onClose={handleUndoClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{ mb: 'calc(56px + env(safe-area-inset-bottom))' }}
-      >
-        <Alert
-          severity="info"
-          onClose={handleUndoClose}
-          action={
-            <Button color="inherit" size="small" onClick={handleUndo} sx={{ fontWeight: 700 }}>
-              Undo
-            </Button>
-          }
-          sx={{ width: '100%' }}
-        >
-          To-do deleted
-        </Alert>
-      </Snackbar>
+      </div>
 
       {/* Detail sheet */}
       <TodoDetailSheet

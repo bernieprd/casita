@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
-import CircularProgress from '@mui/material/CircularProgress'
-import Divider from '@mui/material/Divider'
-import Drawer from '@mui/material/Drawer'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import Radio from '@mui/material/Radio'
-import RadioGroup from '@mui/material/RadioGroup'
-import Typography from '@mui/material/Typography'
-import MergeTypeIcon from '@mui/icons-material/MergeType'
+import { GitMerge, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Label } from '@/components/ui/label'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from '@/components/ui/drawer'
 import { useMergeItems } from '../api'
 import type { Item } from '../api'
 import { useKeyboardOffset } from '../useKeyboardOffset'
@@ -21,7 +24,6 @@ interface Props {
 }
 
 export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
-  // Which item to keep per group index
   const [keepers, setKeepers] = useState<Record<number, string>>({})
   const [merging, setMerging] = useState(false)
   const mergeItems = useMergeItems()
@@ -53,90 +55,89 @@ export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
 
   return (
     <Drawer
-      anchor="bottom"
       open={open}
-      onClose={merging ? undefined : onClose}
-      ModalProps={{ disableScrollLock: true }}
-      PaperProps={{ sx: { borderRadius: '16px 16px 0 0', maxHeight: Math.min(window.innerHeight * 0.80, window.innerHeight - keyboardOffset - 8), display: 'flex', flexDirection: 'column', bgcolor: 'background.paper', bottom: keyboardOffset, transition: 'bottom 150ms ease-out' } }}
+      onOpenChange={(o) => { if (!o && !merging) onClose() }}
+      disablePreventScroll
     >
-      {/* Handle */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5, flexShrink: 0 }}>
-        <Box sx={{ width: 32, height: 4, borderRadius: 2, bgcolor: 'divider' }} />
-      </Box>
+      <DrawerContent
+        style={{
+          maxHeight: Math.min(window.innerHeight * 0.80, window.innerHeight - keyboardOffset - 8),
+          bottom: keyboardOffset,
+          transition: 'bottom 150ms ease-out',
+        }}
+        className="flex flex-col"
+      >
+        {/* Handle is rendered by DrawerContent automatically */}
 
-      {/* Header */}
-      <Box sx={{ px: 3, pt: 0.5, pb: 1.5, flexShrink: 0 }}>
-        <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
-          Duplicate items
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {groups.length === 1
-            ? `"${groups[0][0].name}" appears ${groups[0].length} times`
-            : `${groups.length} names appear more than once`}
-          . Pick which to keep — recipe links update automatically.
-        </Typography>
-      </Box>
+        <DrawerHeader className="text-left pb-3">
+          <DrawerTitle>Duplicate items</DrawerTitle>
+          <DrawerDescription>
+            {groups.length === 1
+              ? `"${groups[0][0].name}" appears ${groups[0].length} times`
+              : `${groups.length} names appear more than once`}
+            . Pick which to keep — recipe links update automatically.
+          </DrawerDescription>
+        </DrawerHeader>
 
-      <Divider />
+        <Separator />
 
-      {/* Groups */}
-      <Box sx={{ overflow: 'auto', flex: 1, overscrollBehavior: 'contain' }}>
-        {groups.map((group, i) => (
-          <Box key={group[0].name + i} sx={{ px: 3, py: 2 }}>
-            {i > 0 && <Divider sx={{ mb: 2, mx: -3 }} />}
-            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>
-              {group[0].name}
-            </Typography>
-            <RadioGroup
-              value={keepers[i] ?? group[0].id}
-              onChange={(_, val) => setKeepers(prev => ({ ...prev, [i]: val }))}
-            >
-              {group.map(item => (
-                <FormControlLabel
-                  key={item.id}
-                  value={item.id}
-                  disabled={merging}
-                  control={<Radio size="small" />}
-                  label={
-                    <Box sx={{ py: 0.5 }}>
-                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+        <div className="overflow-auto flex-1 overscroll-contain">
+          {groups.map((group, i) => (
+            <div key={group[0].name + i} className="px-6 py-4">
+              {i > 0 && <Separator className="-mx-6 mb-4" />}
+              <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-2">
+                {group[0].name}
+              </p>
+              <RadioGroup
+                value={keepers[i] ?? group[0].id}
+                onValueChange={(val) => setKeepers(prev => ({ ...prev, [i]: val }))}
+                disabled={merging}
+              >
+                {group.map(item => (
+                  <div key={item.id} className="flex items-start gap-2 mt-1">
+                    <RadioGroupItem value={item.id} id={`item-${item.id}`} className="mt-1" />
+                    <Label htmlFor={`item-${item.id}`} className="py-1 cursor-pointer">
+                      <div className="flex gap-1 flex-wrap">
                         {item.category && (
-                          <Chip label={item.category} size="small" variant="outlined" sx={{ fontSize: 11, height: 20 }} />
+                          <Badge variant="outline" className="text-[11px] h-5">
+                            {item.category}
+                          </Badge>
                         )}
                         {item.supermarkets.map(s => (
-                          <Chip key={s} label={s} size="small" sx={{ fontSize: 11, height: 20, bgcolor: 'action.hover' }} />
+                          <Badge key={s} variant="secondary" className="text-[11px] h-5">
+                            {s}
+                          </Badge>
                         ))}
                         {!item.category && item.supermarkets.length === 0 && (
-                          <Typography variant="caption" color="text.disabled">No details</Typography>
+                          <span className="text-xs text-muted-foreground/60">No details</span>
                         )}
-                      </Box>
-                    </Box>
-                  }
-                  sx={{ mt: 0.5 }}
-                />
-              ))}
-            </RadioGroup>
-          </Box>
-        ))}
-      </Box>
+                      </div>
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+          ))}
+        </div>
 
-      <Divider />
+        <Separator />
 
-      {/* Actions */}
-      <Box sx={{ px: 3, pt: 1.5, pb: 3, flexShrink: 0 }}>
-        <Button
-          fullWidth
-          variant="contained"
-          onClick={handleMergeAll}
-          disabled={merging}
-          startIcon={merging ? <CircularProgress size={16} color="inherit" /> : <MergeTypeIcon />}
-        >
-          {merging ? 'Merging…' : `Remove ${totalDuplicates} duplicate${totalDuplicates !== 1 ? 's' : ''}`}
-        </Button>
-        <Button fullWidth color="inherit" onClick={onClose} disabled={merging} sx={{ mt: 0.5 }}>
-          Cancel
-        </Button>
-      </Box>
+        <DrawerFooter className="pb-6 gap-1">
+          <Button
+            className="w-full"
+            onClick={handleMergeAll}
+            disabled={merging}
+          >
+            {merging
+              ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Merging…</>
+              : <><GitMerge className="mr-2 h-4 w-4" />Remove {totalDuplicates} duplicate{totalDuplicates !== 1 ? 's' : ''}</>
+            }
+          </Button>
+          <Button variant="ghost" onClick={onClose} disabled={merging} className="w-full">
+            Cancel
+          </Button>
+        </DrawerFooter>
+      </DrawerContent>
     </Drawer>
   )
 }

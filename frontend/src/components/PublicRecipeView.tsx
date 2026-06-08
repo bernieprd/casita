@@ -1,13 +1,7 @@
 import { useParams } from 'react-router-dom'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
-import Chip from '@mui/material/Chip'
-import Divider from '@mui/material/Divider'
-import List from '@mui/material/List'
-import ListItem from '@mui/material/ListItem'
-import ListItemText from '@mui/material/ListItemText'
-import Skeleton from '@mui/material/Skeleton'
-import Stack from '@mui/material/Stack'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import { usePublicRecipe } from '../api'
 import type { Block, RecipeIngredient } from '../api'
 import { useMemo } from 'react'
@@ -17,22 +11,22 @@ import { useMemo } from 'react'
 function RenderBlock({ block }: { block: Block }) {
   switch (block.type) {
     case 'heading_1':
-      return <Typography variant="h6" fontWeight={700} sx={{ mt: 2.5, mb: 0.5 }}>{block.text}</Typography>
+      return <h2 className="text-lg font-bold mt-10 mb-2">{block.text}</h2>
     case 'heading_2':
-      return <Typography variant="subtitle1" fontWeight={600} sx={{ mt: 2, mb: 0.5 }}>{block.text}</Typography>
+      return <h3 className="text-base font-semibold mt-8 mb-2">{block.text}</h3>
     case 'heading_3':
-      return <Typography variant="subtitle2" fontWeight={600} sx={{ mt: 1.5, mb: 0.5 }}>{block.text}</Typography>
+      return <h4 className="text-sm font-semibold mt-6 mb-2">{block.text}</h4>
     case 'bulleted_list_item':
-      return <Typography variant="body2" sx={{ pl: 2, mb: 0.5 }}>• {block.text}</Typography>
+      return <p className="text-sm pl-4 mb-1">• {block.text}</p>
     case 'numbered_list_item':
-      return <Typography variant="body2" sx={{ pl: 2, mb: 0.5 }}>{block.text}</Typography>
+      return <p className="text-sm pl-4 mb-1">{block.text}</p>
     case 'divider':
-      return <Divider sx={{ my: 2 }} />
+      return <Separator className="my-4" />
     case 'paragraph':
     default:
       return block.text
-        ? <Typography variant="body2" color="text.secondary" sx={{ mb: 1, lineHeight: 1.6 }}>{block.text}</Typography>
-        : <Box sx={{ height: 6 }} />
+        ? <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{block.text}</p>
+        : <div className="h-1.5" />
   }
 }
 
@@ -57,37 +51,26 @@ function StaticIngredientGroups({ ingredients }: { ingredients: RecipeIngredient
   }, [ingredients])
 
   return (
-    <Box sx={{ mb: 3 }}>
+    <div className="mb-6">
       {groups.map(({ section, items }, groupIdx) => (
-        <Box key={section ?? '__none__'}>
-          {groupIdx > 0 && <Divider sx={{ mt: 2, mb: 2 }} />}
+        <div key={section ?? '__none__'}>
+          {groupIdx > 0 && <Separator className="my-4" />}
           {section && (
-            <Typography
-              variant="overline"
-              color="text.secondary"
-              sx={{ display: 'block', mb: 0.25, fontSize: 10, letterSpacing: '.1em' }}
-            >
+            <p className="block text-[10px] tracking-widest uppercase text-muted-foreground mb-1">
               {section}
-            </Typography>
+            </p>
           )}
-          <List disablePadding dense>
-            {items.map((ing, idx) => (
-              <span key={ing.id}>
-                {idx > 0 && <Divider component="li" />}
-                <ListItem disableGutters>
-                  <ListItemText
-                    primary={ing.itemName}
-                    secondary={ing.quantity ?? undefined}
-                    primaryTypographyProps={{ variant: 'body2' }}
-                    secondaryTypographyProps={{ variant: 'caption' }}
-                  />
-                </ListItem>
-              </span>
+          <ul className="divide-y divide-border">
+            {items.map((ing) => (
+              <li key={ing.id} className="py-2">
+                <p className="text-sm">{ing.itemName}</p>
+                {ing.quantity && <p className="text-xs text-muted-foreground">{ing.quantity}</p>}
+              </li>
             ))}
-          </List>
-        </Box>
+          </ul>
+        </div>
       ))}
-    </Box>
+    </div>
   )
 }
 
@@ -102,55 +85,50 @@ export default function PublicRecipeView() {
 
   if (isLoading) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-        <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, pt: 3, pb: 6 }}>
-          <Skeleton variant="rectangular" sx={{ width: '100%', aspectRatio: '16/9', borderRadius: 2, mb: 2 }} />
-          <Skeleton width="70%" height={36} sx={{ mb: 1 }} />
-          <Box sx={{ display: 'flex', gap: 0.75, mb: 3 }}>
-            <Skeleton width={72} height={26} sx={{ borderRadius: 10 }} />
-            <Skeleton width={60} height={26} sx={{ borderRadius: 10 }} />
-          </Box>
-          <Skeleton width={100} height={14} sx={{ mb: 0.5 }} />
-          <Skeleton variant="rectangular" height={1} sx={{ mb: 1 }} />
-          <Stack spacing={1}>
-            {[1, 2, 3, 4].map(i => <Skeleton key={i} height={40} />)}
-          </Stack>
-        </Box>
-      </Box>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-xl mx-auto px-4 pt-6 pb-12">
+          <Skeleton className="w-full aspect-video rounded-lg mb-4" />
+          <Skeleton className="w-4/5 h-9 mb-3" />
+          <div className="flex gap-1.5 mb-6">
+            <Skeleton className="w-18 h-6 rounded-full" />
+            <Skeleton className="w-16 h-6 rounded-full" />
+          </div>
+          <Skeleton className="w-24 h-3.5 mb-1" />
+          <Skeleton className="w-full h-px mb-3" />
+          <div className="flex flex-col gap-2">
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-10" />)}
+          </div>
+        </div>
+      </div>
     )
   }
 
   if (error || !recipe) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography variant="body1" color="text.secondary">Recipe not found</Typography>
-      </Box>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-sm text-muted-foreground">Recipe not found</p>
+      </div>
     )
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Box sx={{ maxWidth: 600, mx: 'auto', px: 2, pt: 3, pb: 6 }}>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-xl mx-auto px-4 pt-6 pb-12">
 
         {/* Cover photo */}
         {recipe.coverPhotoUrl && (
-          <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 2, overflow: 'hidden', mb: 2 }}>
-            <Box sx={{ position: 'absolute', inset: 0, bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 52 }}>
+          <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4">
+            <div className="absolute inset-0 bg-accent flex items-center justify-center text-5xl">
               🍽
-            </Box>
-            <Skeleton variant="rectangular" sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1 }} />
-            <Box
-              component="img"
+            </div>
+            <Skeleton className="absolute inset-0 w-full h-full z-[1] rounded-none" />
+            <img
               src={recipe.coverPhotoUrl}
               alt={recipe.name}
               decoding="async"
               loading="lazy"
-              sx={{
-                position: 'absolute', inset: 0,
-                width: '100%', height: '100%',
-                objectFit: 'cover', display: 'block',
-                opacity: 0, transition: 'opacity .25s', zIndex: 2,
-              }}
+              className="absolute inset-0 w-full h-full object-cover block z-[2]"
+              style={{ opacity: 0, transition: 'opacity .25s' }}
               onLoad={e => {
                 const img = e.target as HTMLImageElement
                 img.style.opacity = '1';
@@ -161,27 +139,23 @@ export default function PublicRecipeView() {
                 (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
               }}
             />
-          </Box>
+          </div>
         )}
 
         {/* Title + chips */}
-        <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
-          {recipe.name}
-        </Typography>
+        <h1 className="text-2xl font-bold mb-3">{recipe.name}</h1>
         {(recipe.type || recipe.day) && (
-          <Box sx={{ display: 'flex', gap: 0.75, mb: 3, flexWrap: 'wrap' }}>
-            {recipe.type && <Chip label={recipe.type} size="small" color="primary" />}
-            {recipe.day && <Chip label={recipe.day} size="small" variant="outlined" />}
-          </Box>
+          <div className="flex gap-1.5 mb-6 flex-wrap">
+            {recipe.type && <Badge>{recipe.type}</Badge>}
+            {recipe.day && <Badge variant="outline">{recipe.day}</Badge>}
+          </div>
         )}
 
         {/* Ingredients */}
         {ingredients.length > 0 && (
           <>
-            <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '.08em' }}>
-              Ingredients
-            </Typography>
-            <Divider sx={{ mt: 0.5, mb: 0.5 }} />
+            <p className="text-xs tracking-wider uppercase text-muted-foreground">Ingredients</p>
+            <Separator className="mt-1 mb-1" />
             <StaticIngredientGroups ingredients={ingredients} />
           </>
         )}
@@ -189,22 +163,18 @@ export default function PublicRecipeView() {
         {/* Instructions */}
         {recipe.blocks && recipe.blocks.length > 0 && (
           <>
-            <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '.08em' }}>
-              Instructions
-            </Typography>
-            <Divider sx={{ mt: 0.5, mb: 1 }} />
-            <Box>
+            <p className="text-xs tracking-wider uppercase text-muted-foreground">Instructions</p>
+            <Separator className="mt-1 mb-3" />
+            <div>
               {recipe.blocks.map(block => (
                 <RenderBlock key={block.id} block={block} />
               ))}
-            </Box>
+            </div>
           </>
         )}
 
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mt: 4 }}>
-          Made with Casita
-        </Typography>
-      </Box>
-    </Box>
+        <p className="text-xs text-muted-foreground text-center mt-8">Made with Casita</p>
+      </div>
+    </div>
   )
 }

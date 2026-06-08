@@ -50,3 +50,39 @@ export function useRenameHousehold() {
     },
   })
 }
+
+export type HouseholdThemePrefs = {
+  primaryHsl?: string
+  headingFont?: string
+  bodyFont?: string
+  radius?: string
+}
+
+export const householdThemeKeys = {
+  theme: ['household', 'theme'] as const,
+}
+
+export function useHouseholdTheme() {
+  return useQuery({
+    queryKey: householdThemeKeys.theme,
+    queryFn: () => api.get<HouseholdThemePrefs>('/household/settings'),
+    staleTime: 30_000,
+  })
+}
+
+export function useUpdateHouseholdTheme() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (prefs: HouseholdThemePrefs) =>
+      api.patch<HouseholdThemePrefs>('/household/settings', prefs),
+    onSuccess: (data) => {
+      qc.setQueryData(householdThemeKeys.theme, data)
+    },
+    onError: () => {
+      // onError callback is forwarded per-call via mutate(prefs, { onError })
+      // This hook-level handler is intentionally left as a no-op so callers
+      // (e.g. useTheme) can supply their own per-invocation onError without
+      // it being swallowed.
+    },
+  })
+}

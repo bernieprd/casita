@@ -9,3 +9,4 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - miniflare@4.20260603.0
   - wrangler@4.98.0
+  - react-hook-form@7.78.0

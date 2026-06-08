@@ -1,10 +1,9 @@
 import { useState, useMemo } from 'react'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
-import Skeleton from '@mui/material/Skeleton'
-import Chip from '@mui/material/Chip'
-import IconButton from '@mui/material/IconButton'
-import RefreshIcon from '@mui/icons-material/Refresh'
+import { RotateCcw } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus } from '../api'
 import { useNavigate } from 'react-router-dom'
 
@@ -12,37 +11,34 @@ import { useNavigate } from 'react-router-dom'
 
 function SectionHeader({ label, action }: { label: string; action?: React.ReactNode }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-      <Typography variant="overline" color="text.secondary" sx={{ flex: 1, letterSpacing: '.08em', lineHeight: 1 }}>
+    <div className="flex items-center mb-1">
+      <span className="flex-1 text-xs font-medium tracking-widest uppercase text-muted-foreground leading-none">
         {label}
-      </Typography>
+      </span>
       {action}
-    </Box>
+    </div>
   )
 }
 
 function SectionCard({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
   return (
-    <Box
+    <div
       onClick={onClick}
-      sx={{
-        bgcolor: 'background.paper',
-        borderRadius: 2,
-        boxShadow: '0 1px 2px rgba(0,0,0,.06)',
-        overflow: 'hidden',
-        ...(onClick && { cursor: 'pointer', transition: 'opacity .15s', '&:active': { opacity: 0.75 } }),
-      }}
+      className={cn(
+        'bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] overflow-hidden',
+        onClick && 'cursor-pointer transition-opacity active:opacity-75'
+      )}
     >
       {children}
-    </Box>
+    </div>
   )
 }
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <Box sx={{ px: 2, py: 2.5, textAlign: 'center' }}>
-      <Typography variant="body2" color="text.disabled">{text}</Typography>
-    </Box>
+    <div className="px-4 py-5 text-center">
+      <p className="text-sm text-muted-foreground/60">{text}</p>
+    </div>
   )
 }
 
@@ -87,59 +83,54 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
   if (!googleStatus?.connected && !isLoading && upcoming.length === 0) return null
 
   return (
-    <Box sx={{ mb: 3 }}>
+    <div className="mb-6">
       <SectionHeader
         label="Coming up"
         action={
-          <Typography
-            variant="caption"
-            color="primary.main"
-            fontWeight={600}
+          <button
             onClick={onNavigate}
-            sx={{ cursor: 'pointer' }}
+            className="text-xs font-semibold text-primary cursor-pointer"
           >
             See all
-          </Typography>
+          </button>
         }
       />
       <SectionCard>
         {isLoading ? (
-          <Box sx={{ px: 2 }}>
+          <div className="px-4">
             {[0, 1, 2].map(i => (
-              <Box key={i} sx={{ display: 'flex', gap: 1.5, alignItems: 'center', py: 1.25, borderTop: i > 0 ? '1px solid' : 'none', borderColor: 'divider' }}>
-                <Skeleton width="55%" height={14} />
-                <Skeleton width={32} height={14} sx={{ ml: 'auto' }} />
-                <Skeleton width={40} height={14} />
-              </Box>
+              <div key={i} className={cn('flex gap-3 items-center py-3', i > 0 && 'border-t border-border')}>
+                <Skeleton className="h-3.5 w-[55%]" />
+                <Skeleton className="h-3.5 w-8 ml-auto" />
+                <Skeleton className="h-3.5 w-10" />
+              </div>
             ))}
-          </Box>
+          </div>
         ) : upcoming.length === 0 ? (
           <EmptyState text="No upcoming events" />
         ) : (
           upcoming.map((event, i) => (
-            <Box
+            <div
               key={event.id}
-              sx={{
-                px: 2, py: 1.25,
-                display: 'flex', alignItems: 'center', gap: 1.5,
-                borderTop: i > 0 ? '1px solid' : 'none',
-                borderColor: 'divider',
-              }}
-            >
-              <Typography variant="body2" sx={{ flex: 1 }} noWrap>{event.title}</Typography>
-              <Typography variant="caption" color="primary.main" fontWeight={600} sx={{ whiteSpace: 'nowrap' }}>
-                {dayLabel(event.start)}
-              </Typography>
-              {timeLabel(event.start) && (
-                <Typography variant="caption" color="text.disabled" sx={{ whiteSpace: 'nowrap' }}>
-                  {timeLabel(event.start)}
-                </Typography>
+              className={cn(
+                'px-4 py-3 flex items-center gap-3',
+                i > 0 && 'border-t border-border'
               )}
-            </Box>
+            >
+              <p className="text-sm flex-1 truncate">{event.title}</p>
+              <span className="text-xs font-semibold text-primary whitespace-nowrap">
+                {dayLabel(event.start)}
+              </span>
+              {timeLabel(event.start) && (
+                <span className="text-xs text-muted-foreground/60 whitespace-nowrap">
+                  {timeLabel(event.start)}
+                </span>
+              )}
+            </div>
           ))
         )}
       </SectionCard>
-    </Box>
+    </div>
   )
 }
 
@@ -167,73 +158,68 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
   }, [todos])
 
   return (
-    <Box sx={{ mb: 3 }}>
+    <div className="mb-6">
       <SectionHeader
         label="To do"
         action={
-          <Typography
-            variant="caption"
-            color="primary.main"
-            fontWeight={600}
+          <button
             onClick={onSeeAll}
-            sx={{ cursor: 'pointer' }}
+            className="text-xs font-semibold text-primary cursor-pointer"
           >
             See all
-          </Typography>
+          </button>
         }
       />
       <SectionCard>
         {isLoading ? (
-          <Box sx={{ px: 2 }}>
+          <div className="px-4">
             {[0, 1, 2].map(i => (
-              <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.25, borderTop: i > 0 ? '1px solid' : 'none', borderColor: 'divider' }}>
-                <Skeleton width="55%" height={16} />
-                <Skeleton width={40} height={16} sx={{ ml: 'auto' }} />
-              </Box>
+              <div key={i} className={cn('flex items-center gap-3 py-3', i > 0 && 'border-t border-border')}>
+                <Skeleton className="h-4 w-[55%]" />
+                <Skeleton className="h-4 w-10 ml-auto" />
+              </div>
             ))}
-          </Box>
+          </div>
         ) : topTodos.length === 0 ? (
           <EmptyState text="All caught up" />
         ) : (
           <>
             {topTodos.map((todo, i) => (
-              <Box
+              <div
                 key={todo.id}
-                sx={{
-                  px: 2, py: 1.25,
-                  display: 'flex', alignItems: 'center', gap: 1.5,
-                  borderTop: i > 0 ? '1px solid' : 'none',
-                  borderColor: 'divider',
-                }}
+                className={cn(
+                  'px-4 py-3 flex items-center gap-3',
+                  i > 0 && 'border-t border-border'
+                )}
               >
-                <Typography variant="body2" noWrap sx={{ flex: 1 }}>{todo.name}</Typography>
+                <p className="text-sm truncate flex-1">{todo.name}</p>
                 {todo.priority && (
-                  <Chip
-                    label={todo.priority}
-                    size="small"
-                    color={todo.priority === 'High' ? 'error' : todo.priority === 'Medium' ? 'warning' : 'default'}
-                    sx={{ fontSize: 10, height: 18, flexShrink: 0 }}
-                  />
+                  <Badge
+                    variant={todo.priority === 'High' ? 'destructive' : todo.priority === 'Medium' ? 'secondary' : 'outline'}
+                    className="text-[10px] h-[18px] shrink-0"
+                  >
+                    {todo.priority}
+                  </Badge>
                 )}
                 {todo.due && (
-                  <Typography variant="caption" color="primary.main" fontWeight={600} sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  <span className="text-xs font-semibold text-primary whitespace-nowrap shrink-0">
                     {dayLabel(todo.due, true)}
-                  </Typography>
+                  </span>
                 )}
-              </Box>
+              </div>
             ))}
             {remaining > 0 && (
-              <Box
+              <div
                 onClick={onSeeAll}
-                sx={{ px: 2, py: 1, borderTop: '1px solid', borderColor: 'divider', cursor: 'pointer' }}
+                className="px-4 py-2.5 border-t border-border cursor-pointer"
               >
-                <Typography variant="caption" color="text.secondary">+{remaining} more</Typography>
-              </Box>
+                <span className="text-xs text-muted-foreground">+{remaining} more</span>
+              </div>
             )}
           </>
         )}
       </SectionCard>
-    </Box>
+    </div>
   )
 }
 
@@ -265,77 +251,68 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
   const allUnassigned = storeBreakdown.count > 0 && storeBreakdown.stores.length === 0
 
   return (
-    <Box sx={{ mb: 3 }}>
+    <div className="mb-6">
       <SectionHeader
         label="Shopping list"
         action={
-          <Typography
-            variant="caption"
-            color="primary.main"
-            fontWeight={600}
+          <button
             onClick={onNavigate}
-            sx={{ cursor: 'pointer' }}
+            className="text-xs font-semibold text-primary cursor-pointer"
           >
             See all
-          </Typography>
+          </button>
         }
       />
       <SectionCard>
         {isLoading ? (
-          <Box sx={{ px: 2, py: 1.75 }}>
-            <Skeleton width={110} height={18} sx={{ mb: 0.75 }} />
-            <Skeleton width="80%" height={14} sx={{ mb: 0.5 }} />
-            <Skeleton width="60%" height={14} />
-          </Box>
+          <div className="px-4 py-3.5">
+            <Skeleton className="h-[18px] w-[110px] mb-2" />
+            <Skeleton className="h-3.5 w-4/5 mb-1.5" />
+            <Skeleton className="h-3.5 w-3/5" />
+          </div>
         ) : storeBreakdown.count === 0 ? (
           <EmptyState text="Nothing on the list" />
         ) : (
-          <Box sx={{ px: 2, py: 1.75 }}>
-            <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
+          <div className="px-4 py-3.5">
+            <p className="text-sm font-semibold mb-2">
               {`${storeBreakdown.count} item${storeBreakdown.count !== 1 ? 's' : ''} to buy`}
-            </Typography>
+            </p>
             {allUnassigned && (
-              <Typography variant="caption" color="text.secondary">
+              <p className="text-xs text-muted-foreground">
                 Add stores to your items for guidance
-              </Typography>
+              </p>
             )}
             {storeBreakdown.stores.map((store, i) => (
-              <Box
-                key={store.name}
-                sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}
-              >
-                <Typography
-                  variant="caption"
-                  fontWeight={i === 0 ? 700 : 400}
-                  color={i === 0 ? 'primary.main' : 'text.primary'}
-                  sx={{ flex: 1 }}
+              <div key={store.name} className="flex items-center mb-1">
+                <span
+                  className={cn(
+                    'text-xs flex-1',
+                    i === 0 ? 'font-bold text-primary' : 'font-normal text-foreground'
+                  )}
                 >
                   {i === 0 ? '★ ' : ''}
                   {store.name}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  fontWeight={i === 0 ? 700 : 400}
-                  color={i === 0 ? 'primary.main' : 'text.secondary'}
+                </span>
+                <span
+                  className={cn(
+                    'text-xs',
+                    i === 0 ? 'font-bold text-primary' : 'font-normal text-muted-foreground'
+                  )}
                 >
                   {store.count}
-                </Typography>
-              </Box>
+                </span>
+              </div>
             ))}
             {storeBreakdown.unassigned > 0 && storeBreakdown.stores.length > 0 && (
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Typography variant="caption" color="text.disabled" sx={{ flex: 1 }}>
-                  Not assigned
-                </Typography>
-                <Typography variant="caption" color="text.disabled">
-                  {storeBreakdown.unassigned}
-                </Typography>
-              </Box>
+              <div className="flex items-center">
+                <span className="text-xs text-muted-foreground/60 flex-1">Not assigned</span>
+                <span className="text-xs text-muted-foreground/60">{storeBreakdown.unassigned}</span>
+              </div>
             )}
-          </Box>
+          </div>
         )}
       </SectionCard>
-    </Box>
+    </div>
   )
 }
 
@@ -351,51 +328,47 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
   }, [recipes, seed])
 
   return (
-    <Box sx={{ mb: 3 }}>
+    <div className="mb-6">
       <SectionHeader
         label="Cook this week"
         action={
-          <IconButton size="small" onClick={() => setSeed(Math.random())} sx={{ color: 'text.disabled', mr: -0.5 }}>
-            <RefreshIcon sx={{ fontSize: 16 }} />
-          </IconButton>
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setSeed(Math.random())}
+            className="text-muted-foreground/60 -mr-1"
+          >
+            <RotateCcw className="size-4" />
+          </Button>
         }
       />
       {isLoading ? (
-        <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,.06)' }}>
-          <Skeleton variant="rectangular" sx={{ width: '100%', aspectRatio: '16/9' }} />
-          <Box sx={{ p: 1.5 }}>
-            <Skeleton width="70%" height={20} sx={{ mb: 0.75 }} />
-            <Box sx={{ display: 'flex', gap: 0.5 }}>
-              <Skeleton width={60} height={20} sx={{ borderRadius: 10 }} />
-              <Skeleton width={52} height={20} sx={{ borderRadius: 10 }} />
-            </Box>
-          </Box>
-        </Box>
+        <div className="bg-card rounded-lg border border-border overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.06)]">
+          <Skeleton className="w-full aspect-video" />
+          <div className="p-3">
+            <Skeleton className="h-5 w-[70%] mb-2" />
+            <div className="flex gap-1">
+              <Skeleton className="h-5 w-15 rounded-full" />
+              <Skeleton className="h-5 w-13 rounded-full" />
+            </div>
+          </div>
+        </div>
       ) : !recipe ? (
         <SectionCard><EmptyState text="No recipes yet" /></SectionCard>
       ) : (
         <SectionCard onClick={() => onNavigate(recipe.id)}>
-          <Box sx={{ position: 'relative', width: '100%', aspectRatio: '16/9' }}>
-            <Box sx={{
-              position: 'absolute', inset: 0, bgcolor: 'action.hover',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40,
-            }}>
+          <div className="relative w-full aspect-video">
+            <div className="absolute inset-0 bg-accent flex items-center justify-center text-4xl">
               🍽
-            </Box>
+            </div>
             {recipe.coverPhotoUrl && (
               <>
-                <Skeleton variant="rectangular" sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1 }} />
-                <Box
-                  component="img"
+                <Skeleton className="absolute inset-0 w-full h-full z-[1]" />
+                <img
                   src={recipe.coverPhotoUrl}
                   alt={recipe.name}
                   decoding="async"
-                  sx={{
-                    position: 'absolute', inset: 0,
-                    width: '100%', height: '100%',
-                    objectFit: 'cover', display: 'block',
-                    opacity: 0, transition: 'opacity .25s', zIndex: 2,
-                  }}
+                  className="absolute inset-0 w-full h-full object-cover block opacity-0 transition-opacity duration-[250ms] z-[2]"
                   onLoad={e => {
                     const img = e.target as HTMLImageElement
                     img.style.opacity = '1';
@@ -408,17 +381,17 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
                 />
               </>
             )}
-          </Box>
-          <Box sx={{ p: 1.5 }}>
-            <Typography variant="body1" fontWeight={600} sx={{ mb: 0.75 }}>{recipe.name}</Typography>
-            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-              {recipe.type && <Chip label={recipe.type} size="small" color="primary" variant="filled" sx={{ fontSize: 11, height: 20 }} />}
-              {recipe.day  && <Chip label={recipe.day}  size="small" variant="outlined"              sx={{ fontSize: 11, height: 20 }} />}
-            </Box>
-          </Box>
+          </div>
+          <div className="p-3">
+            <p className="text-base font-semibold mb-2">{recipe.name}</p>
+            <div className="flex gap-1 flex-wrap">
+              {recipe.type && <Badge variant="default" className="text-[11px] h-5">{recipe.type}</Badge>}
+              {recipe.day  && <Badge variant="outline" className="text-[11px] h-5">{recipe.day}</Badge>}
+            </div>
+          </div>
         </SectionCard>
       )}
-    </Box>
+    </div>
   )
 }
 
@@ -427,11 +400,11 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
 export default function Home() {
   const navigate = useNavigate()
   return (
-    <Box sx={{ pb: 2 }}>
+    <div className="pb-2">
       <CalendarSection onNavigate={() => navigate('/calendar')} />
       <TodoSection     onSeeAll={() => navigate('/todos')} />
       <ShoppingSection onNavigate={() => navigate('/shopping')} />
       <RecipeSection   onNavigate={id => navigate(`/recipes/${id}`)} />
-    </Box>
+    </div>
   )
 }

@@ -1,29 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
-import TextField from '@mui/material/TextField'
-import Autocomplete from '@mui/material/Autocomplete'
-import Button from '@mui/material/Button'
-import IconButton from '@mui/material/IconButton'
-import Stack from '@mui/material/Stack'
-import Divider from '@mui/material/Divider'
-import AppBar from '@mui/material/AppBar'
-import Toolbar from '@mui/material/Toolbar'
-import CircularProgress from '@mui/material/CircularProgress'
-import Skeleton from '@mui/material/Skeleton'
-import Dialog from '@mui/material/Dialog'
-import DialogTitle from '@mui/material/DialogTitle'
-import DialogContent from '@mui/material/DialogContent'
-import DialogContentText from '@mui/material/DialogContentText'
-import DialogActions from '@mui/material/DialogActions'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import AddIcon from '@mui/icons-material/Add'
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
-import EditIcon from '@mui/icons-material/Edit'
-import CheckIcon from '@mui/icons-material/Check'
-import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate'
+import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Check, ImagePlus } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -38,6 +15,20 @@ import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { useItems, useRecipes, useCreateRecipe, useEditRecipe, useDeleteRecipe, useRecipe, useRecipeIngredients, useConceptList } from '../api'
 import type { Item } from '../api'
 import { uploadPhoto } from '../api/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Command, CommandList, CommandItem, CommandEmpty } from '@/components/ui/command'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -58,6 +49,64 @@ interface IngRow {
 const DAY_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const NO_SECTION = ''
 
+// ── Item combobox ─────────────────────────────────────────────────────────────
+
+function ItemCombobox({
+  allItems,
+  value,
+  onChange,
+}: {
+  allItems: Item[]
+  value: string
+  onChange: (item: Item) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
+  const selected = allItems.find(i => i.id === value)
+
+  useEffect(() => {
+    if (!open) return
+    function handleClick(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  return (
+    <div ref={containerRef} className="relative flex-1">
+      <Input
+        value={open ? search : (selected?.name ?? '')}
+        placeholder="Item"
+        className="h-8 text-sm"
+        onFocus={() => { setSearch(''); setOpen(true) }}
+        onChange={e => { setSearch(e.target.value); if (!open) setOpen(true) }}
+      />
+      {open && (
+        <div className="absolute top-full left-0 z-50 mt-1 w-full rounded-md border bg-popover shadow-md">
+          <Command shouldFilter={false}>
+            <CommandList>
+              {allItems
+                .filter(i => !search || i.name.toLowerCase().includes(search.toLowerCase()))
+                .slice(0, 20)
+                .map(item => (
+                  <CommandItem
+                    key={item.id}
+                    onSelect={() => { onChange(item); setOpen(false); setSearch('') }}
+                  >
+                    {item.name}
+                  </CommandItem>
+                ))}
+              <CommandEmpty>No items found</CommandEmpty>
+            </CommandList>
+          </Command>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Droppable section container ───────────────────────────────────────────────
 
 function DroppableGroup({
@@ -69,17 +118,12 @@ function DroppableGroup({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: sectionKey === NO_SECTION ? '__none__' : sectionKey })
   return (
-    <Box
+    <div
       ref={setNodeRef}
-      sx={{
-        minHeight: 8,
-        borderRadius: 1,
-        transition: 'background 150ms',
-        bgcolor: isOver ? 'action.hover' : 'transparent',
-      }}
+      className={`min-h-2 rounded transition-colors ${isOver ? 'bg-accent' : 'bg-transparent'}`}
     >
       {children}
-    </Box>
+    </div>
   )
 }
 
@@ -105,63 +149,39 @@ function IngredientRowForm({
     : undefined
 
   return (
-    <Box
+    <div
       ref={setNodeRef}
       style={style}
-      sx={{
-        display: 'flex',
-        gap: 0.5,
-        alignItems: 'flex-start',
-        opacity: isDragging && !isDragOverlay ? 0.3 : 1,
-        bgcolor: isDragOverlay ? 'background.paper' : 'transparent',
-        borderRadius: isDragOverlay ? 1 : 0,
-        boxShadow: isDragOverlay ? 3 : 0,
-      }}
+      className={`flex gap-1 items-start ${isDragging && !isDragOverlay ? 'opacity-30' : 'opacity-100'} ${isDragOverlay ? 'bg-background rounded shadow-md' : ''}`}
     >
-      <Box
+      <div
         {...listeners}
         {...attributes}
-        sx={{
-          mt: 0.75,
-          cursor: 'grab',
-          color: 'text.disabled',
-          touchAction: 'none',
-          display: 'flex',
-          alignItems: 'center',
-        }}
+        className="mt-1 cursor-grab text-muted-foreground touch-none flex items-center"
+        style={{ touchAction: 'none' }}
       >
-        <DragIndicatorIcon fontSize="small" />
-      </Box>
-      <Autocomplete
-        sx={{ flex: 1 }}
-        options={allItems ?? []}
-        getOptionLabel={opt => (typeof opt === 'string' ? opt : opt.name)}
-        value={allItems?.find(i => i.id === row.itemId) ?? null}
-        onChange={(_, v) => {
-          if (v && typeof v !== 'string') {
-            onUpdate({ itemId: v.id, itemName: v.name })
-          }
-        }}
-        slotProps={{ popper: { placement: 'top-start' } }}
-        renderInput={params => <TextField {...params} label="Item" size="small" />}
-        isOptionEqualToValue={(opt, val) => opt.id === val.id}
-        noOptionsText="No items found"
+        <GripVertical className="size-4" />
+      </div>
+      <ItemCombobox
+        allItems={allItems}
+        value={row.itemId}
+        onChange={v => onUpdate({ itemId: v.id, itemName: v.name })}
       />
-      <TextField
-        label="Qty"
-        size="small"
+      <Input
         value={row.quantity}
         onChange={e => onUpdate({ quantity: e.target.value })}
-        sx={{ width: 80 }}
+        placeholder="Qty"
+        className="w-20 h-8 text-sm"
       />
-      <IconButton
-        size="small"
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={onRemove}
-        sx={{ mt: 0.5, color: 'text.secondary' }}
+        className="mt-0.5 text-muted-foreground"
       >
-        <DeleteOutlineIcon fontSize="small" />
-      </IconButton>
-    </Box>
+        <Trash2 className="size-4" />
+      </Button>
+    </div>
   )
 }
 
@@ -193,44 +213,37 @@ function SectionHeader({
   }
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1.5, mb: 0.5 }}>
+    <div className="flex items-center gap-1 mt-6 mb-2">
       {editing ? (
         <>
-          <TextField
-            inputRef={inputRef}
+          <input
+            ref={inputRef}
             value={draft}
             onChange={e => setDraft(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') commit()
               if (e.key === 'Escape') setEditing(false)
             }}
-            size="small"
-            variant="standard"
-            sx={{ flex: 1 }}
-            inputProps={{ style: { fontWeight: 600, fontSize: '0.75rem', letterSpacing: '.08em', textTransform: 'uppercase' } }}
+            className="flex-1 bg-transparent border-b border-input text-xs font-semibold tracking-widest uppercase outline-none"
           />
-          <IconButton size="small" onClick={commit}>
-            <CheckIcon fontSize="small" />
-          </IconButton>
+          <Button variant="ghost" size="icon-xs" onClick={commit}>
+            <Check className="size-3" />
+          </Button>
         </>
       ) : (
         <>
-          <Typography
-            variant="overline"
-            color="text.secondary"
-            sx={{ letterSpacing: '.08em', flex: 1 }}
-          >
+          <span className="flex-1 text-xs font-semibold tracking-widest uppercase text-muted-foreground">
             {name}
-          </Typography>
-          <IconButton size="small" onClick={startEdit} sx={{ color: 'text.disabled' }}>
-            <EditIcon sx={{ fontSize: 14 }} />
-          </IconButton>
-          <IconButton size="small" onClick={onDelete} sx={{ color: 'text.disabled' }}>
-            <DeleteOutlineIcon sx={{ fontSize: 14 }} />
-          </IconButton>
+          </span>
+          <Button variant="ghost" size="icon-xs" onClick={startEdit} className="text-muted-foreground">
+            <Pencil className="size-3" />
+          </Button>
+          <Button variant="ghost" size="icon-xs" onClick={onDelete} className="text-muted-foreground">
+            <Trash2 className="size-3" />
+          </Button>
         </>
       )}
-    </Box>
+    </div>
   )
 }
 
@@ -253,41 +266,41 @@ function AddSectionInput({ onAdd }: { onAdd: (name: string) => void }) {
   if (!open) {
     return (
       <Button
-        startIcon={<AddIcon />}
-        size="small"
+        variant="ghost"
+        size="sm"
         onClick={() => {
           setOpen(true)
           setTimeout(() => inputRef.current?.focus(), 0)
         }}
-        sx={{ mt: 1 }}
+        className="mt-2 gap-1"
       >
+        <Plus className="size-4" />
         Add section
       </Button>
     )
   }
 
   return (
-    <Box sx={{ display: 'flex', gap: 1, mt: 1, alignItems: 'center' }}>
-      <TextField
-        inputRef={inputRef}
+    <div className="flex gap-2 mt-2 items-center">
+      <Input
+        ref={inputRef}
         value={value}
         onChange={e => setValue(e.target.value)}
         onKeyDown={e => {
           if (e.key === 'Enter') commit()
           if (e.key === 'Escape') { setValue(''); setOpen(false) }
         }}
-        size="small"
         placeholder="Section name"
-        sx={{ flex: 1 }}
+        className="flex-1 h-8 text-sm"
         autoFocus
       />
-      <Button size="small" variant="contained" onClick={commit} disabled={!value.trim()}>
+      <Button size="sm" onClick={commit} disabled={!value.trim()}>
         Add
       </Button>
-      <Button size="small" onClick={() => { setValue(''); setOpen(false) }}>
+      <Button size="sm" variant="ghost" onClick={() => { setValue(''); setOpen(false) }}>
         Cancel
       </Button>
-    </Box>
+    </div>
   )
 }
 
@@ -389,7 +402,7 @@ export default function RecipeFormPage() {
     setSectionOrder(order)
     setNameError(false)
     setInitialized(true)
-  }, [isEdit, recipeData, ingredientsData, ingredientsLoading, initialized])
+  }, [isEdit, recipeData, ingredientsData, ingredientsLoading, recipeLoading, initialized])
 
   // ── DnD sensors ─────────────────────────────────────────────────────────────
 
@@ -550,15 +563,15 @@ export default function RecipeFormPage() {
   // ── Ingredient section ───────────────────────────────────────────────────────
 
   const ingredientSection = (
-    <Box>
-      <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '.08em' }}>
+    <div>
+      <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground">
         Ingredients
-      </Typography>
-      <Divider sx={{ mt: 0.5, mb: 1.5 }} />
+      </span>
+      <Separator className="mt-1 mb-3" />
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <DroppableGroup sectionKey={NO_SECTION}>
-          <Stack spacing={1.5}>
+          <div className="flex flex-col gap-3">
             {rows.filter(r => r.section === NO_SECTION).map(row => (
               <IngredientRowForm
                 key={row.key}
@@ -568,21 +581,22 @@ export default function RecipeFormPage() {
                 onRemove={() => removeRow(row.key, row.id)}
               />
             ))}
-          </Stack>
-          <Button startIcon={<AddIcon />} size="small" onClick={() => addRow(NO_SECTION)} sx={{ mt: 1 }}>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => addRow(NO_SECTION)} className="mt-2 gap-1">
+            <Plus className="size-4" />
             Add ingredient
           </Button>
         </DroppableGroup>
 
         {sectionOrder.map(sectionName => (
-          <Box key={sectionName}>
+          <div key={sectionName}>
             <SectionHeader
               name={sectionName}
               onRename={newName => renameSection(sectionName, newName)}
               onDelete={() => deleteSection(sectionName)}
             />
             <DroppableGroup sectionKey={sectionName}>
-              <Stack spacing={1.5}>
+              <div className="flex flex-col gap-3">
                 {rows.filter(r => r.section === sectionName).map(row => (
                   <IngredientRowForm
                     key={row.key}
@@ -592,12 +606,13 @@ export default function RecipeFormPage() {
                     onRemove={() => removeRow(row.key, row.id)}
                   />
                 ))}
-              </Stack>
-              <Button startIcon={<AddIcon />} size="small" onClick={() => addRow(sectionName)} sx={{ mt: 1 }}>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => addRow(sectionName)} className="mt-2 gap-1">
+                <Plus className="size-4" />
                 Add ingredient
               </Button>
             </DroppableGroup>
-          </Box>
+          </div>
         ))}
 
         <DragOverlay>
@@ -614,183 +629,190 @@ export default function RecipeFormPage() {
       </DndContext>
 
       <AddSectionInput onAdd={addSection} />
-    </Box>
+    </div>
   )
 
   // ── Form body ────────────────────────────────────────────────────────────────
 
+  const typeId = 'recipe-type-list'
+  const dayId = 'recipe-day-list'
+
   const formBody = (
-    <Stack spacing={2} sx={{ pb: 2 }}>
-      <TextField
-        label="Name"
-        fullWidth
-        value={name}
-        onChange={e => { setName(e.target.value); if (nameError) setNameError(false) }}
-        size="small"
-        required
-        error={nameError}
-        helperText={nameError ? 'Name is required' : undefined}
-        autoFocus
-      />
+    <div className="flex flex-col gap-4 pb-4">
+      <datalist id={typeId}>
+        {typeOptions.map(o => <option key={o} value={o} />)}
+      </datalist>
+      <datalist id={dayId}>
+        {dayOptions.map(o => <option key={o} value={o} />)}
+      </datalist>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-        <Autocomplete
-          freeSolo
-          options={typeOptions}
+      <div className="flex flex-col gap-1">
+        <Input
+          value={name}
+          onChange={e => { setName(e.target.value); if (nameError) setNameError(false) }}
+          placeholder="Name *"
+          autoFocus
+          aria-invalid={nameError}
+          className={nameError ? 'border-destructive' : ''}
+        />
+        {nameError && (
+          <p className="text-xs text-destructive">Name is required</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Input
           value={type ?? ''}
-          onChange={(_, v) => setType(v || null)}
-          onInputChange={(_, v, reason) => { if (reason === 'input') setType(v || null) }}
-          slotProps={{ popper: { placement: 'top-start' } }}
-          renderInput={params => <TextField {...params} label="Type" size="small" />}
+          onChange={e => setType(e.target.value || null)}
+          placeholder="Type"
+          list={typeId}
         />
-        <Autocomplete
-          freeSolo
-          options={dayOptions}
+        <Input
           value={day ?? ''}
-          onChange={(_, v) => setDay(v || null)}
-          onInputChange={(_, v, reason) => { if (reason === 'input') setDay(v || null) }}
-          slotProps={{ popper: { placement: 'top-start' } }}
-          renderInput={params => <TextField {...params} label="Day" size="small" />}
+          onChange={e => setDay(e.target.value || null)}
+          placeholder="Day"
+          list={dayId}
         />
-      </Box>
+      </div>
 
-      <TextField
-        label="URL"
-        fullWidth
+      <Input
         value={url}
         onChange={e => setUrl(e.target.value)}
-        size="small"
-        type="url"
         placeholder="https://..."
+        type="url"
       />
 
       {/* Cover photo upload */}
-      <Box>
+      <div>
         <input
           ref={photoInputRef}
           type="file"
           accept="image/*"
-          style={{ display: 'none' }}
+          className="hidden"
           onChange={handlePhotoChange}
         />
         {previewUrl ? (
-          <Box
-            sx={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: 1, overflow: 'hidden', cursor: 'pointer' }}
+          <div
+            className="relative w-full cursor-pointer overflow-hidden rounded"
+            style={{ aspectRatio: '16/9' }}
             onClick={() => photoInputRef.current?.click()}
           >
-            <Box
-              component="img"
+            <img
               src={previewUrl}
               alt="Cover preview"
-              sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              className="w-full h-full object-cover block"
             />
             {photoUploading && (
-              <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0.4)' }}>
-                <CircularProgress size={32} sx={{ color: 'white' }} />
-              </Box>
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent" />
+              </div>
             )}
             {!photoUploading && (
-              <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(0,0,0,0)', '&:hover': { bgcolor: 'rgba(0,0,0,0.35)' }, transition: 'background 0.15s' }}>
-                <Typography variant="caption" sx={{ color: 'white', opacity: 0, '.MuiBox-root:hover > &': { opacity: 1 }, pointerEvents: 'none' }}>
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/35 transition-colors">
+                <span className="text-white text-xs opacity-0 pointer-events-none group-hover:opacity-100">
                   Change photo
-                </Typography>
-              </Box>
+                </span>
+              </div>
             )}
-          </Box>
+          </div>
         ) : (
-          <Box
+          <div
             onClick={() => photoInputRef.current?.click()}
-            sx={{ width: '100%', aspectRatio: '16/9', border: '2px dashed', borderColor: 'divider', borderRadius: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.5, cursor: 'pointer', color: 'text.secondary', '&:hover': { borderColor: 'primary.main', color: 'primary.main' } }}
+            className="w-full border-2 border-dashed border-border rounded flex flex-col items-center justify-center gap-1 cursor-pointer text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+            style={{ aspectRatio: '16/9' }}
           >
-            <AddPhotoAlternateIcon />
-            <Typography variant="caption">Add photo</Typography>
-          </Box>
+            <ImagePlus className="size-6" />
+            <span className="text-xs">Add photo</span>
+          </div>
         )}
         {photoError && (
-          <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+          <p className="text-xs text-destructive mt-1">
             Upload failed — previous photo kept
-          </Typography>
+          </p>
         )}
-      </Box>
+      </div>
 
-      <TextField
-        label="Instructions"
-        fullWidth
-        multiline
-        minRows={4}
+      <Textarea
         value={instructions}
         onChange={e => setInstructions(e.target.value)}
-        size="small"
         placeholder="One paragraph per line…"
+        rows={4}
       />
 
       {ingredientSection}
-    </Stack>
+    </div>
   )
 
   const title = isEdit ? 'Edit recipe' : 'New recipe'
 
   return (
-    <Box sx={{ height: '100vh', bgcolor: 'background.default', display: 'flex', flexDirection: 'column' }}>
-      <AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Toolbar sx={{ px: 2 }}>
-          <IconButton edge="start" size="small" onClick={() => navigate(-1)} disabled={isPending} sx={{ mr: 1 }}>
-            <ArrowBackIcon fontSize="small" />
-          </IconButton>
-          <Typography variant="h6" sx={{ flex: 1, fontSize: '1rem', fontWeight: 600 }}>
-            {title}
-          </Typography>
-          <Button variant="contained" disableElevation disabled={!canSubmit} onClick={handleSubmit} size="small">
+    <div className="h-dvh bg-background flex flex-col">
+      <header className="sticky top-0 z-50 bg-background border-b shrink-0">
+        <div className="max-w-xl mx-auto flex items-center px-2 h-14">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            disabled={isPending}
+            className="-ml-2"
+          >
+            <ArrowLeft />
+          </Button>
+          <h1 className="flex-1 text-lg font-bold">{title}</h1>
+          <Button disabled={!canSubmit} onClick={handleSubmit} size="sm">
             {isPending ? (isEdit ? 'Saving…' : 'Creating…') : (isEdit ? 'Save' : 'Create')}
           </Button>
-        </Toolbar>
-      </AppBar>
+        </div>
+      </header>
 
-      <Box sx={{ px: 2, py: 2, overflowY: 'auto', overscrollBehavior: 'contain', flex: 1, maxWidth: 600, mx: 'auto', width: '100%' }}>
+      <div className="px-4 py-4 overflow-y-auto overscroll-contain flex-1 max-w-xl mx-auto w-full">
         {isLoadingEdit ? (
-          <Stack spacing={2}>
-            <Skeleton height={40} />
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-              <Skeleton height={40} />
-              <Skeleton height={40} />
-            </Box>
-            <Skeleton height={40} />
-            <Skeleton variant="rectangular" sx={{ width: '100%', aspectRatio: '16/9', borderRadius: 1 }} />
-            <Skeleton height={120} />
-          </Stack>
+          <div className="flex flex-col gap-4">
+            <Skeleton className="h-9 w-full" />
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="w-full rounded" style={{ aspectRatio: '16/9' }} />
+            <Skeleton className="h-28 w-full" />
+          </div>
         ) : formBody}
 
         {isEdit && !isLoadingEdit && (
-          <Box sx={{ mt: 3, mb: 2, display: 'flex', justifyContent: 'center' }}>
+          <div className="mt-6 mb-4 flex justify-center">
             <Button
-              color="error"
-              size="small"
-              startIcon={<DeleteOutlineIcon fontSize="small" />}
+              variant="ghost"
+              size="sm"
               onClick={() => setDeleteDialogOpen(true)}
               disabled={isPending || deleteRecipe.isPending}
+              className="text-destructive hover:text-destructive gap-1"
             >
+              <Trash2 className="size-4" />
               Delete recipe
             </Button>
-          </Box>
+          </div>
         )}
 
-        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-          <DialogTitle>Delete recipe?</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              This will permanently delete "{name}" and all its ingredients. This can't be undone.
-            </DialogContentText>
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle>Delete recipe?</DialogTitle>
+              <DialogDescription>
+                This will permanently delete "{name}" and all its ingredients. This can't be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleteRecipe.isPending}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={deleteRecipe.isPending}>
+                {deleteRecipe.isPending ? 'Deleting…' : 'Delete'}
+              </Button>
+            </DialogFooter>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleteRecipe.isPending}>
-              Cancel
-            </Button>
-            <Button color="error" onClick={handleDelete} disabled={deleteRecipe.isPending}>
-              {deleteRecipe.isPending ? 'Deleting…' : 'Delete'}
-            </Button>
-          </DialogActions>
         </Dialog>
-      </Box>
-    </Box>
+      </div>
+    </div>
   )
 }
