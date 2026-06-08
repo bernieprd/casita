@@ -16,7 +16,7 @@ export const DEFAULT_THEME: ThemePrefs = {
 
 export const COLOR_PRESETS = [
   { label: 'Forest',      hsl: '152 41% 30%' },
-  { label: 'Sage',        hsl: '145 25% 48%' },
+  { label: 'Sage',        hsl: '145 25% 36%' },
   { label: 'Terracotta',  hsl: '16 55% 45%' },
   { label: 'Stone',       hsl: '30 12% 40%' },
   { label: 'Dusk',        hsl: '245 30% 45%' },

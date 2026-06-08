@@ -35,7 +35,7 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly 
             if (!value) return
             setPrefs({ ...prefs, colorScheme: value as ThemePrefs['colorScheme'] })
           }}
-          className="justify-start"
+          className="justify-start [&_[data-state=on]]:bg-primary [&_[data-state=on]]:text-primary-foreground"
         >
           <ToggleGroupItem value="light" aria-label="Light mode">
             <Sun className="h-4 w-4" />
@@ -142,12 +142,9 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly 
       <Separator />
 
       <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Radius
-          </Label>
-          <span className="text-sm text-muted-foreground">{prefs.radius}</span>
-        </div>
+        <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Radius
+        </Label>
         <div className={readOnly ? 'opacity-50 pointer-events-none' : ''}>
           <Slider
             min={0}
@@ -155,7 +152,7 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly 
             step={1}
             value={[radiusValue]}
             onValueChange={([v]) => {
-              const rem = v === 0 ? '0rem' : `${(v * 0.0625).toFixed(3).replace(/0+$/, '')}rem`
+              const rem = v === 0 ? '0rem' : `${(v * 0.0625).toFixed(3).replace(/\.?0+$/, '')}rem`
               setPrefs({ ...prefs, radius: rem })
             }}
           />

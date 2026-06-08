@@ -91,44 +91,34 @@ function RecipeGrid({ onSelect, setHeader }: { onSelect: (id: string) => void; s
   useEffect(() => {
     if (!setHeader) return
     setHeader(
-      <div className="flex-1 relative px-2">
-        <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Search recipes…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+      <div className="flex items-center gap-2 flex-1 px-2">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search recipes…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <Button size="sm" onClick={() => navigate('/recipes/new')}>
+          <Plus className="h-4 w-4 mr-1" /> New
+        </Button>
       </div>
     )
     return () => setHeader(null)
   }, [search, setHeader])
-
-  const fab = (
-    <Button
-      size="icon"
-      aria-label="New recipe"
-      onClick={() => navigate('/recipes/new')}
-      className="rounded-full fixed bottom-20 right-4 h-14 w-14 shadow-lg"
-      style={{ bottom: 'calc(80px + env(safe-area-inset-bottom))' }}
-    >
-      <Plus className="h-6 w-6" />
-    </Button>
-  )
 
   if (isLoading) return <RecipeGridSkeleton />
   if (error) return <p className="text-destructive p-4">Failed to load recipes.</p>
 
   if (!recipes?.length) {
     return (
-      <>
-        <div className="pt-10 text-center px-4">
-          <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
-          <p className="text-sm font-medium text-muted-foreground mb-1">No recipes yet</p>
-          <p className="text-sm text-muted-foreground/60">Tap + to add your first recipe</p>
-        </div>
-        {fab}
-      </>
+      <div className="pt-10 text-center px-4">
+        <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
+        <p className="text-sm font-medium text-muted-foreground mb-1">No recipes yet</p>
+        <p className="text-sm text-muted-foreground/60">Tap + to add your first recipe</p>
+      </div>
     )
   }
 
@@ -216,7 +206,6 @@ function RecipeGrid({ onSelect, setHeader }: { onSelect: (id: string) => void; s
         </div>
       )}
 
-      {fab}
     </div>
   )
 }

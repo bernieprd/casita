@@ -23,7 +23,7 @@ import { useConceptList, useCreateConcept, useRenameConcept, useDeleteConcept, u
 import type { ConceptType } from '../api/concepts'
 import type { UserCalendar } from '../api/types'
 import { useUser } from '@clerk/clerk-react'
-import { useAuth } from '../context/AuthContext'
+import { useAuth, useHousehold } from '../context/AuthContext'
 
 // ── ConceptSection ─────────────────────────────────────────────────────────────
 
@@ -154,6 +154,7 @@ function ConceptSection({ type, label, addLabel }: { type: ConceptType; label: s
 export default function Settings() {
   const { user } = useUser()
   const { logout } = useAuth()
+  const { refreshHousehold } = useHousehold()
   const [searchParams, setSearchParams] = useSearchParams()
   const oauthResult = searchParams.get('google')
 
@@ -194,7 +195,12 @@ export default function Settings() {
 
   function handleRenameSave() {
     if (!nameInput.trim()) return
-    renameHousehold(nameInput.trim(), { onSuccess: () => setRenaming(false) })
+    renameHousehold(nameInput.trim(), {
+      onSuccess: () => {
+        setRenaming(false)
+        refreshHousehold()
+      },
+    })
   }
 
   // ── Google Calendar ────────────────────────────────────────────────────────
