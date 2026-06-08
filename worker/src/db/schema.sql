@@ -50,12 +50,6 @@ CREATE TABLE IF NOT EXISTS item_supermarkets (
   PRIMARY KEY (item_id, supermarket)
 );
 
-CREATE TABLE IF NOT EXISTS item_tags (
-  item_id TEXT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-  tag     TEXT NOT NULL,
-  PRIMARY KEY (item_id, tag)
-);
-
 -- ── Recipes ───────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS recipes (
@@ -125,15 +119,6 @@ CREATE TABLE IF NOT EXISTS household_supermarkets (
   PRIMARY KEY (household_id, id)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS hs_name ON household_supermarkets(household_id, name);
-
-CREATE TABLE IF NOT EXISTS household_tags (
-  id           TEXT NOT NULL,
-  household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
-  name         TEXT NOT NULL,
-  sort_order   INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY (household_id, id)
-);
-CREATE UNIQUE INDEX IF NOT EXISTS htag_name ON household_tags(household_id, name);
 
 -- ── Todos ─────────────────────────────────────────────────────────────────────
 

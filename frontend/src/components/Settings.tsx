@@ -24,7 +24,7 @@ import {
   initiateGoogleConnect,
 } from '../api/google-calendar'
 import { useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold } from '../api/household'
-import { useConceptList, useCreateConcept, useRenameConcept, useDeleteConcept } from '../api/concepts'
+import { useConceptList, useCreateConcept, useRenameConcept, useDeleteConcept, useBackfillConcepts } from '../api/concepts'
 import type { ConceptType } from '../api/concepts'
 import type { UserCalendar } from '../api/types'
 import { useUser } from '@clerk/clerk-react'
@@ -155,6 +155,9 @@ export default function Settings() {
   const { logout } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const oauthResult = searchParams.get('google') // "connected" | "error" | null
+
+  const { mutate: backfill } = useBackfillConcepts()
+  useEffect(() => { backfill() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (oauthResult) {
@@ -335,66 +338,17 @@ export default function Settings() {
         </Button>
       ) : null}
 
-      {isOwner && (
-        <>
-          <Divider sx={{ my: 2 }} />
-
-          <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1.5 }}>
-            Items
-          </Typography>
-          <ConceptSection type="categories"   label="Categories"   addLabel="Add category" />
-          <ConceptSection type="supermarkets" label="Supermarkets"  addLabel="Add supermarket" />
-
-          <Divider sx={{ my: 2 }} />
-
-          <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1.5 }}>
-            Recipes
-          </Typography>
-          <ConceptSection type="recipe-types" label="Recipe Types" addLabel="Add type" />
-          <ConceptSection type="tags"         label="Tags"          addLabel="Add tag" />
-        </>
-      )}
-
       <Divider sx={{ my: 2 }} />
 
-      {/* Google Account section */}
+      {/* Google Calendar section */}
       <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1 }}>
-        Google Account
+        Google Calendar
       </Typography>
 
       {statusLoading ? (
         <Skeleton width={220} height={36} sx={{ borderRadius: 1 }} />
       ) : isConnected ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Typography variant="body2">Google Calendar connected</Typography>
-          <Button
-            variant="outlined"
-            color="error"
-            size="small"
-            onClick={() => disconnectGoogle()}
-          >
-            Disconnect
-          </Button>
-        </Box>
-      ) : (
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={() => initiateGoogleConnect()}
-        >
-          Connect Google Calendar
-        </Button>
-      )}
-
-      {/* My Calendars section */}
-      {isConnected && (
         <>
-          <Divider sx={{ my: 2 }} />
-
-          <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1 }}>
-            My Calendars
-          </Typography>
-
           {calendarsLoading ? (
             <>
               {[0, 1, 2].map(i => (
@@ -450,6 +404,42 @@ export default function Settings() {
               ))}
             </>
           )}
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            onClick={() => disconnectGoogle()}
+            sx={{ mt: 0.5 }}
+          >
+            Disconnect
+          </Button>
+        </>
+      ) : (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => initiateGoogleConnect()}
+        >
+          Connect Google Calendar
+        </Button>
+      )}
+
+      {isOwner && (
+        <>
+          <Divider sx={{ my: 2 }} />
+
+          <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1.5 }}>
+            Shopping
+          </Typography>
+          <ConceptSection type="categories"   label="Categories"   addLabel="Add category" />
+          <ConceptSection type="supermarkets" label="Supermarkets"  addLabel="Add supermarket" />
+
+          <Divider sx={{ my: 2 }} />
+
+          <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1.5 }}>
+            Recipes
+          </Typography>
+          <ConceptSection type="recipe-types" label="Type" addLabel="Add type" />
         </>
       )}
     </Box>

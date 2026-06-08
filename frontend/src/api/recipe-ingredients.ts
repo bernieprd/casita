@@ -67,7 +67,7 @@ export function useToggleNeedsShopping(recipeId: string) {
             const full = qc.getQueryData<Item[]>(itemKeys.all)?.find(i => i.id === itemId)
             const item: Item = full
               ? { ...full, onShoppingList: true }
-              : { id: itemId, name: itemName ?? '', category: null, supermarkets: [], tags: [], onShoppingList: true }
+              : { id: itemId, name: itemName ?? '', category: null, supermarkets: [], onShoppingList: true }
             return [...old, item]
           }
           return old.filter(i => i.id !== itemId)

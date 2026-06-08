@@ -61,7 +61,7 @@ export default function Shopping() {
 
   function handleCreate() {
     create.mutate(
-      { name: query.trim(), category: null, supermarkets: [], tags: [], onShoppingList: true },
+      { name: query.trim(), category: null, supermarkets: [], onShoppingList: true },
       {
         onSuccess: item => { setQuery(''); setEditItem(item) },
         onError: () => setCreateError(true),

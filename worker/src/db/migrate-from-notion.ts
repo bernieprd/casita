@@ -75,11 +75,6 @@ async function migrateItems(
         'INSERT OR IGNORE INTO item_supermarkets (item_id, supermarket) VALUES (?, ?)',
       ).bind(item.id, s).run()
     }
-    for (const t of item.tags) {
-      await env.DB.prepare(
-        'INSERT OR IGNORE INTO item_tags (item_id, tag) VALUES (?, ?)',
-      ).bind(item.id, t).run()
-    }
   }
   log.push(`  items: ${pages.length}`)
 }

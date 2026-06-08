@@ -69,7 +69,7 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
     const finalSupermarkets = supermarketInput.trim()
       ? [...new Set([...supermarkets, supermarketInput.trim()])]
       : supermarkets
-    const data = { name: name.trim(), category, supermarkets: finalSupermarkets, tags: [], onShoppingList: item?.onShoppingList ?? false }
+    const data = { name: name.trim(), category, supermarkets: finalSupermarkets, onShoppingList: item?.onShoppingList ?? false }
     if (isEdit) {
       update.mutate({ id: item.id, data }, { onSuccess: onClose })
     } else {

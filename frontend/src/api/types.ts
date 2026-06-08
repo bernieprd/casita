@@ -3,7 +3,6 @@ export interface Item {
   name: string
   category: string | null
   supermarkets: string[]
-  tags: string[]
   onShoppingList: boolean
 }
 

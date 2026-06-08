@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 
-export type ConceptType = 'recipe-types' | 'categories' | 'supermarkets' | 'tags'
+export type ConceptType = 'recipe-types' | 'categories' | 'supermarkets'
 
 export interface ConceptItem {
   id: string
@@ -49,6 +49,14 @@ export function useRenameConcept(type: ConceptType) {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: conceptKeys.list(type) })
     },
+  })
+}
+
+export function useBackfillConcepts() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post<{ categories: number; supermarkets: number }>('/concepts/backfill', {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['concepts'] }),
   })
 }
 

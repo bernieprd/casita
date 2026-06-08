@@ -67,7 +67,6 @@ export function normalizeItem(page: NotionPage): Item {
     name: title(p['Item']),
     category: select(p['Category']),
     supermarkets: multiSelect(p['Supermarket']),
-    tags: multiSelect(p['Tags']),
     onShoppingList: checkbox(p['Shopping List']),
   }
 }
@@ -113,8 +112,6 @@ export function itemToProps(fields: Partial<Omit<Item, 'id'>>): NotionProps {
     props['Category'] = fields.category ? { select: { name: fields.category } } : { select: null }
   if (fields.supermarkets !== undefined)
     props['Supermarket'] = { multi_select: fields.supermarkets.map(name => ({ name })) }
-  if (fields.tags !== undefined)
-    props['Tags'] = { multi_select: fields.tags.map(name => ({ name })) }
   if (fields.onShoppingList !== undefined)
     props['Shopping List'] = { checkbox: fields.onShoppingList }
   return props

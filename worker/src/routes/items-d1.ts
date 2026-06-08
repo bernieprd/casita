@@ -16,21 +16,17 @@ async function fetchItemWithJunctions(env: Env, id: string): Promise<Item | null
   ).bind(id).first<ItemRow>()
   if (!row) return null
 
-  const [supermarkets, tags] = await Promise.all([
-    env.DB.prepare('SELECT supermarket FROM item_supermarkets WHERE item_id = ?').bind(id).all<{ supermarket: string }>(),
-    env.DB.prepare('SELECT tag FROM item_tags WHERE item_id = ?').bind(id).all<{ tag: string }>(),
-  ])
+  const supermarkets = await env.DB.prepare('SELECT supermarket FROM item_supermarkets WHERE item_id = ?').bind(id).all<{ supermarket: string }>()
 
-  return rowToItem(row, supermarkets.results.map(r => r.supermarket), tags.results.map(r => r.tag))
+  return rowToItem(row, supermarkets.results.map(r => r.supermarket))
 }
 
-function rowToItem(row: ItemRow, supermarkets: string[], tags: string[]): Item {
+function rowToItem(row: ItemRow, supermarkets: string[]): Item {
   return {
     id: row.id,
     name: row.name,
     category: row.category,
     supermarkets,
-    tags,
     onShoppingList: Boolean(row.on_shopping_list),
   }
 }
@@ -48,11 +44,8 @@ export async function getItems(req: Request, env: Env, ctx: RequestContext): Pro
   const { results } = await env.DB.prepare(query).bind(ctx.householdId).all<ItemRow>()
 
   const items = await Promise.all(results.map(async row => {
-    const [sm, tg] = await Promise.all([
-      env.DB.prepare('SELECT supermarket FROM item_supermarkets WHERE item_id = ?').bind(row.id).all<{ supermarket: string }>(),
-      env.DB.prepare('SELECT tag FROM item_tags WHERE item_id = ?').bind(row.id).all<{ tag: string }>(),
-    ])
-    return rowToItem(row, sm.results.map(r => r.supermarket), tg.results.map(r => r.tag))
+    const sm = await env.DB.prepare('SELECT supermarket FROM item_supermarkets WHERE item_id = ?').bind(row.id).all<{ supermarket: string }>()
+    return rowToItem(row, sm.results.map(r => r.supermarket))
   }))
 
   return Response.json(items)
@@ -65,7 +58,6 @@ export async function createItem(req: Request, env: Env, ctx: RequestContext): P
     name: string
     category?: string | null
     supermarkets?: string[]
-    tags?: string[]
     onShoppingList?: boolean
   }>()
 
@@ -78,16 +70,12 @@ export async function createItem(req: Request, env: Env, ctx: RequestContext): P
   ).bind(id, ctx.householdId, body.name, body.category ?? null, body.onShoppingList ? 1 : 0, now, now).run()
 
   const supermarkets = body.supermarkets ?? []
-  const tags = body.tags ?? []
 
-  await Promise.all([
-    ...supermarkets.map(s =>
+  await Promise.all(
+    supermarkets.map(s =>
       env.DB.prepare('INSERT OR IGNORE INTO item_supermarkets (item_id, supermarket) VALUES (?, ?)').bind(id, s).run(),
     ),
-    ...tags.map(t =>
-      env.DB.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag) VALUES (?, ?)').bind(id, t).run(),
-    ),
-  ])
+  )
 
   const item = await fetchItemWithJunctions(env, id)
   return Response.json(item!, { status: 201 })
@@ -100,7 +88,6 @@ export async function updateItem(req: Request, env: Env, ctx: RequestContext, id
     name?: string
     category?: string | null
     supermarkets?: string[]
-    tags?: string[]
     onShoppingList?: boolean
   }>()
 
@@ -121,15 +108,6 @@ export async function updateItem(req: Request, env: Env, ctx: RequestContext, id
     await Promise.all(
       body.supermarkets.map(s =>
         env.DB.prepare('INSERT OR IGNORE INTO item_supermarkets (item_id, supermarket) VALUES (?, ?)').bind(id, s).run(),
-      ),
-    )
-  }
-
-  if (body.tags !== undefined) {
-    await env.DB.prepare('DELETE FROM item_tags WHERE item_id = ?').bind(id).run()
-    await Promise.all(
-      body.tags.map(t =>
-        env.DB.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag) VALUES (?, ?)').bind(id, t).run(),
       ),
     )
   }

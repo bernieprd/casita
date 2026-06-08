@@ -1,12 +1,11 @@
 import type { Env, RequestContext, ConceptItem } from '../types'
 
-type ConceptType = 'recipe-types' | 'categories' | 'supermarkets' | 'tags'
+type ConceptType = 'recipe-types' | 'categories' | 'supermarkets'
 
 const TABLE: Record<ConceptType, string> = {
   'recipe-types': 'household_recipe_types',
   'categories':   'household_categories',
   'supermarkets': 'household_supermarkets',
-  'tags':         'household_tags',
 }
 
 function rowToConcept(row: Record<string, unknown>): ConceptItem {
@@ -40,16 +39,6 @@ async function checkInUse(env: Env, householdId: string, type: ConceptType, name
         `SELECT COUNT(*) as n FROM item_supermarkets
          WHERE item_id IN (SELECT id FROM items WHERE household_id = ?)
          AND supermarket = ?`,
-      )
-      .bind(householdId, name).first<{ n: number }>()
-    return row?.n ?? 0
-  }
-  if (type === 'tags') {
-    const row = await env.DB
-      .prepare(
-        `SELECT COUNT(*) as n FROM item_tags
-         WHERE item_id IN (SELECT id FROM items WHERE household_id = ?)
-         AND tag = ?`,
       )
       .bind(householdId, name).first<{ n: number }>()
     return row?.n ?? 0
@@ -194,4 +183,52 @@ export async function seedHouseholdConcepts(env: Env, householdId: string): Prom
       .bind(crypto.randomUUID(), householdId, recipeTypes[i], i + 1)
       .run()
   }
+}
+
+export async function backfillConcepts(
+  env: Env,
+  householdId: string,
+): Promise<{ categories: number; supermarkets: number }> {
+  const { results: catRows } = await env.DB
+    .prepare('SELECT DISTINCT category FROM items WHERE household_id = ? AND category IS NOT NULL')
+    .bind(householdId)
+    .all<{ category: string }>()
+
+  let categories = 0
+  for (const { category } of catRows) {
+    const result = await env.DB
+      .prepare('INSERT OR IGNORE INTO household_categories (id, household_id, name, sort_order) VALUES (?, ?, ?, 0)')
+      .bind(crypto.randomUUID(), householdId, category)
+      .run()
+    categories += result.meta.changes
+  }
+
+  const { results: supRows } = await env.DB
+    .prepare(
+      `SELECT DISTINCT supermarket FROM item_supermarkets
+       WHERE item_id IN (SELECT id FROM items WHERE household_id = ?)`,
+    )
+    .bind(householdId)
+    .all<{ supermarket: string }>()
+
+  let supermarkets = 0
+  for (const { supermarket } of supRows) {
+    const result = await env.DB
+      .prepare('INSERT OR IGNORE INTO household_supermarkets (id, household_id, name, sort_order) VALUES (?, ?, ?, 0)')
+      .bind(crypto.randomUUID(), householdId, supermarket)
+      .run()
+    supermarkets += result.meta.changes
+  }
+
+  return { categories, supermarkets }
+}
+
+export async function backfillConceptsRoute(
+  _req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  const result = await backfillConcepts(env, ctx.householdId)
+  return Response.json(result)
 }
