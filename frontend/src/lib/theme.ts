@@ -5,9 +5,9 @@ export interface ThemePrefs {
 }
 
 export const DEFAULT_THEME: ThemePrefs = {
-  primaryHsl: '152 41% 30%',
+  primaryHsl: '220 9% 30%',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  radius: '0.5rem',
+  radius: '0.25rem',
 }
 
 export const COLOR_PRESETS = [

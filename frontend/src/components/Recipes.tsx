@@ -1,14 +1,13 @@
-import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Pencil, Search, Share, ChevronLeft, RefreshCw } from 'lucide-react'
+import { Plus, Pencil, Search, Share, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
-import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping, useItems, useShareRecipe, recipeKeys } from '../api'
-import { useQueryClient } from '@tanstack/react-query'
+import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping, useItems, useShareRecipe } from '../api'
 import type { Block, RecipeIngredient, Item } from '../api'
 
 // ── Block renderer ────────────────────────────────────────────────────────────
@@ -55,7 +54,7 @@ function RecipeGridSkeleton() {
 
 // ── Recipe grid ───────────────────────────────────────────────────────────────
 
-function RecipeGrid({ onSelect }: { onSelect: (id: string) => void }) {
+function RecipeGrid({ onSelect, setHeader }: { onSelect: (id: string) => void; setHeader?: (node: ReactNode | null) => void }) {
   const { data: recipes, isLoading, error } = useRecipes()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
@@ -89,6 +88,22 @@ function RecipeGrid({ onSelect }: { onSelect: (id: string) => void }) {
 
   const isFiltering = search.trim() !== '' || selectedType !== null
 
+  useEffect(() => {
+    if (!setHeader) return
+    setHeader(
+      <div className="flex-1 relative px-2">
+        <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          className="pl-9"
+          placeholder="Search recipes…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+    )
+    return () => setHeader(null)
+  }, [search, setHeader])
+
   const fab = (
     <Button
       size="icon"
@@ -119,29 +134,6 @@ function RecipeGrid({ onSelect }: { onSelect: (id: string) => void }) {
 
   return (
     <div>
-      {/* Sticky search bar — flush with AppBar, full viewport width */}
-      <div
-        className="sticky z-10 mb-3 bg-background border-b border-border"
-        style={{
-          top: 'clamp(57px, 57px, 65px)',
-          marginLeft: 'calc(50% - 50vw)',
-          width: '100vw',
-          marginTop: '-16px',
-        }}
-      >
-        <div className="max-w-xl mx-auto px-4 py-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="Search recipes…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Type filter chips */}
       {typeOptions.length > 0 && (
         <div className="flex gap-1.5 flex-wrap mb-3">
@@ -315,7 +307,6 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
   const { data: ingredients, isLoading: ingredientsLoading } = useRecipeIngredients(id)
   const toggle = useToggleNeedsShopping(id)
   const { data: allItems = [] } = useItems()
-  const qc = useQueryClient()
   const navigate = useNavigate()
   const shareRecipe = useShareRecipe(id)
   const onBackRef = useRef(onBack)
@@ -333,29 +324,21 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
   useEffect(() => {
     setToolbar?.(
       <>
-        <Button variant="ghost" size="icon" onClick={() => onBackRef.current()} className="text-foreground">
-          <ChevronLeft className="h-5 w-5" />
+        <Button variant="ghost" size="icon" onClick={() => onBackRef.current()} className="-ml-2">
+          <ArrowLeft />
         </Button>
-        <span
-          className="text-sm text-muted-foreground cursor-pointer flex-1 ml-1"
-          onClick={() => onBackRef.current()}
-        >
-          Recipes
-        </span>
-        <Button variant="ghost" size="icon" onClick={() => navigate(`/recipes/${id}/edit`)} className="text-foreground">
+        <h1 className="flex-1 text-lg font-bold truncate">{recipe?.name ?? ''}</h1>
+        <Button variant="ghost" size="icon" onClick={() => navigate(`/recipes/${id}/edit`)}>
           <Pencil className="h-5 w-5" />
         </Button>
-        <Button variant="ghost" size="icon" onClick={handleShare} className="text-foreground">
+        <Button variant="ghost" size="icon" onClick={handleShare}>
           <Share className="h-5 w-5" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={() => qc.invalidateQueries({ queryKey: recipeKeys.all })} className="text-foreground">
-          <RefreshCw className="h-5 w-5" />
         </Button>
       </>
     )
     return () => setToolbar?.(null)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [recipe?.name])
 
   return (
     <div className="pb-10">
@@ -455,5 +438,5 @@ export default function Recipes({
     return <RecipeDetail id={id} onBack={() => navigate('/recipes')} setToolbar={setToolbar} />
   }
 
-  return <RecipeGrid onSelect={id => navigate(`/recipes/${id}`)} />
+  return <RecipeGrid onSelect={id => navigate(`/recipes/${id}`)} setHeader={setToolbar} />
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -119,7 +119,7 @@ function AgendaSkeleton() {
 
 // ── Calendar ──────────────────────────────────────────────────────────────────
 
-export default function Calendar() {
+export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | null) => void }) {
   const today = new Date()
   const [viewYear, setViewYear]   = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
@@ -155,47 +155,37 @@ export default function Calendar() {
   // Month navigation
   const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth()
 
-  function prevMonth() {
+  const prevMonth = useCallback(() => {
     if (isCurrentMonth) return
     if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) }
     else setViewMonth(m => m - 1)
-  }
+  }, [isCurrentMonth, viewMonth])
 
-  function nextMonth() {
+  const nextMonth = useCallback(() => {
     if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0) }
     else setViewMonth(m => m + 1)
-  }
+  }, [viewMonth])
 
   const monthLabel = startOfMonth(viewYear, viewMonth)
     .toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
-  return (
-    <div>
-      {/* Month header */}
-      <div className="flex items-center mb-5">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={prevMonth}
-          disabled={isCurrentMonth}
-          className="text-muted-foreground"
-        >
+  useEffect(() => {
+    setHeader(
+      <>
+        <Button variant="ghost" size="icon" onClick={prevMonth} disabled={isCurrentMonth} className="-ml-2 text-muted-foreground">
           <ChevronLeft className="size-5" />
         </Button>
-
-        <p className="flex-1 text-center text-base font-bold">
-          {monthLabel}
-        </p>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={nextMonth}
-          className="text-muted-foreground"
-        >
+        <p className="flex-1 text-center text-base font-bold">{monthLabel}</p>
+        <Button variant="ghost" size="icon" onClick={nextMonth} className="-mr-2 text-muted-foreground">
           <ChevronRight className="size-5" />
         </Button>
-      </div>
+      </>
+    )
+    return () => setHeader(null)
+  }, [monthLabel, isCurrentMonth, prevMonth, nextMonth, setHeader])
+
+  return (
+    <div>
 
       {/* Event list */}
       {isLoading ? (

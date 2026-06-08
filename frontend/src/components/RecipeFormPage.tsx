@@ -747,20 +747,22 @@ export default function RecipeFormPage() {
 
   return (
     <div className="h-dvh bg-background flex flex-col">
-      <header className="sticky top-0 z-50 bg-background border-b flex items-center px-4 h-14 shrink-0">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => navigate(-1)}
-          disabled={isPending}
-          className="mr-2"
-        >
-          <ArrowLeft className="size-4" />
-        </Button>
-        <h1 className="flex-1 text-base font-semibold">{title}</h1>
-        <Button disabled={!canSubmit} onClick={handleSubmit} size="sm">
-          {isPending ? (isEdit ? 'Saving…' : 'Creating…') : (isEdit ? 'Save' : 'Create')}
-        </Button>
+      <header className="sticky top-0 z-50 bg-background border-b shrink-0">
+        <div className="max-w-xl mx-auto flex items-center px-2 h-14">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            disabled={isPending}
+            className="-ml-2"
+          >
+            <ArrowLeft />
+          </Button>
+          <h1 className="flex-1 text-lg font-bold">{title}</h1>
+          <Button disabled={!canSubmit} onClick={handleSubmit} size="sm">
+            {isPending ? (isEdit ? 'Saving…' : 'Creating…') : (isEdit ? 'Save' : 'Create')}
+          </Button>
+        </div>
       </header>
 
       <div className="px-4 py-4 overflow-y-auto overscroll-contain flex-1 max-w-xl mx-auto w-full">

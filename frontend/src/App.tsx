@@ -1,8 +1,8 @@
 import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react'
-import { RotateCcw, Settings, WifiOff, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
+import { Settings, WifiOff, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { itemKeys, itemsApi, todoKeys, todosApi, recipeKeys } from './api'
+import { itemKeys, itemsApi, todoKeys, todosApi } from './api'
 import { useOnlineStatus } from './useOnlineStatus'
 import { TabErrorBoundary } from './components/TabErrorBoundary'
 import HomeComponent from './components/Home'
@@ -98,7 +98,8 @@ function SignUpPage() {
 }
 
 function AppShell() {
-  const [recipeDetailBar, setRecipeDetailBar] = useState<ReactNode | null>(null)
+  const [headerContent, setHeaderContent] = useState<ReactNode | null>(null)
+  const { householdName } = useHousehold()
   const qc = useQueryClient()
   const isOnline = useOnlineStatus()
   const navigate = useNavigate()
@@ -112,22 +113,11 @@ function AppShell() {
     qc.prefetchQuery({ queryKey: todoKeys.all,      queryFn: todosApi.list })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleRefresh() {
-    if (activeTab === 'shopping') {
-      qc.invalidateQueries({ queryKey: itemKeys.shopping })
-      qc.invalidateQueries({ queryKey: itemKeys.all })
-    } else if (activeTab === 'recipes') {
-      qc.invalidateQueries({ queryKey: recipeKeys.all })
-    }
-  }
-
-  const canRefresh = activeTab === 'shopping' || activeTab === 'recipes'
-
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-background border-b">
-        <div className="flex items-center px-2 h-14">
-          {recipeDetailBar ?? (
+        <div className="max-w-xl mx-auto flex items-center px-2 h-14">
+          {headerContent ?? (
             isSettings ? (
               <>
                 <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="-ml-2">
@@ -137,12 +127,7 @@ function AppShell() {
               </>
             ) : (
               <>
-                <h1 className="flex-1 text-lg font-bold">Casita</h1>
-                {canRefresh && (
-                  <Button variant="ghost" size="icon" onClick={handleRefresh}>
-                    <RotateCcw />
-                  </Button>
-                )}
+                <h1 className="flex-1 text-lg font-bold">{householdName ?? 'Casita'}</h1>
                 {activeTab === 'home' && (
                   <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
                     <Settings />
@@ -163,7 +148,7 @@ function AppShell() {
 
       <div
         className={cn(
-          'max-w-xl mx-auto px-4 pt-2',
+          'max-w-xl mx-auto px-4 pt-4',
           isSettings ? 'pb-2' : 'pb-[calc(80px+env(safe-area-inset-bottom))]'
         )}
       >
@@ -175,27 +160,27 @@ function AppShell() {
           } />
           <Route path="/calendar" element={
             <TabErrorBoundary key="calendar">
-              <Calendar />
+              <Calendar setHeader={setHeaderContent} />
             </TabErrorBoundary>
           } />
           <Route path="/todos" element={
             <TabErrorBoundary key="todos">
-              <Todos />
+              <Todos setHeader={setHeaderContent} />
             </TabErrorBoundary>
           } />
           <Route path="/shopping/*" element={
             <TabErrorBoundary key="shopping">
-              <Shopping />
+              <Shopping setHeader={setHeaderContent} />
             </TabErrorBoundary>
           } />
           <Route path="/recipes" element={
             <TabErrorBoundary key="recipes">
-              <Recipes setToolbar={setRecipeDetailBar} />
+              <Recipes setToolbar={setHeaderContent} />
             </TabErrorBoundary>
           } />
           <Route path="/recipes/:id" element={
             <TabErrorBoundary key="recipes">
-              <Recipes setToolbar={setRecipeDetailBar} />
+              <Recipes setToolbar={setHeaderContent} />
             </TabErrorBoundary>
           } />
           <Route path="/settings" element={<TabErrorBoundary key="settings"><Suspense fallback={<SuspenseFallback />}><SettingsPage /></Suspense></TabErrorBoundary>} />
