@@ -58,7 +58,6 @@ export default defineConfig({
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
           'vendor-query': ['@tanstack/react-query'],
-          'vendor-mui':   ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
           'vendor-shadcn': ['lucide-react', 'vaul', 'sonner'],
         },
       },

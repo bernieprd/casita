@@ -1,24 +1,12 @@
 import { useState, useMemo } from 'react'
-import Box from '@mui/material/Box'
-import List from '@mui/material/List'
-import ListItem from '@mui/material/ListItem'
-import ListItemText from '@mui/material/ListItemText'
-import ListItemButton from '@mui/material/ListItemButton'
-import Typography from '@mui/material/Typography'
-import Chip from '@mui/material/Chip'
-import Divider from '@mui/material/Divider'
-import Skeleton from '@mui/material/Skeleton'
-import Collapse from '@mui/material/Collapse'
-import Button from '@mui/material/Button'
-import Drawer from '@mui/material/Drawer'
-import Dialog from '@mui/material/Dialog'
-import DialogTitle from '@mui/material/DialogTitle'
-import DialogContent from '@mui/material/DialogContent'
-import DialogActions from '@mui/material/DialogActions'
-import ExpandLess from '@mui/icons-material/ExpandLess'
-import ExpandMore from '@mui/icons-material/ExpandMore'
-import { useTheme } from '@mui/material/styles'
-import useMediaQuery from '@mui/material/useMediaQuery'
+import { ChevronUp, ChevronDown } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useItems, useDeleteItem, useToggleShoppingList } from '../api'
 import type { Item } from '../api'
 import ItemFormDialog from './ItemFormDialog'
@@ -29,30 +17,27 @@ import IncompleteItemsSheet from './IncompleteItemsSheet'
 
 function ItemRow({ item, onEdit, onToggle }: { item: Item; onEdit: (i: Item) => void; onToggle: (i: Item) => void }) {
   return (
-    <ListItem
-      disablePadding
-      secondaryAction={
+    <li className="flex items-center">
+      <button
+        className="flex-1 px-4 py-2 pr-24 text-left hover:bg-muted/50 transition-colors"
+        onClick={() => onEdit(item)}
+      >
+        <div className="text-sm">{item.name}</div>
+        {item.supermarkets.length > 0 && (
+          <div className="text-xs text-muted-foreground">{item.supermarkets.join(', ')}</div>
+        )}
+      </button>
+      <div className="absolute right-3">
         <Button
-          size="small"
-          disableElevation
-          variant={item.onShoppingList ? 'outlined' : 'contained'}
-          color={item.onShoppingList ? 'inherit' : 'primary'}
+          size="sm"
+          variant={item.onShoppingList ? 'outline' : 'default'}
           onClick={e => { e.stopPropagation(); onToggle(item) }}
-          sx={{ textTransform: 'none', minWidth: 68, mr: 0.5 }}
+          className="min-w-[68px]"
         >
           {item.onShoppingList ? 'Remove' : 'Add'}
         </Button>
-      }
-    >
-      <ListItemButton sx={{ px: 2, py: 1, pr: 10 }} onClick={() => onEdit(item)}>
-        <ListItemText
-          primary={item.name}
-          secondary={item.supermarkets.length ? item.supermarkets.join(', ') : undefined}
-          primaryTypographyProps={{ variant: 'body1' }}
-          secondaryTypographyProps={{ variant: 'caption' }}
-        />
-      </ListItemButton>
-    </ListItem>
+      </div>
+    </li>
   )
 }
 
@@ -69,47 +54,36 @@ function GroupSection({ label, items, onEdit, onToggle }: GroupSectionProps) {
   const [open, setOpen] = useState(true)
 
   return (
-    <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: '0 1px 2px rgba(0,0,0,.06)', mb: 1 }}>
-      <ListItemButton
-        onClick={() => setOpen(o => !o)}
-        sx={{
-          px: 2,
-          py: 1,
-          position: 'sticky',
-          top: { xs: '122px', sm: '130px' },
-          zIndex: 8,
-          bgcolor: 'background.paper',
-          borderRadius: open ? '8px 8px 0 0' : 2,
-          '&:hover': { bgcolor: 'background.default' },
-        }}
-      >
-        <ListItemText
-          primary={
-            <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1, letterSpacing: '.08em' }}>
-              {label}
-            </Typography>
-          }
-        />
-        <Typography variant="caption" color="text.disabled" sx={{ mr: 1 }}>{items.length}</Typography>
-        {open
-          ? <ExpandLess fontSize="small" sx={{ color: 'text.disabled' }} />
-          : <ExpandMore fontSize="small" sx={{ color: 'text.disabled' }} />}
-      </ListItemButton>
+    <div className="bg-card rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <button
+          onClick={() => setOpen(o => !o)}
+          className={`w-full flex items-center px-4 py-2 sticky top-[122px] sm:top-[130px] z-[8] bg-card hover:bg-muted/50 transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
+        >
+          <span className="flex-1 text-left text-xs uppercase tracking-[.08em] text-muted-foreground leading-none">
+            {label}
+          </span>
+          <span className="text-xs text-muted-foreground mr-2">{items.length}</span>
+          {open
+            ? <ChevronUp className="size-4 text-muted-foreground" />
+            : <ChevronDown className="size-4 text-muted-foreground" />}
+        </button>
 
-      <Collapse in={open} timeout="auto" unmountOnExit>
-        <Box sx={{ borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
-          <Divider />
-          <List disablePadding>
-            {items.map((item, idx) => (
-              <span key={item.id}>
-                {idx > 0 && <Divider sx={{ ml: 2 }} />}
-                <ItemRow item={item} onEdit={onEdit} onToggle={onToggle} />
-              </span>
-            ))}
-          </List>
-        </Box>
-      </Collapse>
-    </Box>
+        <CollapsibleContent>
+          <div className="rounded-b-lg overflow-hidden">
+            <Separator />
+            <ul className="relative">
+              {items.map((item, idx) => (
+                <span key={item.id}>
+                  {idx > 0 && <Separator className="ml-4" />}
+                  <ItemRow item={item} onEdit={onEdit} onToggle={onToggle} />
+                </span>
+              ))}
+            </ul>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   )
 }
 
@@ -122,52 +96,41 @@ interface DeleteConfirmProps {
 }
 
 function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const isMobile = window.innerWidth < 768
 
   if (isMobile) {
     return (
-      <Drawer
-        anchor="bottom"
-        open={!!item}
-        onClose={onCancel}
-        PaperProps={{ sx: { borderRadius: '16px 16px 0 0' } }}
-      >
-        <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5 }}>
-          <Box sx={{ width: 32, height: 4, borderRadius: 2, bgcolor: 'divider' }} />
-        </Box>
-        <Box sx={{ px: 3, pt: 1, pb: 3 }}>
-          <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 0.5 }}>
-            Delete "{item?.name}"?
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            This will permanently remove the item from your inventory.
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Button fullWidth variant="contained" color="error" onClick={onConfirm}>
-              Delete
-            </Button>
-            <Button fullWidth color="inherit" onClick={onCancel}>
-              Cancel
-            </Button>
-          </Box>
-        </Box>
+      <Drawer open={!!item} onOpenChange={open => { if (!open) onCancel() }}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Delete "{item?.name}"?</DrawerTitle>
+            <p className="text-sm text-muted-foreground">
+              This will permanently remove the item from your inventory.
+            </p>
+          </DrawerHeader>
+          <DrawerFooter>
+            <Button variant="destructive" onClick={onConfirm}>Delete</Button>
+            <Button variant="outline" onClick={onCancel}>Cancel</Button>
+          </DrawerFooter>
+        </DrawerContent>
       </Drawer>
     )
   }
 
   return (
-    <Dialog open={!!item} onClose={onCancel} maxWidth="xs" fullWidth>
-      <DialogTitle>Delete "{item?.name}"?</DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary">
+    <Dialog open={!!item} onOpenChange={open => { if (!open) onCancel() }}>
+      <DialogContent showCloseButton={false} className="max-w-xs">
+        <DialogHeader>
+          <DialogTitle>Delete "{item?.name}"?</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
           This will permanently remove the item from your inventory.
-        </Typography>
+        </p>
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button variant="destructive" onClick={onConfirm}>Delete</Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onCancel} color="inherit">Cancel</Button>
-        <Button variant="contained" color="error" onClick={onConfirm}>Delete</Button>
-      </DialogActions>
     </Dialog>
   )
 }
@@ -176,31 +139,31 @@ function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
 
 function ItemsSkeleton() {
   return (
-    <Box>
-      <Box sx={{ display: 'flex', mb: 1.5 }}>
-        <Skeleton width={220} height={32} sx={{ borderRadius: 1 }} />
-      </Box>
+    <div>
+      <div className="flex mb-3">
+        <Skeleton className="w-[220px] h-8 rounded" />
+      </div>
       {[5, 3].map((rows, gi) => (
-        <Box key={gi} sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,.06)', mb: 1 }}>
-          <Box sx={{ px: 2, py: 1 }}>
-            <Skeleton width={100} height={14} />
-          </Box>
-          <Divider />
+        <div key={gi} className="bg-card rounded-lg overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
+          <div className="px-4 py-2">
+            <Skeleton className="w-[100px] h-3.5" />
+          </div>
+          <Separator />
           {Array.from({ length: rows }).map((_, i) => (
-            <Box key={i}>
-              {i > 0 && <Divider sx={{ ml: 2 }} />}
-              <Box sx={{ px: 2, py: 1.25 }}>
-                <Skeleton width="50%" height={16} />
-                <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-                  <Skeleton width={64} height={20} sx={{ borderRadius: 10 }} />
-                  <Skeleton width={72} height={20} sx={{ borderRadius: 10 }} />
-                </Box>
-              </Box>
-            </Box>
+            <div key={i}>
+              {i > 0 && <Separator className="ml-4" />}
+              <div className="px-4 py-3">
+                <Skeleton className="w-1/2 h-4" />
+                <div className="flex gap-1.5 mt-1.5">
+                  <Skeleton className="w-16 h-5 rounded-full" />
+                  <Skeleton className="w-18 h-5 rounded-full" />
+                </div>
+              </div>
+            </div>
           ))}
-        </Box>
+        </div>
       ))}
-    </Box>
+    </div>
   )
 }
 
@@ -240,20 +203,16 @@ export default function Items() {
   if (isLoading) return <ItemsSkeleton />
 
   if (error) {
-    return <Typography color="error" sx={{ p: 2 }}>Failed to load items.</Typography>
+    return <p className="text-destructive p-4">Failed to load items.</p>
   }
 
   if (allItems.length === 0) {
     return (
-      <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
-        <Box component="img" src="/casita.webp" alt="" sx={{ width: 80, mb: 2, opacity: 0.7 }} />
-        <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
-          No items yet
-        </Typography>
-        <Typography variant="body2" color="text.disabled">
-          Use the search above to add your first item
-        </Typography>
-      </Box>
+      <div className="pt-10 text-center px-8">
+        <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
+        <p className="text-sm font-medium text-muted-foreground mb-1">No items yet</p>
+        <p className="text-sm text-muted-foreground/60">Use the search above to add your first item</p>
+      </div>
     )
   }
 
@@ -286,77 +245,66 @@ export default function Items() {
   }
 
   return (
-    <Box sx={{ pb: 10 }}>
+    <div className="pb-10">
       {duplicateGroups.length > 0 && (
-        <Box sx={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          bgcolor: 'warning.main', color: 'warning.contrastText',
-          borderRadius: 2, px: 2, py: 1, mb: 1.5, opacity: 0.9,
-        }}>
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+        <div className="flex items-center justify-between bg-warning/90 text-warning-foreground rounded-lg px-4 py-2 mb-3">
+          <p className="text-sm font-medium">
             {duplicateGroups.length === 1
               ? '1 duplicate name found'
               : `${duplicateGroups.length} duplicate names found`}
-          </Typography>
+          </p>
           <Button
-            size="small"
-            sx={{ color: 'warning.contrastText', fontWeight: 600, ml: 1 }}
+            size="sm"
+            variant="ghost"
+            className="text-warning-foreground font-semibold ml-2 hover:bg-warning-foreground/10"
             onClick={() => setMergeSheetOpen(true)}
           >
             Review
           </Button>
-        </Box>
+        </div>
       )}
 
       {incompleteItems.length > 0 && (
-        <Box sx={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          bgcolor: 'warning.main', color: 'warning.contrastText',
-          borderRadius: 2, px: 2, py: 1, mb: 1.5, opacity: 0.9,
-        }}>
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+        <div className="flex items-center justify-between bg-warning/90 text-warning-foreground rounded-lg px-4 py-2 mb-3">
+          <p className="text-sm font-medium">
             {incompleteItems.length === 1
               ? '1 item missing category or supermarket'
               : `${incompleteItems.length} items missing category or supermarket`}
-          </Typography>
+          </p>
           <Button
-            size="small"
-            sx={{ color: 'warning.contrastText', fontWeight: 600, ml: 1 }}
+            size="sm"
+            variant="ghost"
+            className="text-warning-foreground font-semibold ml-2 hover:bg-warning-foreground/10"
             onClick={() => setIncompleteSheetOpen(true)}
           >
             Review
           </Button>
-        </Box>
+        </div>
       )}
 
       {allSupermarkets.length > 0 && (
-        <Box sx={{
-          display: 'flex', gap: 1, overflowX: 'auto', pb: 0.5, mb: 1.5,
-          scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' },
-        }}>
+        <div className="flex gap-2 overflow-x-auto pb-1 mb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {allSupermarkets.map(s => (
-            <Chip
+            <Badge
               key={s}
-              label={s}
-              clickable
-              color={selectedSupermarkets.has(s) ? 'primary' : 'default'}
-              variant={selectedSupermarkets.has(s) ? 'filled' : 'outlined'}
-              size="small"
+              variant={selectedSupermarkets.has(s) ? 'default' : 'outline'}
+              className="shrink-0 cursor-pointer"
               onClick={() => setSelectedSupermarkets(prev => {
                 const next = new Set(prev)
                 next.has(s) ? next.delete(s) : next.add(s)
                 return next
               })}
-              sx={{ flexShrink: 0 }}
-            />
+            >
+              {s}
+            </Badge>
           ))}
-        </Box>
+        </div>
       )}
 
       {groups.length === 0 ? (
-        <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', mt: 4 }}>
+        <p className="text-sm text-muted-foreground text-center mt-8">
           No items for selected supermarket(s)
-        </Typography>
+        </p>
       ) : (
         groups.map(([label, groupItems]) => (
           <GroupSection
@@ -394,6 +342,6 @@ export default function Items() {
         onClose={() => setIncompleteSheetOpen(false)}
         onEdit={item => { setEditTarget(item) }}
       />
-    </Box>
+    </div>
   )
 }

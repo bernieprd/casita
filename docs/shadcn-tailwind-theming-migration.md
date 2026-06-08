@@ -10,13 +10,13 @@ The app currently uses MUI v7 + Emotion. The goal is to replace it with shadcn/u
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| Phase 0a — Remove MUI, install Tailwind + shadcn | ⚠️ Partial | Tailwind + shadcn installed; MUI still in `package.json` and vite chunks |
+| Phase 0a — Remove MUI, install Tailwind + shadcn | ✅ Done | Tailwind + shadcn installed; MUI removed from `package.json` and vite chunks |
 | Phase 0b — Base CSS + main.tsx cleanup | ✅ Done | `index.css` done; `main.tsx` clean (ThemeProvider/CssBaseline removed, `applyTheme` + `<Toaster>` present); `theme.ts` deleted |
-| Phase 0c — shadcn components | ✅ Done | 19 components in `src/components/ui/` (collapsible added in Phase 2) |
+| Phase 0c — shadcn components | ✅ Done | 20 components in `src/components/ui/` (collapsible added in Phase 2; command added in Phase 3) |
 | Phase 1 — Theme customization system | ✅ Done | `lib/theme.ts`, `hooks/useTheme.ts`, `ThemeCustomizer.tsx` all complete |
 | ThemePreview route (added, not in original plan) | ✅ Done | `/theme-preview` showcases all shadcn components with live theming |
 | Phase 2 — Component migrations (A–F) | ✅ Done | All 15 app files migrated (commit `120f617`) |
-| Phase 3 — Integration pass | ❌ Not started | MUI packages + vite chunk not yet removed; `App.css` not deleted; build not verified |
+| Phase 3 — Integration pass | ✅ Done | Items.tsx migrated; MUI packages removed; vite chunk removed; `App.css` deleted; build passes |
 
 ---
 
@@ -48,10 +48,10 @@ npx shadcn@latest init
 - ✅ `tailwindcss` v4.3.0, `@tailwindcss/vite` v4.3.0, `lucide-react` v1.17.0 installed
 - ✅ `components.json` created (shadcn init ran)
 - ✅ `@tailwindcss/vite` plugin added to `vite.config.ts`
-- ❌ `@mui/material` v7.3.9, `@emotion/react`, `@emotion/styled` still in `package.json` — remove after Phase 2
-- ❌ MUI manual chunk (`vendor-mui`) still in `vite.config.ts` rollupOptions — remove alongside the npm uninstall
+- ✅ `@mui/material`, `@emotion/react`, `@emotion/styled` removed from `package.json`
+- ✅ MUI manual chunk (`vendor-mui`) removed from `vite.config.ts` rollupOptions
 
-**`frontend/vite.config.ts`** — add `@tailwindcss/vite` plugin ✅, remove no-longer-needed manual chunks for MUI ❌
+**`frontend/vite.config.ts`** — `@tailwindcss/vite` plugin ✅, `vendor-mui` chunk removed ✅
 
 ### 0b. Base CSS variables (the "stripped" default theme)
 
@@ -96,10 +96,10 @@ npx shadcn@latest add button input dialog drawer tabs select checkbox \
   form sonner progress collapsible sheet scroll-area slider popover command
 ```
 
-**Status:** ✅ 19 components installed in `src/components/ui/`:
-avatar, badge, button, card, checkbox, collapsible, dialog, drawer, input, label, radio-group, select, separator, sheet, skeleton, slider, switch, tabs, textarea
+**Status:** ✅ 20 components installed in `src/components/ui/`:
+avatar, badge, button, card, checkbox, collapsible, command, dialog, drawer, input, label, radio-group, select, separator, sheet, skeleton, slider, switch, tabs, textarea
 
-Note: `collapsible` was added during Phase 2 (Workstream C). The remaining originally-listed components (`alert`, `form`, `sonner`, `progress`, `scroll-area`, `popover`, `command`) were not needed — Phase 2 migrations used `sonner` via the `sonner` package directly and the other components were not required by the migrated files.
+Note: `collapsible` was added during Phase 2 (Workstream C). `command` was added during Phase 3 (required by `RecipeFormPage.tsx` for the ingredient autocomplete). The remaining originally-listed components (`alert`, `form`, `sonner`, `progress`, `scroll-area`, `popover`) were not needed — Phase 2 migrations used `sonner` via the `sonner` package directly and the other components were not required by the migrated files.
 
 ---
 
@@ -283,16 +283,16 @@ Replace `Box sx={{ maxWidth: 600, mx: 'auto' }}` with `<div className="max-w-xl 
 | File | Action | Status |
 |------|--------|--------|
 | `frontend/src/theme.ts` | Delete | ✅ Deleted |
-| `frontend/src/App.css` | Replace with `index.css` | ❌ Still exists — delete in Phase 3 |
+| `frontend/src/App.css` | Replace with `index.css` | ✅ Deleted |
 | `frontend/src/main.tsx` | Remove ThemeProvider/CssBaseline, add theme init call + Toaster | ✅ Done |
-| `frontend/vite.config.ts` | Add Tailwind vite plugin, remove MUI chunks | ⚠️ Plugin added; `vendor-mui` chunk still present — remove in Phase 3 |
-| `frontend/package.json` | Remove MUI/Emotion, add Tailwind + Lucide | ⚠️ Tailwind + Lucide added; MUI/Emotion still present — remove in Phase 3 |
+| `frontend/vite.config.ts` | Add Tailwind vite plugin, remove MUI chunks | ✅ Done |
+| `frontend/package.json` | Remove MUI/Emotion, add Tailwind + Lucide | ✅ Done |
 | `frontend/src/lib/theme.ts` | Create — theme prefs model + CSS var helpers | ✅ Done |
 | `frontend/src/hooks/useTheme.ts` | Create — React hook for theme prefs | ✅ Done |
 | `frontend/src/components/ThemeCustomizer.tsx` | Create — user-facing theme panel | ✅ Done |
 | `frontend/src/components/ThemePreview.tsx` | Create — component showcase at `/theme-preview` | ✅ Done (added to plan) |
-| `frontend/src/components/ui/` | Generated by shadcn CLI | ✅ Done (19 components) |
-| All `src/components/*.tsx` | Migrate MUI → shadcn + Tailwind | ✅ Done (commit `120f617`) |
+| `frontend/src/components/ui/` | Generated by shadcn CLI | ✅ Done (20 components, including command) |
+| All `src/components/*.tsx` | Migrate MUI → shadcn + Tailwind | ✅ Done (Items.tsx migrated in Phase 3) |
 
 ---
 
