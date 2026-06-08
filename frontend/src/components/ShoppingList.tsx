@@ -3,7 +3,6 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
@@ -141,12 +140,11 @@ function ShoppingItemRow({ item, removing, onRemove, onEdit }: ShoppingItemRowPr
         {...handlers}
         onClick={() => { if (!didFire()) onRemove(item.id) }}
         className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-accent transition-colors select-none"
+        aria-label={`Mark ${item.name} as bought`}
       >
-        <Checkbox
-          checked={false}
-          tabIndex={-1}
-          aria-label={`Mark ${item.name} as bought`}
-          className="shrink-0"
+        <span
+          aria-hidden
+          className="shrink-0 size-4 rounded-[4px] border border-input bg-input/30 shadow-xs"
         />
         <div className="flex-1 min-w-0">
           <span className="block text-sm truncate">{item.name}</span>

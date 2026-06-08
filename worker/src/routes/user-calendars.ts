@@ -37,7 +37,7 @@ export async function updateUserCalendars(req: Request, env: Env, ctx: RequestCo
 
   const calendars = await req.json() as UserCalendar[]
   await env.AUTH_KV.put(`user_calendars:${clerkUserId}`, JSON.stringify(calendars))
-  await rebuildSharedIndex(clerkUserId, calendars, env)
+  await rebuildSharedIndex(clerkUserId, calendars, ctx.householdId, env)
 
   return Response.json({ ok: true })
 }
