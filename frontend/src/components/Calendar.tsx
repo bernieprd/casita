@@ -1,10 +1,7 @@
 import { useMemo, useState } from 'react'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
-import IconButton from '@mui/material/IconButton'
-import Skeleton from '@mui/material/Skeleton'
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
-import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useCalendarEvents, useGoogleStatus } from '../api'
 import type { CalendarEvent } from '../api/types'
 
@@ -70,53 +67,34 @@ function EventCard({ event }: { event: CalendarEvent }) {
   const time  = timeRange(event)
 
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        alignItems: 'stretch',
-        bgcolor: 'background.paper',
-        borderRadius: 1.5,
-        overflow: 'hidden',
-        boxShadow: '0 1px 2px rgba(0,0,0,.06)',
-        mb: 1,
-        ...(event.source === 'free-busy' && { opacity: 0.7 }),
-      }}
+    <div
+      className={`flex items-stretch bg-background rounded-xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2 ${event.source === 'free-busy' ? 'opacity-70' : ''}`}
     >
       {/* Color strip */}
-      <Box sx={{ width: 4, flexShrink: 0, bgcolor: color }} />
+      <div className="w-1 shrink-0" style={{ backgroundColor: color }} />
 
       {/* Content */}
-      <Box sx={{ px: 1.5, py: 1.25, flex: 1, minWidth: 0 }}>
-        <Typography variant="body2" fontWeight={600} noWrap>
-          {event.title}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {time}
-        </Typography>
-      </Box>
-    </Box>
+      <div className="px-3 py-2.5 flex-1 min-w-0">
+        <p className="text-sm font-semibold truncate">{event.title}</p>
+        <p className="text-xs text-muted-foreground">{time}</p>
+      </div>
+    </div>
   )
 }
 
 function DaySection({ dateKey, events }: { dateKey: string; events: CalendarEvent[] }) {
   const isToday = dateKey === todayKey()
   return (
-    <Box sx={{ mb: 2.5 }}>
-      <Typography
-        variant="overline"
-        sx={{
-          display: 'block',
-          mb: 0.75,
-          letterSpacing: '.06em',
-          lineHeight: 1,
-          color: isToday ? 'primary.main' : 'text.secondary',
-          fontWeight: isToday ? 700 : 400,
-        }}
+    <div className="mb-5">
+      <p
+        className={`block mb-2 text-xs font-semibold uppercase tracking-[.06em] leading-none ${
+          isToday ? 'text-primary font-bold' : 'text-muted-foreground'
+        }`}
       >
         {dayLabel(dateKey)}
-      </Typography>
+      </p>
       {events.map(e => <EventCard key={e.id} event={e} />)}
-    </Box>
+    </div>
   )
 }
 
@@ -124,16 +102,16 @@ function AgendaSkeleton() {
   return (
     <>
       {[0, 1, 2].map(i => (
-        <Box key={i} sx={{ mb: 2.5 }}>
-          <Skeleton width={80} height={12} sx={{ mb: 1 }} />
-          <Box sx={{ display: 'flex', alignItems: 'stretch', borderRadius: 1.5, overflow: 'hidden', mb: 1, bgcolor: 'background.paper' }}>
-            <Skeleton variant="rectangular" width={4} height={56} sx={{ flexShrink: 0 }} />
-            <Box sx={{ px: 1.5, py: 1.25, flex: 1 }}>
-              <Skeleton width="60%" height={14} sx={{ mb: 0.75 }} />
-              <Skeleton width={90} height={12} />
-            </Box>
-          </Box>
-        </Box>
+        <div key={i} className="mb-5">
+          <Skeleton className="w-20 h-3 mb-3" />
+          <div className="flex items-stretch rounded-xl overflow-hidden mb-2 bg-background">
+            <Skeleton className="w-1 h-14 shrink-0" />
+            <div className="px-3 py-2.5 flex-1">
+              <Skeleton className="w-3/5 h-3.5 mb-2" />
+              <Skeleton className="w-[90px] h-3" />
+            </div>
+          </div>
+        </div>
       ))}
     </>
   )
@@ -192,66 +170,60 @@ export default function Calendar() {
     .toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   return (
-    <Box>
+    <div>
       {/* Month header */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          mb: 2.5,
-        }}
-      >
-        <IconButton
-          size="small"
+      <div className="flex items-center mb-5">
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={prevMonth}
           disabled={isCurrentMonth}
-          sx={{ color: 'text.secondary' }}
+          className="text-muted-foreground"
         >
-          <ChevronLeftIcon />
-        </IconButton>
+          <ChevronLeft className="size-5" />
+        </Button>
 
-        <Typography
-          variant="subtitle1"
-          fontWeight={700}
-          sx={{ flex: 1, textAlign: 'center' }}
-        >
+        <p className="flex-1 text-center text-base font-bold">
           {monthLabel}
-        </Typography>
+        </p>
 
-        <IconButton size="small" onClick={nextMonth} sx={{ color: 'text.secondary' }}>
-          <ChevronRightIcon />
-        </IconButton>
-      </Box>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={nextMonth}
+          className="text-muted-foreground"
+        >
+          <ChevronRight className="size-5" />
+        </Button>
+      </div>
 
       {/* Event list */}
       {isLoading ? (
         <AgendaSkeleton />
       ) : dayGroups.length === 0 ? (
-        <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
-          <Box component="img" src="/casita.webp" alt="" sx={{ width: 80, mb: 2, opacity: 0.7 }} />
-          <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
-            Nothing coming up
-          </Typography>
-          <Typography variant="body2" color="text.disabled">
+        <div className="pt-10 text-center px-8">
+          <img src="/casita.webp" alt="" className="w-20 mb-4 mx-auto opacity-70" />
+          <p className="text-sm font-medium text-muted-foreground mb-1">Nothing coming up</p>
+          <p className="text-sm text-muted-foreground/60">
             {!googleStatus?.connected
               ? 'Connect Google Calendar in Settings to see your events'
               : 'Enjoy the quiet'}
-          </Typography>
-        </Box>
+          </p>
+        </div>
       ) : (
         <>
           {dayGroups.map(({ dateKey, events: evs }) => (
             <DaySection key={dateKey} dateKey={dateKey} events={evs} />
           ))}
           {!googleStatus?.connected && (
-            <Box sx={{ pt: 2, textAlign: 'center', px: 4, pb: 2 }}>
-              <Typography variant="body2" color="text.disabled">
+            <div className="pt-4 text-center px-8 pb-4">
+              <p className="text-sm text-muted-foreground/60">
                 Connect Google Calendar in Settings to add your own events
-              </Typography>
-            </Box>
+              </p>
+            </div>
           )}
         </>
       )}
-    </Box>
+    </div>
   )
 }

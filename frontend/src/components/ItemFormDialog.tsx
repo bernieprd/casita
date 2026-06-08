@@ -1,22 +1,24 @@
 import { useState, useEffect, useMemo } from 'react'
-import Dialog from '@mui/material/Dialog'
-import DialogTitle from '@mui/material/DialogTitle'
-import DialogContent from '@mui/material/DialogContent'
-import DialogActions from '@mui/material/DialogActions'
-import Drawer from '@mui/material/Drawer'
-import Box from '@mui/material/Box'
-import TextField from '@mui/material/TextField'
-import Autocomplete from '@mui/material/Autocomplete'
-import Button from '@mui/material/Button'
-import Stack from '@mui/material/Stack'
-import Typography from '@mui/material/Typography'
-import IconButton from '@mui/material/IconButton'
-import CloseIcon from '@mui/icons-material/Close'
-import { useTheme } from '@mui/material/styles'
-import useMediaQuery from '@mui/material/useMediaQuery'
+import { X } from 'lucide-react'
 import { useItems, useCreateItem, useUpdateItem, useConceptList } from '../api'
 import type { Item } from '../api'
 import { useKeyboardOffset } from '../useKeyboardOffset'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+} from '@/components/ui/drawer'
 
 interface Props {
   open: boolean
@@ -31,8 +33,7 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
   const { data: supermarketConcepts = [] } = useConceptList('supermarkets')
   const create = useCreateItem()
   const update = useUpdateItem()
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const isMobile = window.innerWidth < 768
   const keyboardOffset = useKeyboardOffset()
 
   const [name, setName] = useState('')
@@ -77,121 +78,152 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
     }
   }
 
+  function addSupermarket(value: string) {
+    const trimmed = value.trim()
+    if (trimmed) setSupermarkets(prev => [...new Set([...prev, trimmed])])
+  }
+
+  function removeSupermarket(val: string) {
+    setSupermarkets(prev => prev.filter(s => s !== val))
+  }
+
+  const categoryListId = 'item-category-list'
+  const supermarketListId = 'item-supermarket-list'
+
   const formContent = (
-    <Stack spacing={2}>
-      <TextField
+    <div className="flex flex-col gap-4">
+      <datalist id={categoryListId}>
+        {categoryOptions.map(o => <option key={o} value={o} />)}
+      </datalist>
+      <datalist id={supermarketListId}>
+        {supermarketOptions.map(o => <option key={o} value={o} />)}
+      </datalist>
+
+      <Input
         autoFocus
-        label="Name"
-        fullWidth
         value={name}
         onChange={e => setName(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && canSubmit && handleSubmit()}
-        size="small"
+        placeholder="Name"
       />
-      <Autocomplete
-        freeSolo
-        options={categoryOptions}
-        value={category}
-        onChange={(_, v) => setCategory(v)}
-        onInputChange={(_, v, reason) => {
-          if (reason === 'input') setCategory(v.replace(/,/g, '') || null)
-        }}
-        slotProps={{ popper: { placement: 'top-start' } }}
-        renderInput={params => (
-          <TextField {...params} label="Category" size="small" />
+      <Input
+        value={category ?? ''}
+        onChange={e => setCategory(e.target.value.replace(/,/g, '') || null)}
+        placeholder="Category"
+        list={categoryListId}
+      />
+      <div className="flex flex-col gap-1.5">
+        {supermarkets.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {supermarkets.map(s => (
+              <span
+                key={s}
+                className="inline-flex items-center gap-1 rounded-full bg-secondary text-secondary-foreground px-2.5 py-0.5 text-xs font-medium"
+              >
+                {s}
+                <button
+                  type="button"
+                  onClick={() => removeSupermarket(s)}
+                  className="rounded-full hover:bg-muted-foreground/20 p-0.5"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            ))}
+          </div>
         )}
-      />
-      <Autocomplete
-        multiple
-        freeSolo
-        disableCloseOnSelect
-        options={supermarketOptions}
-        value={supermarkets}
-        inputValue={supermarketInput}
-        onChange={(_, v) => setSupermarkets(v as string[])}
-        onInputChange={(_, v) => {
-          if (v.includes(',')) {
-            const newItem = v.replace(/,/g, '').trim()
-            if (newItem) setSupermarkets(prev => [...new Set([...prev, newItem])])
-            setSupermarketInput('')
-          } else {
-            setSupermarketInput(v)
-          }
-        }}
-        slotProps={{ popper: { placement: 'top-start' } }}
-        renderInput={params => (
-          <TextField {...params} label="Supermarkets" size="small" />
-        )}
-      />
-    </Stack>
+        <Input
+          value={supermarketInput}
+          onChange={e => {
+            const v = e.target.value
+            if (v.includes(',')) {
+              addSupermarket(v.replace(/,/g, ''))
+              setSupermarketInput('')
+            } else {
+              setSupermarketInput(v)
+            }
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && supermarketInput.trim()) {
+              e.preventDefault()
+              addSupermarket(supermarketInput)
+              setSupermarketInput('')
+            }
+          }}
+          onBlur={() => {
+            if (supermarketInput.trim()) {
+              addSupermarket(supermarketInput)
+              setSupermarketInput('')
+            }
+          }}
+          placeholder="Supermarkets (comma or Enter to add)"
+          list={supermarketListId}
+        />
+      </div>
+    </div>
   )
 
   const actions = (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+    <div className="flex justify-between items-center w-full">
       {isEdit && onDeleteRequest
-        ? <Button color="error" onClick={onDeleteRequest}>Delete</Button>
+        ? <Button variant="ghost" onClick={onDeleteRequest} className="text-destructive hover:text-destructive">Delete</Button>
         : <span />
       }
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <Button onClick={onClose} color="inherit">Cancel</Button>
-        <Button variant="contained" disabled={!canSubmit} onClick={handleSubmit}>
+      <div className="flex gap-2">
+        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button disabled={!canSubmit} onClick={handleSubmit}>
           {isEdit ? 'Save' : 'Create'}
         </Button>
-      </Box>
-    </Box>
+      </div>
+    </div>
   )
 
   if (isMobile) {
+    const maxHeight = Math.min(window.innerHeight * 0.90, window.innerHeight - keyboardOffset - 8)
     return (
-      <Drawer
-        anchor="bottom"
-        open={open}
-        onClose={onClose}
-        ModalProps={{ disableScrollLock: true }}
-        PaperProps={{
-          sx: {
-            borderRadius: '16px 16px 0 0',
-            maxHeight: Math.min(window.innerHeight * 0.90, window.innerHeight - keyboardOffset - 8),
-            display: 'flex',
-            flexDirection: 'column',
-            bgcolor: 'background.paper',
+      <Drawer open={open} onOpenChange={v => { if (!v) onClose() }} dismissible>
+        <DrawerContent
+          className="rounded-t-2xl flex flex-col"
+          style={{
+            maxHeight,
             bottom: keyboardOffset,
             transition: 'bottom 150ms ease-out',
-          },
-        }}
-      >
-        <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5, flexShrink: 0 }}>
-          <Box sx={{ width: 32, height: 4, borderRadius: 2, bgcolor: 'divider' }} />
-        </Box>
-        <Box sx={{ px: 2, pb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
-            {isEdit ? 'Edit item' : 'New item'}
-          </Typography>
-          <IconButton size="small" onClick={onClose}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </Box>
-        <Box sx={{ px: 2, pb: 1, overflow: 'auto', flex: 1, overscrollBehavior: 'contain' }}>
-          {formContent}
-        </Box>
-        <Box sx={{ px: 2, py: 2, flexShrink: 0, borderTop: '1px solid', borderColor: 'divider' }}>
-          {actions}
-        </Box>
+          }}
+        >
+          <DrawerHeader className="pb-2 shrink-0">
+            <div className="flex items-center justify-between">
+              <DrawerTitle className="text-base font-semibold">
+                {isEdit ? 'Edit item' : 'New item'}
+              </DrawerTitle>
+              <Button variant="ghost" size="icon-sm" onClick={onClose}>
+                <X className="size-4" />
+              </Button>
+            </div>
+          </DrawerHeader>
+          <div className="px-4 pb-2 overflow-auto flex-1 overscroll-contain">
+            {formContent}
+          </div>
+          <DrawerFooter className="border-t shrink-0">
+            {actions}
+          </DrawerFooter>
+        </DrawerContent>
       </Drawer>
     )
   }
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
-      <DialogTitle>{isEdit ? 'Edit item' : 'New item'}</DialogTitle>
-      <DialogContent>
-        <Box sx={{ pt: 0.5 }}>
+    <Dialog open={open} onOpenChange={v => { if (!v) onClose() }}>
+      <DialogContent className="max-w-xs" showCloseButton={false}>
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Edit item' : 'New item'}</DialogTitle>
+        </DialogHeader>
+        <div className="pt-1">
           {formContent}
-        </Box>
+        </div>
+        <DialogFooter className="px-0 pb-0">
+          {actions}
+        </DialogFooter>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        {actions}
-      </DialogActions>
     </Dialog>
   )
 }

@@ -1,21 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
-import Divider from '@mui/material/Divider'
-import Alert from '@mui/material/Alert'
-import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
-import Skeleton from '@mui/material/Skeleton'
-import Switch from '@mui/material/Switch'
-import Select from '@mui/material/Select'
-import MenuItem from '@mui/material/MenuItem'
-import FormControl from '@mui/material/FormControl'
-import IconButton from '@mui/material/IconButton'
-import TextField from '@mui/material/TextField'
-import EditIcon from '@mui/icons-material/Edit'
-import ContentCopyIcon from '@mui/icons-material/ContentCopy'
-import Avatar from '@mui/material/Avatar'
+import { Pencil, Copy, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ThemeCustomizer } from './ThemeCustomizer'
+import { useTheme } from '@/hooks/useTheme'
 import {
   useGoogleStatus,
   useUserCalendars,
@@ -79,32 +74,31 @@ function ConceptSection({ type, label, addLabel }: { type: ConceptType; label: s
   }
 
   return (
-    <Box sx={{ mb: 2.5 }}>
-      <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-        {label}
-      </Typography>
+    <div className="mb-4">
+      <p className="text-sm font-semibold mb-2">{label}</p>
 
       {deleteError && (
-        <Alert severity="warning" sx={{ mb: 1, py: 0 }} onClose={() => setDeleteError(null)}>
-          {deleteError}
-        </Alert>
+        <div className="flex items-center gap-2 mb-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <span className="flex-1">{deleteError}</span>
+          <button onClick={() => setDeleteError(null)} className="text-amber-600 hover:text-amber-800">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
       )}
 
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center' }}>
+      <div className="flex flex-wrap gap-1.5 items-center">
         {isLoading
-          ? [0, 1, 2].map(i => <Skeleton key={i} variant="rounded" width={72} height={28} sx={{ borderRadius: 4 }} />)
+          ? [0, 1, 2].map(i => <Skeleton key={i} className="h-6 w-16 rounded-full" />)
           : isError
-          ? <Typography variant="caption" color="error">Could not load — check your connection</Typography>
+          ? <span className="text-xs text-destructive">Could not load — check your connection</span>
           : concepts.map(concept =>
             editingId === concept.id ? (
-              <TextField
+              <Input
                 key={concept.id}
                 value={editName}
                 onChange={e => setEditName(e.target.value)}
-                size="small"
                 autoFocus
-                sx={{ width: 120 }}
-                inputProps={{ style: { fontSize: 13, padding: '4px 8px' } }}
+                className="w-28 h-6 text-xs px-2 py-0"
                 onKeyDown={e => {
                   if (e.key === 'Enter') handleConfirmEdit(concept.id)
                   if (e.key === 'Escape') setEditingId(null)
@@ -112,27 +106,31 @@ function ConceptSection({ type, label, addLabel }: { type: ConceptType; label: s
                 onBlur={() => handleConfirmEdit(concept.id)}
               />
             ) : (
-              <Chip
+              <Badge
                 key={concept.id}
-                label={concept.name}
-                size="small"
+                variant="secondary"
+                className="cursor-pointer gap-1 pr-1"
                 onClick={() => handleStartEdit(concept.id, concept.name)}
-                onDelete={() => handleDelete(concept.id)}
-                sx={{ cursor: 'pointer' }}
-              />
+              >
+                {concept.name}
+                <button
+                  className="ml-0.5 opacity-60 hover:opacity-100"
+                  onClick={e => { e.stopPropagation(); handleDelete(concept.id) }}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
             )
           )
         }
 
         {addingNew ? (
-          <TextField
-            inputRef={addInputRef}
+          <Input
+            ref={addInputRef}
             value={newName}
             onChange={e => setNewName(e.target.value)}
-            size="small"
             placeholder={addLabel}
-            sx={{ width: 140 }}
-            inputProps={{ style: { fontSize: 13, padding: '4px 8px' } }}
+            className="w-36 h-6 text-xs px-2 py-0"
             onKeyDown={e => {
               if (e.key === 'Enter') handleConfirmAdd()
               if (e.key === 'Escape') setAddingNew(false)
@@ -141,12 +139,15 @@ function ConceptSection({ type, label, addLabel }: { type: ConceptType; label: s
             disabled={creating}
           />
         ) : (
-          <Button size="small" variant="text" sx={{ fontSize: 12, px: 1, minWidth: 0 }} onClick={handleStartAdd}>
+          <button
+            className="text-xs text-muted-foreground hover:text-foreground px-1"
+            onClick={handleStartAdd}
+          >
             + {addLabel}
-          </Button>
+          </button>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   )
 }
 
@@ -154,7 +155,7 @@ export default function Settings() {
   const { user } = useUser()
   const { logout } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
-  const oauthResult = searchParams.get('google') // "connected" | "error" | null
+  const oauthResult = searchParams.get('google')
 
   const { mutate: backfill } = useBackfillConcepts()
   useEffect(() => { backfill() }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -164,6 +165,11 @@ export default function Settings() {
       setSearchParams({}, { replace: true })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Theme customizer ───────────────────────────────────────────────────────
+
+  const { prefs, setPrefs } = useTheme()
+  const [themeOpen, setThemeOpen] = useState(false)
 
   // ── Household ──────────────────────────────────────────────────────────────
 
@@ -213,211 +219,204 @@ export default function Settings() {
   }
 
   return (
-    <Box sx={{ p: 2 }}>
+    <div className="p-4">
 
-      {/* OAuth result alert */}
+      {/* OAuth result banners */}
       {oauthResult === 'connected' && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <div className="mb-4 rounded-md border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800">
           Google Calendar connected successfully.
-        </Alert>
+        </div>
       )}
       {oauthResult === 'error' && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           Failed to connect Google Calendar. Please try again.
-        </Alert>
+        </div>
       )}
 
       {/* Account section */}
-      <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1.5 }}>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
         Account
-      </Typography>
+      </p>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-        <Avatar
-          src={user?.imageUrl}
-          alt={user?.fullName ?? ''}
-          sx={{ width: 40, height: 40 }}
-        />
-        <Box sx={{ minWidth: 0 }}>
+      <div className="flex items-center gap-3 mb-3">
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={user?.imageUrl} alt={user?.fullName ?? ''} />
+          <AvatarFallback>{user?.fullName?.[0] ?? '?'}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
           {user?.fullName && (
-            <Typography variant="body2" fontWeight={500} noWrap>
-              {user.fullName}
-            </Typography>
+            <p className="text-sm font-medium truncate">{user.fullName}</p>
           )}
-          <Typography variant="caption" color="text.secondary" noWrap>
+          <p className="text-xs text-muted-foreground truncate">
             {user?.primaryEmailAddress?.emailAddress ?? ''}
-          </Typography>
-        </Box>
-      </Box>
+          </p>
+        </div>
+      </div>
 
-      <Typography
-        variant="caption"
-        color="text.disabled"
-        sx={{ cursor: 'pointer', '&:hover': { color: 'text.secondary' } }}
+      <button
+        className="text-xs text-muted-foreground/60 hover:text-muted-foreground cursor-pointer"
         onClick={logout}
       >
         Sign out
-      </Typography>
+      </button>
 
-      <Divider sx={{ my: 2 }} />
+      <Separator className="my-4" />
+
+      {/* Appearance section */}
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+        Appearance
+      </p>
+
+      <ThemeCustomizer prefs={prefs} setPrefs={setPrefs} open={themeOpen} onOpenChange={setThemeOpen} />
+      <Button variant="outline" size="sm" className="mb-1" onClick={() => setThemeOpen(true)}>
+        Customize theme
+      </Button>
+
+      <Separator className="my-4" />
 
       {/* Household section */}
-      <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1 }}>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
         Household
-      </Typography>
+      </p>
 
       {householdLoading ? (
-        <Skeleton width={180} height={28} sx={{ borderRadius: 1, mb: 1 }} />
+        <Skeleton className="h-7 w-44 rounded mb-2" />
       ) : renaming ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <TextField
+        <div className="flex items-center gap-2 mb-2">
+          <Input
             value={nameInput}
             onChange={e => setNameInput(e.target.value)}
-            size="small"
             autoFocus
+            className="flex-1 h-8 text-sm"
             onKeyDown={e => {
               if (e.key === 'Enter') handleRenameSave()
               if (e.key === 'Escape') setRenaming(false)
             }}
-            sx={{ flex: 1 }}
           />
-          <Button size="small" variant="contained" onClick={handleRenameSave} disabled={renamePending}>
+          <Button size="sm" onClick={handleRenameSave} disabled={renamePending}>
             Save
           </Button>
-          <Button size="small" onClick={() => setRenaming(false)} disabled={renamePending}>
+          <Button size="sm" variant="ghost" onClick={() => setRenaming(false)} disabled={renamePending}>
             Cancel
           </Button>
-        </Box>
+        </div>
       ) : (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-          <Typography variant="body2">{householdData?.householdName ?? '—'}</Typography>
+        <div className="flex items-center gap-1 mb-2">
+          <span className="text-sm">{householdData?.householdName ?? '—'}</span>
           {isOwner && (
-            <IconButton size="small" onClick={handleRenameOpen}>
-              <EditIcon fontSize="inherit" />
-            </IconButton>
+            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={handleRenameOpen}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
           )}
-        </Box>
+        </div>
       )}
 
       {householdData?.inviteCode ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-          <Box
-            sx={{
-              fontFamily: 'monospace',
-              fontSize: 14,
-              bgcolor: 'action.hover',
-              px: 1,
-              py: 0.5,
-              borderRadius: 1,
-              letterSpacing: '0.1em',
-            }}
-          >
+        <div className="flex items-center gap-2 flex-wrap">
+          <code className="font-mono text-sm bg-muted px-2 py-1 rounded tracking-widest">
             {householdData.inviteCode}
-          </Box>
-          <IconButton
-            size="small"
-            onClick={() => navigator.clipboard.writeText(householdData.inviteCode!)}
+          </code>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
             title="Copy code"
+            onClick={() => navigator.clipboard.writeText(householdData.inviteCode!)}
           >
-            <ContentCopyIcon fontSize="inherit" />
-          </IconButton>
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
           {isOwner && (
             <>
-              <Button size="small" variant="outlined" onClick={() => generateInvite()} disabled={generatingInvite}>
+              <Button size="sm" variant="outline" onClick={() => generateInvite()} disabled={generatingInvite}>
                 Regenerate
               </Button>
-              <Button size="small" color="error" variant="outlined" onClick={() => revokeInvite()} disabled={revokingInvite}>
+              <Button size="sm" variant="outline" className="text-destructive border-destructive/50 hover:bg-destructive/10" onClick={() => revokeInvite()} disabled={revokingInvite}>
                 Revoke
               </Button>
             </>
           )}
-        </Box>
+        </div>
       ) : isOwner ? (
-        <Button size="small" variant="outlined" onClick={() => generateInvite()} disabled={generatingInvite}>
+        <Button size="sm" variant="outline" onClick={() => generateInvite()} disabled={generatingInvite}>
           {generatingInvite ? 'Generating…' : 'Generate invite code'}
         </Button>
       ) : null}
 
-      <Divider sx={{ my: 2 }} />
+      <Separator className="my-4" />
 
       {/* Google Calendar section */}
-      <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1 }}>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
         Google Calendar
-      </Typography>
+      </p>
 
       {statusLoading ? (
-        <Skeleton width={220} height={36} sx={{ borderRadius: 1 }} />
+        <Skeleton className="h-9 w-56 rounded" />
       ) : isConnected ? (
         <>
           {calendarsLoading ? (
             <>
               {[0, 1, 2].map(i => (
-                <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
-                  <Skeleton variant="rectangular" width={16} height={16} sx={{ borderRadius: 0.5, flexShrink: 0 }} />
-                  <Skeleton width={140} height={20} sx={{ flex: 1 }} />
-                  <Skeleton variant="rectangular" width={44} height={24} sx={{ borderRadius: 1 }} />
-                </Box>
+                <div key={i} className="flex items-center gap-3 mb-2">
+                  <Skeleton className="h-4 w-4 rounded flex-shrink-0" />
+                  <Skeleton className="h-4 flex-1" />
+                  <Skeleton className="h-6 w-11 rounded" />
+                </div>
               ))}
             </>
           ) : calendarsError ? (
-            <Alert severity="error">Failed to load calendars. Try reconnecting.</Alert>
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive mb-2">
+              Failed to load calendars. Try reconnecting.
+            </div>
           ) : (
             <>
               {(calendars ?? []).map(cal => (
-                <Box key={cal.id} sx={{ mb: 1.5 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Box
-                      sx={{
-                        width: 16,
-                        height: 16,
-                        borderRadius: 0.5,
-                        bgcolor: cal.colorHex,
-                        flexShrink: 0,
-                      }}
+                <div key={cal.id} className="mb-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="h-4 w-4 rounded flex-shrink-0"
+                      style={{ backgroundColor: cal.colorHex }}
                     />
-                    <Typography variant="body2" sx={{ flex: 1 }}>
-                      {cal.name}
-                    </Typography>
+                    <span className="text-sm flex-1">{cal.name}</span>
                     <Switch
                       checked={cal.enabled}
-                      size="small"
-                      onChange={() => handleToggle(cal)}
+                      onCheckedChange={() => handleToggle(cal)}
                     />
-                  </Box>
+                  </div>
 
                   {cal.enabled && (
-                    <Box sx={{ pl: 3.5, mt: 0.5 }}>
-                      <FormControl size="small" fullWidth>
-                        <Select
-                          value={cal.visibility ?? 'private'}
-                          onChange={e => handleVisibility(cal, e.target.value as UserCalendar['visibility'])}
-                          sx={{ fontSize: 13 }}
-                        >
-                          <MenuItem value="private">Private — only me</MenuItem>
-                          <MenuItem value="household">Household — full events</MenuItem>
-                          <MenuItem value="free-busy">Household — free/busy only</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Box>
+                    <div className="pl-7 mt-1.5">
+                      <Select
+                        value={cal.visibility ?? 'private'}
+                        onValueChange={val => handleVisibility(cal, val as UserCalendar['visibility'])}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="private">Private — only me</SelectItem>
+                          <SelectItem value="household">Household — full events</SelectItem>
+                          <SelectItem value="free-busy">Household — free/busy only</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   )}
-                </Box>
+                </div>
               ))}
             </>
           )}
           <Button
-            variant="outlined"
-            color="error"
-            size="small"
+            variant="outline"
+            size="sm"
+            className="mt-1 text-destructive border-destructive/50 hover:bg-destructive/10"
             onClick={() => disconnectGoogle()}
-            sx={{ mt: 0.5 }}
           >
             Disconnect
           </Button>
         </>
       ) : (
         <Button
-          variant="outlined"
-          size="small"
+          variant="outline"
+          size="sm"
           onClick={() => initiateGoogleConnect()}
         >
           Connect Google Calendar
@@ -426,22 +425,22 @@ export default function Settings() {
 
       {isOwner && (
         <>
-          <Divider sx={{ my: 2 }} />
+          <Separator className="my-4" />
 
-          <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1.5 }}>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
             Shopping
-          </Typography>
+          </p>
           <ConceptSection type="categories"   label="Categories"   addLabel="Add category" />
           <ConceptSection type="supermarkets" label="Supermarkets"  addLabel="Add supermarket" />
 
-          <Divider sx={{ my: 2 }} />
+          <Separator className="my-4" />
 
-          <Typography variant="subtitle2" fontWeight={600} color="text.secondary" sx={{ mb: 1.5 }}>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
             Recipes
-          </Typography>
+          </p>
           <ConceptSection type="recipe-types" label="Type" addLabel="Add type" />
         </>
       )}
-    </Box>
+    </div>
   )
 }

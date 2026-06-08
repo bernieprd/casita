@@ -1,7 +1,5 @@
 import React from 'react'
-import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
-import Button from '@mui/material/Button'
+import { Button } from '@/components/ui/button'
 
 interface State {
   hasError: boolean
@@ -22,27 +20,26 @@ export class TabErrorBoundary extends React.Component<{ children: React.ReactNod
   render() {
     if (this.state.hasError) {
       return (
-        <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
-          <Box
-            component="img"
+        <div className="pt-10 text-center px-4">
+          <img
             src="/casita.webp"
             alt=""
-            sx={{ width: 80, mb: 2, opacity: 0.5 }}
+            className="w-20 mb-2 opacity-50 mx-auto"
           />
-          <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
+          <p className="text-sm font-medium text-muted-foreground mb-0.5">
             Something went wrong
-          </Typography>
-          <Typography variant="body2" color="text.disabled" sx={{ mb: 2 }}>
+          </p>
+          <p className="text-sm text-muted-foreground/60 mb-4">
             {this.state.error?.message ?? 'Unexpected error'}
-          </Typography>
+          </p>
           <Button
-            variant="outlined"
-            size="small"
+            variant="outline"
+            size="sm"
             onClick={() => this.setState({ hasError: false, error: null })}
           >
             Try again
           </Button>
-        </Box>
+        </div>
       )
     }
     return this.props.children

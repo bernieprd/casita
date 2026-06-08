@@ -1,12 +1,14 @@
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
-import Divider from '@mui/material/Divider'
-import Drawer from '@mui/material/Drawer'
-import List from '@mui/material/List'
-import ListItemButton from '@mui/material/ListItemButton'
-import ListItemText from '@mui/material/ListItemText'
-import Typography from '@mui/material/Typography'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from '@/components/ui/drawer'
 import type { Item } from '../api'
 import { useKeyboardOffset } from '../useKeyboardOffset'
 
@@ -22,79 +24,61 @@ export default function IncompleteItemsSheet({ open, items, onClose, onEdit }: P
 
   return (
     <Drawer
-      anchor="bottom"
       open={open}
-      onClose={onClose}
-      ModalProps={{ disableScrollLock: true }}
-      PaperProps={{
-        sx: {
-          borderRadius: '16px 16px 0 0',
+      onOpenChange={(o) => { if (!o) onClose() }}
+      disablePreventScroll
+    >
+      <DrawerContent
+        style={{
           maxHeight: Math.min(window.innerHeight * 0.80, window.innerHeight - keyboardOffset - 8),
-          display: 'flex',
-          flexDirection: 'column',
-          bgcolor: 'background.paper',
           bottom: keyboardOffset,
           transition: 'bottom 150ms ease-out',
-        },
-      }}
-    >
-      {/* Handle */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5, flexShrink: 0 }}>
-        <Box sx={{ width: 32, height: 4, borderRadius: 2, bgcolor: 'divider' }} />
-      </Box>
+        }}
+        className="flex flex-col"
+      >
+        <DrawerHeader className="text-left pb-3">
+          <DrawerTitle>Items missing info</DrawerTitle>
+          <DrawerDescription>
+            Tap an item to add its category or supermarket.
+          </DrawerDescription>
+        </DrawerHeader>
 
-      {/* Header */}
-      <Box sx={{ px: 3, pt: 0.5, pb: 1.5, flexShrink: 0 }}>
-        <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
-          Items missing info
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Tap an item to add its category or supermarket.
-        </Typography>
-      </Box>
+        <Separator />
 
-      <Divider />
-
-      {/* List */}
-      <Box sx={{ overflow: 'auto', flex: 1, overscrollBehavior: 'contain' }}>
-        <List disablePadding>
+        <div className="overflow-auto flex-1 overscroll-contain">
           {items.map((item, idx) => (
             <span key={item.id}>
-              {idx > 0 && <Divider component="li" sx={{ ml: 2 }} />}
-              <ListItemButton
-                sx={{ px: 3, py: 1.25 }}
+              {idx > 0 && <Separator className="ml-4" />}
+              <button
+                className="w-full text-left px-6 py-3 hover:bg-accent transition-colors"
                 onClick={() => { onEdit(item); onClose() }}
               >
-                <ListItemText
-                  primary={item.name}
-                  secondary={
-                    <Box component="span" sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
-                      {item.category === null && (
-                        <Chip label="No category" size="small" color="warning" variant="outlined"
-                          sx={{ fontSize: 11, height: 20 }} />
-                      )}
-                      {item.supermarkets.length === 0 && (
-                        <Chip label="No supermarket" size="small" color="warning" variant="outlined"
-                          sx={{ fontSize: 11, height: 20 }} />
-                      )}
-                    </Box>
-                  }
-                  secondaryTypographyProps={{ component: 'span' }}
-                />
-              </ListItemButton>
+                <p className="text-sm font-medium">{item.name}</p>
+                <div className="flex gap-1 mt-1 flex-wrap">
+                  {item.category === null && (
+                    <Badge variant="outline" className="text-[11px] h-5 border-amber-500 text-amber-600">
+                      No category
+                    </Badge>
+                  )}
+                  {item.supermarkets.length === 0 && (
+                    <Badge variant="outline" className="text-[11px] h-5 border-amber-500 text-amber-600">
+                      No supermarket
+                    </Badge>
+                  )}
+                </div>
+              </button>
             </span>
           ))}
-        </List>
-      </Box>
+        </div>
 
-      <Divider />
+        <Separator />
 
-      {/* Actions */}
-      <Box sx={{ px: 3, pt: 1.5, pb: 3, flexShrink: 0 }}>
-        <Button fullWidth color="inherit" onClick={onClose}>
-          Close
-        </Button>
-      </Box>
+        <DrawerFooter className="pb-6">
+          <Button variant="ghost" onClick={onClose} className="w-full">
+            Close
+          </Button>
+        </DrawerFooter>
+      </DrawerContent>
     </Drawer>
   )
 }

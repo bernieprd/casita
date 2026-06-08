@@ -1,31 +1,31 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
-import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
-import Dialog from '@mui/material/Dialog'
-import DialogTitle from '@mui/material/DialogTitle'
-import DialogContent from '@mui/material/DialogContent'
-import DialogActions from '@mui/material/DialogActions'
-import Drawer from '@mui/material/Drawer'
+import { ChevronUp, ChevronDown } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerFooter,
+} from '@/components/ui/drawer'
 import ItemFormDialog from './ItemFormDialog'
 import IncompleteItemsSheet from './IncompleteItemsSheet'
-import List from '@mui/material/List'
-import ListItemButton from '@mui/material/ListItemButton'
-import ListItemText from '@mui/material/ListItemText'
-import ListItemIcon from '@mui/material/ListItemIcon'
-import Checkbox from '@mui/material/Checkbox'
-import Collapse from '@mui/material/Collapse'
-import Divider from '@mui/material/Divider'
-import Typography from '@mui/material/Typography'
-import Skeleton from '@mui/material/Skeleton'
-import ExpandLess from '@mui/icons-material/ExpandLess'
-import ExpandMore from '@mui/icons-material/ExpandMore'
-import { useTheme } from '@mui/material/styles'
-import useMediaQuery from '@mui/material/useMediaQuery'
 import { useShoppingList, useToggleShoppingList, useDeleteItem } from '../api'
 import type { Item } from '../api'
 
-// How long the Collapse exit animation plays before mutate fires.
+// How long the collapse exit animation plays before mutate fires.
 const EXIT_DURATION_MS = 220
 
 // ── Long press hook ───────────────────────────────────────────────────────────
@@ -76,52 +76,41 @@ interface DeleteConfirmProps {
 }
 
 function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
+  const isMobile = window.innerWidth < 768
 
   if (isMobile) {
     return (
-      <Drawer
-        anchor="bottom"
-        open={!!item}
-        onClose={onCancel}
-        PaperProps={{ sx: { borderRadius: '16px 16px 0 0' } }}
-      >
-        <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5, pb: 0.5 }}>
-          <Box sx={{ width: 32, height: 4, borderRadius: 2, bgcolor: 'divider' }} />
-        </Box>
-        <Box sx={{ px: 3, pt: 1, pb: 3 }}>
-          <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 0.5 }}>
-            Delete "{item?.name}"?
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            This will permanently remove the item from your inventory.
-          </Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Button fullWidth variant="contained" color="error" onClick={onConfirm}>
-              Delete
-            </Button>
-            <Button fullWidth color="inherit" onClick={onCancel}>
-              Cancel
-            </Button>
-          </Box>
-        </Box>
+      <Drawer open={!!item} onOpenChange={open => { if (!open) onCancel() }}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Delete "{item?.name}"?</DrawerTitle>
+            <DrawerDescription>
+              This will permanently remove the item from your inventory.
+            </DrawerDescription>
+          </DrawerHeader>
+          <DrawerFooter>
+            <Button variant="destructive" onClick={onConfirm}>Delete</Button>
+            <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+          </DrawerFooter>
+        </DrawerContent>
       </Drawer>
     )
   }
 
   return (
-    <Dialog open={!!item} onClose={onCancel} maxWidth="xs" fullWidth>
-      <DialogTitle>Delete "{item?.name}"?</DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary">
-          This will permanently remove the item from your inventory.
-        </Typography>
+    <Dialog open={!!item} onOpenChange={open => { if (!open) onCancel() }}>
+      <DialogContent showCloseButton={false} className="max-w-xs">
+        <DialogHeader>
+          <DialogTitle>Delete "{item?.name}"?</DialogTitle>
+          <DialogDescription>
+            This will permanently remove the item from your inventory.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+          <Button variant="destructive" onClick={onConfirm}>Delete</Button>
+        </DialogFooter>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onCancel} color="inherit">Cancel</Button>
-        <Button variant="contained" color="error" onClick={onConfirm}>Delete</Button>
-      </DialogActions>
     </Dialog>
   )
 }
@@ -139,29 +128,35 @@ function ShoppingItemRow({ item, removing, onRemove, onEdit }: ShoppingItemRowPr
   const { handlers, didFire } = useLongPress(() => onEdit(item))
 
   return (
-    <Collapse in={!removing} timeout={EXIT_DURATION_MS} unmountOnExit>
-      <ListItemButton
+    <div
+      style={{
+        overflow: 'hidden',
+        transition: `opacity ${EXIT_DURATION_MS}ms ease, max-height ${EXIT_DURATION_MS}ms ease`,
+        maxHeight: removing ? 0 : '80px',
+        opacity: removing ? 0 : 1,
+      }}
+    >
+      <button
         {...handlers}
         onClick={() => { if (!didFire()) onRemove(item.id) }}
-        sx={{ px: 2, py: 1, userSelect: 'none' }}
+        className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-accent transition-colors select-none"
       >
-        <ListItemIcon sx={{ minWidth: 40 }}>
-          <Checkbox
-            edge="start"
-            checked={false}
-            color="primary"
-            tabIndex={-1}
-            inputProps={{ 'aria-label': `Mark ${item.name} as bought` }}
-          />
-        </ListItemIcon>
-        <ListItemText
-          primary={item.name}
-          secondary={item.supermarkets.length ? item.supermarkets.join(', ') : undefined}
-          primaryTypographyProps={{ variant: 'body1' }}
-          secondaryTypographyProps={{ variant: 'caption' }}
+        <Checkbox
+          checked={false}
+          tabIndex={-1}
+          aria-label={`Mark ${item.name} as bought`}
+          className="shrink-0"
         />
-      </ListItemButton>
-    </Collapse>
+        <div className="flex-1 min-w-0">
+          <span className="block text-sm truncate">{item.name}</span>
+          {item.supermarkets.length > 0 && (
+            <span className="block text-xs text-muted-foreground truncate">
+              {item.supermarkets.join(', ')}
+            </span>
+          )}
+        </div>
+      </button>
+    </div>
   )
 }
 
@@ -181,53 +176,45 @@ function GroupSection({ label, items, removingIds, onRemove, onEdit }: GroupSect
   const visibleCount = items.filter(i => !removingIds.has(i.id)).length
 
   return (
-    <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: '0 1px 2px rgba(0,0,0,.06)', mb: 1 }}>
-      <ListItemButton
+    <div className="bg-card rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
+      <button
         onClick={() => setOpen(o => !o)}
-        sx={{
-          px: 2,
-          py: 1.25,
-          position: 'sticky',
-          top: { xs: '122px', sm: '130px' },
-          zIndex: 8,
-          bgcolor: 'background.paper',
-          borderRadius: open ? '8px 8px 0 0' : 2,
-          '&:hover': { bgcolor: 'background.default' },
+        className={`flex items-center w-full px-4 py-3 sticky top-[122px] sm:top-[130px] z-[8] bg-card hover:bg-background transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
+      >
+        <span className="flex-1 text-left text-xs font-semibold uppercase tracking-[.08em] text-muted-foreground leading-none">
+          {label}
+        </span>
+        <span className="text-xs text-muted-foreground mr-2">{visibleCount}</span>
+        {open
+          ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+      </button>
+
+      <div
+        style={{
+          overflow: 'hidden',
+          transition: 'max-height 0.2s ease',
+          maxHeight: open ? '9999px' : 0,
         }}
       >
-        <ListItemText
-          primary={
-            <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1, letterSpacing: '.08em' }}>
-              {label}
-            </Typography>
-          }
-        />
-        <Typography variant="caption" color="text.disabled" sx={{ mr: 1 }}>
-          {visibleCount}
-        </Typography>
-        {open ? <ExpandLess fontSize="small" sx={{ color: 'text.disabled' }} />
-               : <ExpandMore fontSize="small" sx={{ color: 'text.disabled' }} />}
-      </ListItemButton>
-
-      <Collapse in={open} timeout="auto" unmountOnExit>
-        <Box sx={{ borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
-          <Divider />
-          <List disablePadding>
+        <div className="rounded-b-lg overflow-hidden">
+          <hr className="border-border" />
+          <ul>
             {items.map((item, idx) => (
-              <span key={item.id}>
-                {idx > 0 && <Divider component="li" sx={{ ml: 7 }} />}
+              <li key={item.id}>
+                {idx > 0 && <hr className="border-border ml-14" />}
                 <ShoppingItemRow
                   item={item}
                   removing={removingIds.has(item.id)}
                   onRemove={onRemove}
                   onEdit={onEdit}
                 />
-              </span>
+              </li>
             ))}
-          </List>
-        </Box>
-      </Collapse>
-    </Box>
+          </ul>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -235,28 +222,28 @@ function GroupSection({ label, items, removingIds, onRemove, onEdit }: GroupSect
 
 function ShoppingListSkeleton() {
   return (
-    <Box>
+    <div>
       {[3, 2].map((rows, gi) => (
-        <Box key={gi} sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,.06)', mb: 1 }}>
-          <Box sx={{ px: 2, py: 1.25 }}>
-            <Skeleton width={90} height={14} />
-          </Box>
-          <Divider />
+        <div key={gi} className="bg-card rounded-lg overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
+          <div className="px-4 py-3">
+            <Skeleton className="h-3.5 w-[90px]" />
+          </div>
+          <hr className="border-border" />
           {Array.from({ length: rows }).map((_, i) => (
-            <Box key={i}>
-              {i > 0 && <Divider sx={{ ml: 7 }} />}
-              <Box sx={{ px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Skeleton variant="circular" width={20} height={20} />
-                <Box sx={{ flex: 1 }}>
-                  <Skeleton width="55%" height={16} />
-                  <Skeleton width="28%" height={12} sx={{ mt: 0.5 }} />
-                </Box>
-              </Box>
-            </Box>
+            <div key={i}>
+              {i > 0 && <hr className="border-border ml-14" />}
+              <div className="px-4 py-2 flex items-center gap-3">
+                <Skeleton className="h-5 w-5 rounded-full shrink-0" />
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-[55%]" />
+                  <Skeleton className="h-3 w-[28%] mt-1" />
+                </div>
+              </div>
+            </div>
           ))}
-        </Box>
+        </div>
       ))}
-    </Box>
+    </div>
   )
 }
 
@@ -304,7 +291,7 @@ export default function ShoppingList() {
   if (isLoading) return <ShoppingListSkeleton />
 
   if (error) {
-    return <Typography color="error" sx={{ p: 2 }}>Failed to load shopping list.</Typography>
+    return <p className="p-4 text-destructive text-sm">Failed to load shopping list.</p>
   }
 
   const totalVisible = allItems.filter(i => !removingIds.has(i.id)).length
@@ -312,15 +299,11 @@ export default function ShoppingList() {
   if (totalVisible === 0) {
     return (
       <>
-        <Box sx={{ pt: 10, textAlign: 'center', px: 4 }}>
-          <Box component="img" src="/casita.webp" alt="" sx={{ width: 80, mb: 2, opacity: 0.7 }} />
-          <Typography variant="body1" fontWeight={500} color="text.secondary" sx={{ mb: 0.5 }}>
-            Your list is empty
-          </Typography>
-          <Typography variant="body2" color="text.disabled">
-            Use the search above to add items
-          </Typography>
-        </Box>
+        <div className="pt-10 text-center px-8">
+          <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
+          <p className="text-sm font-medium text-muted-foreground mb-1">Your list is empty</p>
+          <p className="text-sm text-muted-foreground/60">Use the search above to add items</p>
+        </div>
         <ItemFormDialog
           open={editItem !== null}
           item={editItem}
@@ -352,56 +335,52 @@ export default function ShoppingList() {
     .map(([label, groupItems]) => [label, [...groupItems].sort(byName)])
 
   return (
-    <Box sx={{ pb: 10 }}>
+    <div className="pb-10">
       {incompleteItems.length > 0 && (
-        <Box sx={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          bgcolor: 'warning.main', color: 'warning.contrastText',
-          borderRadius: 2, px: 2, py: 1, mb: 1.5, opacity: 0.9,
-        }}>
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+        <div className="flex items-center justify-between bg-warning text-warning-foreground rounded-lg px-4 py-2 mb-3 opacity-90">
+          <p className="text-sm font-medium">
             {incompleteItems.length === 1
               ? '1 item missing category or supermarket'
               : `${incompleteItems.length} items missing category or supermarket`}
-          </Typography>
+          </p>
           <Button
-            size="small"
-            sx={{ color: 'warning.contrastText', fontWeight: 600, ml: 1 }}
+            size="sm"
+            variant="ghost"
+            className="text-warning-foreground font-semibold ml-2"
             onClick={() => setIncompleteSheetOpen(true)}
           >
             Review
           </Button>
-        </Box>
+        </div>
       )}
 
       {allSupermarkets.length > 0 && (
-        <Box sx={{
-          display: 'flex', gap: 1, overflowX: 'auto', pb: 0.5, mb: 1.5,
-          scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' },
-        }}>
+        <div className="flex gap-2 overflow-x-auto pb-1 mb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {allSupermarkets.map(s => (
-            <Chip
+            <button
               key={s}
-              label={s}
-              clickable
-              color={selectedSupermarkets.has(s) ? 'primary' : 'default'}
-              variant={selectedSupermarkets.has(s) ? 'filled' : 'outlined'}
-              size="small"
               onClick={() => setSelectedSupermarkets(prev => {
                 const next = new Set(prev)
                 next.has(s) ? next.delete(s) : next.add(s)
                 return next
               })}
-              sx={{ flexShrink: 0 }}
-            />
+              className="shrink-0"
+            >
+              <Badge
+                variant={selectedSupermarkets.has(s) ? 'default' : 'outline'}
+                className="cursor-pointer"
+              >
+                {s}
+              </Badge>
+            </button>
           ))}
-        </Box>
+        </div>
       )}
 
       {groups.length === 0 ? (
-        <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', mt: 4 }}>
+        <p className="text-sm text-muted-foreground text-center mt-8">
           No items for selected supermarket(s)
-        </Typography>
+        </p>
       ) : (
         groups.map(([label, groupItems]) => (
           <GroupSection
@@ -432,6 +411,6 @@ export default function ShoppingList() {
         onClose={() => setIncompleteSheetOpen(false)}
         onEdit={item => setEditItem(item)}
       />
-    </Box>
+    </div>
   )
 }
