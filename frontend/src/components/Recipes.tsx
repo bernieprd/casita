@@ -40,7 +40,7 @@ function RecipeGridSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-3">
       {[0, 1, 2, 3].map(i => (
-        <div key={i} className="rounded-lg overflow-hidden bg-card shadow-sm">
+        <div key={i} className="rounded-lg overflow-hidden bg-card border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)]">
           <Skeleton className="w-full aspect-[4/3]" />
           <div className="p-3">
             <Skeleton className="w-4/5 h-4 mb-2" />
@@ -170,7 +170,7 @@ function RecipeGrid({ onSelect, setHeader }: { onSelect: (id: string) => void; s
               key={recipe.id}
               id={`recipe-card-${recipe.id}`}
               onClick={() => onSelect(recipe.id)}
-              className="cursor-pointer rounded-lg overflow-hidden bg-card shadow-sm transition-opacity active:opacity-75"
+              className="cursor-pointer rounded-lg overflow-hidden bg-card border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] transition-opacity active:opacity-75"
             >
               <div className="relative w-full aspect-[4/3]">
                 {/* Emoji fallback — always behind; shows when there's no URL or the image errors */}

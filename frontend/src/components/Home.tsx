@@ -25,7 +25,7 @@ function SectionCard({ children, onClick }: { children: React.ReactNode; onClick
     <div
       onClick={onClick}
       className={cn(
-        'bg-card rounded-xl shadow-sm overflow-hidden',
+        'bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] overflow-hidden',
         onClick && 'cursor-pointer transition-opacity active:opacity-75'
       )}
     >
@@ -343,7 +343,7 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
         }
       />
       {isLoading ? (
-        <div className="bg-card rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-card rounded-lg border border-border overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.06)]">
           <Skeleton className="w-full aspect-video" />
           <div className="p-3">
             <Skeleton className="h-5 w-[70%] mb-2" />

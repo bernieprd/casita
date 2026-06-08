@@ -68,7 +68,7 @@ function EventCard({ event }: { event: CalendarEvent }) {
 
   return (
     <div
-      className={`flex items-stretch bg-background rounded-xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2 ${event.source === 'free-busy' ? 'opacity-70' : ''}`}
+      className={`flex items-stretch bg-card rounded-lg border border-border overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2 ${event.source === 'free-busy' ? 'opacity-70' : ''}`}
     >
       {/* Color strip */}
       <div className="w-1 shrink-0" style={{ backgroundColor: color }} />
