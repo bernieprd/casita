@@ -1,4 +1,4 @@
-import { type ThemePrefs, COLOR_PRESETS, FONT_OPTIONS, DEFAULT_THEME, loadGoogleFont } from '@/lib/theme'
+import { type ThemePrefs, COLOR_PRESETS, FONT_OPTIONS, HEADING_FONT_OPTIONS, DEFAULT_THEME, loadGoogleFont } from '@/lib/theme'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Sun, SunMoon, Moon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ThemeCustomizerProps {
@@ -21,6 +23,36 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange }: ThemeCu
 
   const innerContent = (
     <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3">
+        <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Appearance
+        </Label>
+        <ToggleGroup
+          type="single"
+          value={prefs.colorScheme}
+          onValueChange={(value) => {
+            if (!value) return
+            setPrefs({ ...prefs, colorScheme: value as ThemePrefs['colorScheme'] })
+          }}
+          className="justify-start"
+        >
+          <ToggleGroupItem value="light" aria-label="Light mode">
+            <Sun className="h-4 w-4" />
+            <span className="ml-1 text-sm">Light</span>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="system" aria-label="System default">
+            <SunMoon className="h-4 w-4" />
+            <span className="ml-1 text-sm">System</span>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="dark" aria-label="Dark mode">
+            <Moon className="h-4 w-4" />
+            <span className="ml-1 text-sm">Dark</span>
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+
+      <Separator />
+
       <div className="flex flex-col gap-3">
         <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Color
@@ -47,14 +79,41 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange }: ThemeCu
 
       <div className="flex flex-col gap-3">
         <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Font
+          Heading Font
         </Label>
         <Select
-          value={prefs.fontFamily}
+          value={prefs.headingFont}
+          onValueChange={(value) => {
+            const option = HEADING_FONT_OPTIONS.find((o) => o.value === value)
+            if (option?.googleFamily) loadGoogleFont(option.googleFamily)
+            setPrefs({ ...prefs, headingFont: value })
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {HEADING_FONT_OPTIONS.map((option) => (
+              <SelectItem key={option.label} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Separator />
+
+      <div className="flex flex-col gap-3">
+        <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Body Font
+        </Label>
+        <Select
+          value={prefs.bodyFont}
           onValueChange={(value) => {
             const option = FONT_OPTIONS.find((o) => o.value === value)
             if (option?.googleFamily) loadGoogleFont(option.googleFamily)
-            setPrefs({ ...prefs, fontFamily: value })
+            setPrefs({ ...prefs, bodyFont: value })
           }}
         >
           <SelectTrigger>

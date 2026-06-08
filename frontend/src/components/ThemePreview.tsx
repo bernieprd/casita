@@ -61,7 +61,7 @@ export default function ThemePreview() {
   const [activeNav, setActiveNav] = useState('Home')
 
   return (
-    <div data-vaul-drawer-wrapper className="min-h-screen bg-white bg-background text-foreground" style={{ fontFamily: 'var(--font-sans)' }}>
+    <div data-vaul-drawer-wrapper className="min-h-screen bg-background text-foreground" style={{ fontFamily: 'var(--font-sans)' }}>
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-sm">
         <div className="flex h-14 max-w-lg mx-auto items-center px-4 gap-3">
@@ -339,7 +339,7 @@ export default function ThemePreview() {
       </main>
 
       {/* Bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 border-t border-border bg-white bg-background z-50">
+      <nav className="fixed bottom-0 left-0 right-0 border-t border-border bg-background z-50">
         <div className="flex max-w-lg mx-auto">
           {NAV_TABS.map(({ label, Icon }) => (
             <button

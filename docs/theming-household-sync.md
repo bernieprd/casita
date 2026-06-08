@@ -6,7 +6,7 @@ Theme preferences are currently stored only in `localStorage` — each browser/d
 
 ---
 
-## 1. Fix Border Radius — `frontend/src/index.css`
+## ~~1. Fix Border Radius — `frontend/src/index.css`~~ ✅ DONE
 
 **Root cause**: Tailwind v4 `@theme inline` defines `--radius: var(--radius)` but doesn't remap `--radius-sm/md/lg/xl`, so `rounded-md`, `rounded-lg`, etc. still use Tailwind's hardcoded defaults.
 
@@ -27,7 +27,7 @@ This makes `rounded-md`, `rounded-lg`, etc. resolve to `var(--radius)` offsets a
 
 ---
 
-## 2. Add Heading/Body Font Split
+## ~~2. Add Heading/Body Font Split~~ ✅ DONE
 
 ### `frontend/src/lib/theme.ts`
 - Rename `fontFamily` → `bodyFont` in `ThemePrefs` and `DEFAULT_THEME`
@@ -101,7 +101,7 @@ The stored JSON shape matches `ThemePrefs` (`primaryHsl`, `headingFont`, `bodyFo
 
 ---
 
-## 4. Light / Dark Mode Toggle
+## ~~4. Light / Dark Mode Toggle~~ ✅ DONE
 
 ### `frontend/src/lib/theme.ts`
 
