@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Pencil, Copy, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -159,7 +160,12 @@ export default function Settings() {
   const oauthResult = searchParams.get('google')
 
   const { mutate: backfill } = useBackfillConcepts()
-  useEffect(() => { backfill() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const backfillRan = useRef(false)
+  useEffect(() => {
+    if (backfillRan.current) return
+    backfillRan.current = true
+    backfill()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (oauthResult) {
@@ -332,7 +338,7 @@ export default function Settings() {
             variant="ghost"
             className="h-7 w-7"
             title="Copy code"
-            onClick={() => navigator.clipboard.writeText(householdData.inviteCode!)}
+            onClick={() => navigator.clipboard.writeText(householdData.inviteCode!).catch(() => toast.error('Failed to copy'))}
           >
             <Copy className="h-3.5 w-3.5" />
           </Button>

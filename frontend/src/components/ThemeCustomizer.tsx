@@ -1,5 +1,6 @@
 import { type ThemePrefs, COLOR_PRESETS, FONT_OPTIONS, HEADING_FONT_OPTIONS, DEFAULT_THEME, loadGoogleFont } from '@/lib/theme'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { useIsMobile } from '../hooks/useIsMobile'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -19,7 +20,7 @@ interface ThemeCustomizerProps {
 }
 
 export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly }: ThemeCustomizerProps) {
-  const isMobile = window.innerWidth < 768
+  const isMobile = useIsMobile()
   const radiusValue = Math.round(parseFloat(prefs.radius) / 0.0625)
 
   const innerContent = (
@@ -64,6 +65,7 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly 
               <button
                 key={preset.label}
                 title={preset.label}
+                aria-label={preset.label}
                 onClick={() => setPrefs({ ...prefs, primaryHsl: preset.hsl })}
                 className={cn(
                   'h-8 w-8 rounded-full transition-all',
@@ -176,14 +178,16 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly 
 
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="min-w-[320px] flex flex-col gap-6 overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Customize Theme</SheetTitle>
-          </SheetHeader>
-          {innerContent}
-        </SheetContent>
-      </Sheet>
+      <Drawer open={open} onOpenChange={onOpenChange} direction="bottom">
+        <DrawerContent className="rounded-t-2xl flex flex-col max-h-[90vh]">
+          <DrawerHeader>
+            <DrawerTitle>Customize Theme</DrawerTitle>
+          </DrawerHeader>
+          <div className="flex-1 overflow-y-auto px-4 pb-6">
+            {innerContent}
+          </div>
+        </DrawerContent>
+      </Drawer>
     )
   }
 

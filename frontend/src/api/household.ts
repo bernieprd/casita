@@ -66,7 +66,7 @@ export function useHouseholdTheme() {
   return useQuery({
     queryKey: householdThemeKeys.theme,
     queryFn: () => api.get<HouseholdThemePrefs>('/household/settings'),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30_000,
   })
 }
 

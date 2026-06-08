@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -58,6 +59,8 @@ function GroupSection({ label, items, onEdit, onToggle }: GroupSectionProps) {
       <Collapsible open={open} onOpenChange={setOpen}>
         <button
           onClick={() => setOpen(o => !o)}
+          aria-label={`${open ? 'Collapse' : 'Expand'} ${label}`}
+          aria-expanded={open}
           className={`w-full flex items-center px-4 py-3 sticky top-[57px] z-[8] bg-card hover:bg-background transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
         >
           <span className="flex-1 text-left text-xs font-semibold uppercase tracking-[.08em] text-muted-foreground leading-none">
@@ -96,7 +99,7 @@ interface DeleteConfirmProps {
 }
 
 function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
-  const isMobile = window.innerWidth < 768
+  const isMobile = useIsMobile()
 
   if (isMobile) {
     return (

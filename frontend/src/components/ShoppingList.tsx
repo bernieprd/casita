@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -76,7 +77,7 @@ interface DeleteConfirmProps {
 }
 
 function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
-  const isMobile = window.innerWidth < 768
+  const isMobile = useIsMobile()
 
   if (isMobile) {
     return (
@@ -179,6 +180,8 @@ function GroupSection({ label, items, removingIds, onRemove, onEdit }: GroupSect
     <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
       <button
         onClick={() => setOpen(o => !o)}
+        aria-label={`${open ? 'Collapse' : 'Expand'} ${label}`}
+        aria-expanded={open}
         className={`flex items-center w-full px-4 py-3 sticky top-[57px] z-[8] bg-card hover:bg-background transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
       >
         <span className="flex-1 text-left text-xs font-semibold uppercase tracking-[.08em] text-muted-foreground leading-none">
@@ -275,7 +278,7 @@ export default function ShoppingList() {
       toggle.mutate({ id, onShoppingList: false })
       setRemovingIds(prev => { const s = new Set(prev); s.delete(id); return s })
     }, EXIT_DURATION_MS + 50)
-  }, [toggle])
+  }, [toggle.mutate])
 
   function handleDeleteRequest() {
     const target = editItem

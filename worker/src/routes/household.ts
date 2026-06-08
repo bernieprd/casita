@@ -231,7 +231,10 @@ export async function getHouseholdSettings(
     .bind(ctx.householdId)
     .first<{ settings: string | null }>()
 
-  const parsed = row?.settings ? JSON.parse(row.settings) : {}
+  let parsed: Record<string, unknown> = {}
+  if (row?.settings) {
+    try { parsed = JSON.parse(row.settings) } catch { parsed = {} }
+  }
   return Response.json(parsed)
 }
 
@@ -246,9 +249,33 @@ export async function updateHouseholdSettings(
   const body = await req.json<Record<string, unknown>>()
   const { colorScheme: _dropped, ...rest } = body
 
+  const ALLOWED_FONTS = [
+    '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    '"Inter", sans-serif',
+    '"Lato", sans-serif',
+    '"Merriweather", serif',
+    '"Playfair Display", serif',
+  ]
+
   for (const [key, val] of Object.entries(rest)) {
-    if (val !== undefined && typeof val !== 'string') {
+    if (val === undefined) continue
+    if (typeof val !== 'string') {
       return err(400, `${key} must be a string`)
+    }
+    if (key === 'primaryHsl') {
+      if (!/^\d{1,3}\s+\d{1,3}%\s+\d{1,3}%$/.test(val)) {
+        return err(400, `primaryHsl must be in HSL format like "220 9% 30%"`)
+      }
+    } else if (key === 'headingFont' || key === 'bodyFont') {
+      if (!ALLOWED_FONTS.includes(val)) {
+        return err(400, `${key} is not an allowed font value`)
+      }
+    } else if (key === 'radius') {
+      if (!/^\d+(\.\d+)?rem$/.test(val)) {
+        return err(400, `radius must be in rem units like "0.25rem"`)
+      }
+    } else {
+      return err(400, `Unknown setting key: ${key}`)
     }
   }
 

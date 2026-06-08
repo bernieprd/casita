@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -31,10 +32,10 @@ const PRIORITY_OPTIONS: Array<{ label: string; value: string | null }> = [
   { label: 'High',   value: 'High' },
 ]
 
-const PRIORITY_COLORS: Record<string, { bg: string; color: string }> = {
-  High:   { bg: '#fde8e8', color: '#c62828' },
-  Medium: { bg: '#fff8e1', color: '#e65100' },
-  Low:    { bg: '#f3f3f3', color: '#616161' },
+const PRIORITY_CHIP_CLASSES: Record<string, string> = {
+  High:   'bg-destructive/10 text-destructive border-destructive',
+  Medium: 'bg-yellow-50 dark:bg-yellow-950/30 text-orange-700 dark:text-orange-400',
+  Low:    'bg-secondary text-secondary-foreground',
 }
 
 const PRIORITY_SELECTED_CLASSES: Record<string, string> = {
@@ -60,11 +61,10 @@ function formatDue(due: string | null): string | null {
 
 function PriorityChip({ priority }: { priority: string | null }) {
   if (!priority) return null
-  const style = PRIORITY_COLORS[priority] ?? { bg: '#f3f3f3', color: '#616161' }
+  const chipClass = PRIORITY_CHIP_CLASSES[priority] ?? 'bg-secondary text-secondary-foreground'
   return (
     <span
-      className="inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[0.65rem] font-semibold leading-none"
-      style={{ backgroundColor: style.bg, color: style.color }}
+      className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[0.65rem] font-semibold leading-none ${chipClass}`}
     >
       {priority}
     </span>
@@ -126,7 +126,7 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
   const [draftPriority, setDraftPriority] = useState<string | null>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const keyboardOffset = useKeyboardOffset()
-  const isMobile = window.innerWidth < 768
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     if (!todo) return
@@ -288,7 +288,7 @@ interface SectionProps {
 }
 
 function Section({ status, todos, pendingDeleteId, onOpen, onClearDone }: SectionProps) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(status !== 'Done')
   const visible = todos.filter(t => t.id !== pendingDeleteId)
 
   if (visible.length === 0) return null
@@ -302,6 +302,8 @@ function Section({ status, todos, pendingDeleteId, onOpen, onClearDone }: Sectio
       <button
         type="button"
         onClick={() => setExpanded(v => !v)}
+        aria-label={`${expanded ? 'Collapse' : 'Expand'} ${status}`}
+        aria-expanded={expanded}
         className="w-full flex items-center px-4 py-3 hover:bg-accent/50 transition-colors"
       >
         <span className="flex-1 text-left text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">

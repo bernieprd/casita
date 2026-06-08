@@ -121,7 +121,7 @@ export default function HouseholdSetup() {
                     onChange={e => setInviteCode(e.target.value)}
                     required
                     autoFocus
-                    style={{ textTransform: 'uppercase', letterSpacing: 2 }}
+                    style={{ textTransform: 'uppercase', letterSpacing: '2px' }}
                   />
                   {joinError && (
                     <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive">

@@ -402,7 +402,7 @@ export default function RecipeFormPage() {
     setSectionOrder(order)
     setNameError(false)
     setInitialized(true)
-  }, [isEdit, recipeData, ingredientsData, ingredientsLoading, initialized])
+  }, [isEdit, recipeData, ingredientsData, ingredientsLoading, recipeLoading, initialized])
 
   // ── DnD sensors ─────────────────────────────────────────────────────────────
 
