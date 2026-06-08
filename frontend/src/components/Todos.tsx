@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
 import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Drawer, DrawerContent } from '@/components/ui/drawer'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from '../api'
 import type { Todo } from '../api'
@@ -125,6 +126,7 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
   const [draftPriority, setDraftPriority] = useState<string | null>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const keyboardOffset = useKeyboardOffset()
+  const isMobile = window.innerWidth < 768
 
   useEffect(() => {
     if (!todo) return
@@ -149,113 +151,129 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
     onClose()
   }
 
-  return (
-    <Drawer
-      open={!!todo}
-      onOpenChange={open => { if (!open) onClose() }}
-      direction="bottom"
-    >
-      <DrawerContent
-        style={{ bottom: keyboardOffset, transition: 'bottom 150ms ease-out' }}
-        className="rounded-t-2xl flex flex-col max-h-[90vh]"
-      >
-        {/* Scrollable content */}
-        <div className="overflow-y-auto px-5 pt-1 pb-6 overscroll-contain">
-          {/* Name */}
-          <Input
-            ref={nameRef}
-            value={draftName}
-            onChange={e => setDraftName(e.target.value)}
-            placeholder="To-do name"
-            aria-label="Todo name"
-            enterKeyHint="done"
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); nameRef.current?.blur() } }}
-            className="border-0 border-b rounded-none px-0 text-base shadow-none focus-visible:ring-0 mb-1"
-          />
+  const formBody = (
+    <div className="overflow-y-auto px-5 pt-1 pb-6 overscroll-contain">
+      {/* Name */}
+      <Input
+        ref={nameRef}
+        value={draftName}
+        onChange={e => setDraftName(e.target.value)}
+        placeholder="To-do name"
+        aria-label="Todo name"
+        enterKeyHint="done"
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); nameRef.current?.blur() } }}
+        className="border-0 border-b rounded-none px-0 text-base shadow-none focus-visible:ring-0 mb-1"
+      />
 
-          <Separator className="my-4" />
+      <Separator className="my-4" />
 
-          {/* Status */}
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">
-            Status
-          </p>
-          <div className="flex gap-2 flex-wrap mt-2">
-            {STATUSES.map(s => {
-              const selected = draftStatus === s
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setDraftStatus(s)}
-                  className={`inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-medium transition-colors ${
-                    selected
-                      ? STATUS_SELECTED_CLASSES[s]
-                      : 'border-border bg-background text-foreground hover:bg-accent'
-                  }`}
-                >
-                  {s}
-                </button>
-              )
-            })}
-          </div>
-
-          <Separator className="my-4" />
-
-          {/* Priority */}
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">
-            Priority
-          </p>
-          <div className="flex gap-2 flex-wrap mt-2">
-            {PRIORITY_OPTIONS.map(({ label, value }) => {
-              const selected = draftPriority === value
-              const selectedClass = value ? PRIORITY_SELECTED_CLASSES[value] : 'bg-secondary text-secondary-foreground border-secondary'
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => setDraftPriority(value)}
-                  className={`inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-medium transition-colors ${
-                    selected
-                      ? selectedClass
-                      : 'border-border bg-background text-foreground hover:bg-accent'
-                  }`}
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-
-          <Separator className="my-4" />
-
-          {/* Due date */}
-          <Input
-            type="date"
-            aria-label="Due date"
-            value={draftDue}
-            onChange={e => setDraftDue(e.target.value)}
-            className="text-sm"
-          />
-
-          <Separator className="my-4" />
-
-          {/* Actions */}
-          <div className="flex justify-between items-center">
-            <Button
-              variant="ghost"
-              className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5"
-              onClick={() => { if (todo) { onDelete(todo); onClose() } }}
+      {/* Status */}
+      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">
+        Status
+      </p>
+      <div className="flex gap-2 flex-wrap mt-2">
+        {STATUSES.map(s => {
+          const selected = draftStatus === s
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setDraftStatus(s)}
+              className={`inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-medium transition-colors ${
+                selected
+                  ? STATUS_SELECTED_CLASSES[s]
+                  : 'border-border bg-background text-foreground hover:bg-accent'
+              }`}
             >
-              <Trash2 className="size-4" />
-              Delete
-            </Button>
-            <Button onClick={handleSave}>
-              Save
-            </Button>
-          </div>
-        </div>
-      </DrawerContent>
-    </Drawer>
+              {s}
+            </button>
+          )
+        })}
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Priority */}
+      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">
+        Priority
+      </p>
+      <div className="flex gap-2 flex-wrap mt-2">
+        {PRIORITY_OPTIONS.map(({ label, value }) => {
+          const selected = draftPriority === value
+          const selectedClass = value ? PRIORITY_SELECTED_CLASSES[value] : 'bg-secondary text-secondary-foreground border-secondary'
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setDraftPriority(value)}
+              className={`inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-medium transition-colors ${
+                selected
+                  ? selectedClass
+                  : 'border-border bg-background text-foreground hover:bg-accent'
+              }`}
+            >
+              {label}
+            </button>
+          )
+        })}
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Due date */}
+      <Input
+        type="date"
+        aria-label="Due date"
+        value={draftDue}
+        onChange={e => setDraftDue(e.target.value)}
+        className="text-sm"
+      />
+
+      <Separator className="my-4" />
+
+      {/* Actions */}
+      <div className="flex justify-between items-center">
+        <Button
+          variant="ghost"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5"
+          onClick={() => { if (todo) { onDelete(todo); onClose() } }}
+        >
+          <Trash2 className="size-4" />
+          Delete
+        </Button>
+        <Button onClick={handleSave}>
+          Save
+        </Button>
+      </div>
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer
+        open={!!todo}
+        onOpenChange={open => { if (!open) onClose() }}
+        direction="bottom"
+      >
+        <DrawerContent
+          style={{ bottom: keyboardOffset, transition: 'bottom 150ms ease-out' }}
+          className="rounded-t-2xl flex flex-col max-h-[90vh]"
+        >
+          {formBody}
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
+  return (
+    <Dialog open={!!todo} onOpenChange={open => { if (!open) onClose() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit To-do</DialogTitle>
+        </DialogHeader>
+        {formBody}
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -279,7 +297,7 @@ function Section({ status, todos, pendingDeleteId, onOpen, onClearDone }: Sectio
     <Collapsible
       open={expanded}
       onOpenChange={setExpanded}
-      className="bg-background rounded-lg overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2"
+      className="bg-card rounded-lg overflow-hidden border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2"
     >
       <button
         type="button"
@@ -355,7 +373,7 @@ interface PendingDelete {
   timeoutId: ReturnType<typeof setTimeout>
 }
 
-export default function Todos() {
+export default function Todos({ setHeader }: { setHeader: (node: ReactNode | null) => void }) {
   const { data: todos, isLoading, error } = useTodos()
   const createTodo = useCreateTodo()
   const updateTodo = useUpdateTodo()
@@ -370,17 +388,42 @@ export default function Todos() {
     pendingDeleteRef.current = pendingDelete
   }, [pendingDelete])
 
-  function handleAdd() {
-    const name = inputValue.trim()
+  const inputValueRef = useRef(inputValue)
+  useEffect(() => { inputValueRef.current = inputValue })
+
+  const handleAdd = useCallback(() => {
+    const name = inputValueRef.current.trim()
     if (!name) return
     setInputValue('')
     createTodo.mutate({ name })
-  }
+  }, [createTodo.mutate])
+
+  useEffect(() => {
+    setHeader(
+      <form
+        onSubmit={e => { e.preventDefault(); handleAdd() }}
+        className="flex-1 flex gap-2 px-2"
+      >
+        <Input
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          placeholder="Add a to-do…"
+          autoComplete="off"
+          aria-label="New to-do name"
+          className="flex-1"
+        />
+        <Button type="submit" disabled={!inputValue.trim()} className="shrink-0">
+          Add
+        </Button>
+      </form>
+    )
+    return () => setHeader(null)
+  }, [inputValue, setHeader])
 
   const commitDelete = useCallback((todo: Todo) => {
     deleteTodo.mutate(todo.id)
     setPendingDelete(null)
-  }, [deleteTodo])
+  }, [deleteTodo.mutate])
 
   function handleDelete(todo: Todo) {
     const existing = pendingDeleteRef.current
@@ -431,30 +474,6 @@ export default function Todos() {
 
   return (
     <>
-      {/* Sticky add bar — matches Recipes search bar pattern */}
-      <form
-        onSubmit={e => { e.preventDefault(); handleAdd() }}
-        className="sticky top-[57px] sm:top-[65px] -ml-[calc(50vw-50%)] w-screen -mt-2 z-10 mb-3 bg-background border-b border-border"
-      >
-        <div className="max-w-xl mx-auto px-4 py-3 flex gap-2">
-          <Input
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
-            placeholder="Add a to-do…"
-            autoComplete="off"
-            aria-label="New to-do name"
-            className="flex-1"
-          />
-          <Button
-            type="submit"
-            disabled={!inputValue.trim()}
-            className="shrink-0"
-          >
-            Add
-          </Button>
-        </div>
-      </form>
-
       {/* List */}
       <div className="pb-8">
         {isLoading && <TodosSkeleton />}

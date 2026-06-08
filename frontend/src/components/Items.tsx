@@ -54,13 +54,13 @@ function GroupSection({ label, items, onEdit, onToggle }: GroupSectionProps) {
   const [open, setOpen] = useState(true)
 
   return (
-    <div className="bg-card rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
+    <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
       <Collapsible open={open} onOpenChange={setOpen}>
         <button
           onClick={() => setOpen(o => !o)}
-          className={`w-full flex items-center px-4 py-2 sticky top-[122px] sm:top-[130px] z-[8] bg-card hover:bg-muted/50 transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
+          className={`w-full flex items-center px-4 py-3 sticky top-[98px] z-[8] bg-card hover:bg-background transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
         >
-          <span className="flex-1 text-left text-xs uppercase tracking-[.08em] text-muted-foreground leading-none">
+          <span className="flex-1 text-left text-xs font-semibold uppercase tracking-[.08em] text-muted-foreground leading-none">
             {label}
           </span>
           <span className="text-xs text-muted-foreground mr-2">{items.length}</span>
@@ -144,8 +144,8 @@ function ItemsSkeleton() {
         <Skeleton className="w-[220px] h-8 rounded" />
       </div>
       {[5, 3].map((rows, gi) => (
-        <div key={gi} className="bg-card rounded-lg overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
-          <div className="px-4 py-2">
+        <div key={gi} className="bg-card rounded-lg border border-border overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
+          <div className="px-4 py-3">
             <Skeleton className="w-[100px] h-3.5" />
           </div>
           <Separator />
@@ -285,18 +285,22 @@ export default function Items() {
       {allSupermarkets.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1 mb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {allSupermarkets.map(s => (
-            <Badge
+            <button
               key={s}
-              variant={selectedSupermarkets.has(s) ? 'default' : 'outline'}
-              className="shrink-0 cursor-pointer"
               onClick={() => setSelectedSupermarkets(prev => {
                 const next = new Set(prev)
                 next.has(s) ? next.delete(s) : next.add(s)
                 return next
               })}
+              className="shrink-0 min-h-[44px] flex items-center"
             >
-              {s}
-            </Badge>
+              <Badge
+                variant={selectedSupermarkets.has(s) ? 'default' : 'outline'}
+                className="cursor-pointer"
+              >
+                {s}
+              </Badge>
+            </button>
           ))}
         </div>
       )}

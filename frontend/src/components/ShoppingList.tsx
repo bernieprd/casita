@@ -176,10 +176,10 @@ function GroupSection({ label, items, removingIds, onRemove, onEdit }: GroupSect
   const visibleCount = items.filter(i => !removingIds.has(i.id)).length
 
   return (
-    <div className="bg-card rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
+    <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`flex items-center w-full px-4 py-3 sticky top-[122px] sm:top-[130px] z-[8] bg-card hover:bg-background transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
+        className={`flex items-center w-full px-4 py-3 sticky top-[98px] z-[8] bg-card hover:bg-background transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
       >
         <span className="flex-1 text-left text-xs font-semibold uppercase tracking-[.08em] text-muted-foreground leading-none">
           {label}
@@ -364,7 +364,7 @@ export default function ShoppingList() {
                 next.has(s) ? next.delete(s) : next.add(s)
                 return next
               })}
-              className="shrink-0"
+              className="shrink-0 min-h-[44px] flex items-center"
             >
               <Badge
                 variant={selectedSupermarkets.has(s) ? 'default' : 'outline'}
