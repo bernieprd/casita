@@ -1,5 +1,5 @@
 import { getItems, createItem, updateItem, deleteItem, mergeItem } from './routes/items-d1'
-import { createRecipe, getRecipes, getRecipe, updateRecipe, getRecipeIngredients, shareRecipe, getPublicRecipe } from './routes/recipes-d1'
+import { createRecipe, getRecipes, getRecipe, updateRecipe, deleteRecipe, getRecipeIngredients, shareRecipe, getPublicRecipe } from './routes/recipes-d1'
 import { updateRecipeIngredient, createRecipeIngredient, deleteRecipeIngredient } from './routes/recipe-ingredients-d1'
 import { uploadRecipePhoto, serveRecipePhoto } from './routes/uploads'
 import { getTodos, createTodo, updateTodo, deleteTodo } from './routes/todos-d1'
@@ -101,6 +101,7 @@ const routes: Array<[string, URLPattern, AuthHandler]> = [
   ['GET',    new URLPattern({ pathname: '/recipes',                     search: '*' }), getRecipes],
   ['GET',    new URLPattern({ pathname: '/recipes/:id',                 search: '*' }), getRecipe],
   ['PATCH',  new URLPattern({ pathname: '/recipes/:id',                 search: '*' }), updateRecipe],
+  ['DELETE', new URLPattern({ pathname: '/recipes/:id',                 search: '*' }), deleteRecipe],
   ['GET',    new URLPattern({ pathname: '/recipes/:id/ingredients',     search: '*' }), getRecipeIngredients],
   ['POST',   new URLPattern({ pathname: '/recipes/:id/share',           search: '*' }), shareRecipe],
   ['POST',   new URLPattern({ pathname: '/recipe-ingredients',          search: '*' }), createRecipeIngredient],

@@ -98,6 +98,16 @@ export function useEditRecipe(recipeId: string) {
   })
 }
 
+export function useDeleteRecipe(recipeId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.delete(`/recipes/${recipeId}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: recipeKeys.all })
+    },
+  })
+}
+
 export function useRecipe(id: string) {
   // qc is captured by the placeholderData closure — valid because useQueryClient
   // is called at hook level, not inside the callback.

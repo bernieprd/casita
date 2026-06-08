@@ -214,6 +214,24 @@ export async function shareRecipe(_req: Request, env: Env, ctx: RequestContext, 
   return Response.json({ token, url: `${appUrl}/share/${token}` }, { status: 201 })
 }
 
+export async function deleteRecipe(_req: Request, env: Env, ctx: RequestContext, id: string): Promise<Response> {
+  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+
+  const existing = await env.DB.prepare(
+    'SELECT id FROM recipes WHERE id = ? AND household_id = ?',
+  ).bind(id, ctx.householdId).first<{ id: string }>()
+
+  if (!existing) return Response.json({ error: 'Not found' }, { status: 404 })
+
+  await Promise.all([
+    env.DB.prepare('DELETE FROM recipe_ingredients WHERE recipe_id = ?').bind(id).run(),
+    env.DB.prepare('DELETE FROM recipe_blocks WHERE recipe_id = ?').bind(id).run(),
+  ])
+  await env.DB.prepare('DELETE FROM recipes WHERE id = ? AND household_id = ?').bind(id, ctx.householdId).run()
+
+  return new Response(null, { status: 204 })
+}
+
 export async function getPublicRecipe(_req: Request, env: Env, token: string): Promise<Response> {
   const row = await env.DB.prepare(
     'SELECT * FROM recipes WHERE share_token = ?',

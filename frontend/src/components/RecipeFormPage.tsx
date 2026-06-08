@@ -12,6 +12,11 @@ import AppBar from '@mui/material/AppBar'
 import Toolbar from '@mui/material/Toolbar'
 import CircularProgress from '@mui/material/CircularProgress'
 import Skeleton from '@mui/material/Skeleton'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogContentText from '@mui/material/DialogContentText'
+import DialogActions from '@mui/material/DialogActions'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
@@ -30,7 +35,7 @@ import {
   useDraggable,
 } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
-import { useItems, useRecipes, useCreateRecipe, useEditRecipe, useRecipe, useRecipeIngredients, useConceptList } from '../api'
+import { useItems, useRecipes, useCreateRecipe, useEditRecipe, useDeleteRecipe, useRecipe, useRecipeIngredients, useConceptList } from '../api'
 import type { Item } from '../api'
 import { uploadPhoto } from '../api/client'
 
@@ -311,6 +316,8 @@ export default function RecipeFormPage() {
 
   const createRecipe = useCreateRecipe()
   const editRecipe = useEditRecipe(id ?? '')
+  const deleteRecipe = useDeleteRecipe(id ?? '')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const isPending = isEdit ? editRecipe.isPending : createRecipe.isPending
 
   // ── Form state ──────────────────────────────────────────────────────────────
@@ -524,6 +531,12 @@ export default function RecipeFormPage() {
         },
       )
     }
+  }
+
+  function handleDelete() {
+    deleteRecipe.mutate(undefined, {
+      onSuccess: () => navigate('/recipes', { replace: true }),
+    })
   }
 
   // ── Active drag row ──────────────────────────────────────────────────────────
@@ -746,6 +759,37 @@ export default function RecipeFormPage() {
             <Skeleton height={120} />
           </Stack>
         ) : formBody}
+
+        {isEdit && !isLoadingEdit && (
+          <Box sx={{ mt: 3, mb: 2, display: 'flex', justifyContent: 'center' }}>
+            <Button
+              color="error"
+              size="small"
+              startIcon={<DeleteOutlineIcon fontSize="small" />}
+              onClick={() => setDeleteDialogOpen(true)}
+              disabled={isPending || deleteRecipe.isPending}
+            >
+              Delete recipe
+            </Button>
+          </Box>
+        )}
+
+        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+          <DialogTitle>Delete recipe?</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              This will permanently delete "{name}" and all its ingredients. This can't be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleteRecipe.isPending}>
+              Cancel
+            </Button>
+            <Button color="error" onClick={handleDelete} disabled={deleteRecipe.isPending}>
+              {deleteRecipe.isPending ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Box>
   )
