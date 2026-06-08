@@ -218,3 +218,45 @@ export async function revokeInvite(
 
   return new Response(null, { status: 204 })
 }
+
+export async function getHouseholdSettings(
+  _req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return err(403, 'Forbidden')
+
+  const row = await env.DB
+    .prepare('SELECT settings FROM households WHERE id = ?')
+    .bind(ctx.householdId)
+    .first<{ settings: string | null }>()
+
+  const parsed = row?.settings ? JSON.parse(row.settings) : {}
+  return Response.json(parsed)
+}
+
+export async function updateHouseholdSettings(
+  req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return err(403, 'Forbidden')
+  if (ctx.role !== 'owner') return err(403, 'Forbidden')
+
+  const body = await req.json<Record<string, unknown>>()
+  const { colorScheme: _dropped, ...rest } = body
+
+  for (const [key, val] of Object.entries(rest)) {
+    if (val !== undefined && typeof val !== 'string') {
+      return err(400, `${key} must be a string`)
+    }
+  }
+
+  const serialized = JSON.stringify(rest)
+  await env.DB
+    .prepare('UPDATE households SET settings = ? WHERE id = ?')
+    .bind(serialized, ctx.householdId)
+    .run()
+
+  return Response.json(rest)
+}

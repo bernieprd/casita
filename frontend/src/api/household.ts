@@ -50,3 +50,33 @@ export function useRenameHousehold() {
     },
   })
 }
+
+export type HouseholdThemePrefs = {
+  primaryHsl?: string
+  headingFont?: string
+  bodyFont?: string
+  radius?: string
+}
+
+export const householdThemeKeys = {
+  theme: ['household', 'theme'] as const,
+}
+
+export function useHouseholdTheme() {
+  return useQuery({
+    queryKey: householdThemeKeys.theme,
+    queryFn: () => api.get<HouseholdThemePrefs>('/household/settings'),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+export function useUpdateHouseholdTheme() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (prefs: HouseholdThemePrefs) =>
+      api.patch<HouseholdThemePrefs>('/household/settings', prefs),
+    onSuccess: (data) => {
+      qc.setQueryData(householdThemeKeys.theme, data)
+    },
+  })
+}

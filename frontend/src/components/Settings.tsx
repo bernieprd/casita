@@ -18,7 +18,7 @@ import {
   useDisconnectGoogle,
   initiateGoogleConnect,
 } from '../api/google-calendar'
-import { useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold } from '../api/household'
+import { useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold, useHouseholdTheme, useUpdateHouseholdTheme } from '../api/household'
 import { useConceptList, useCreateConcept, useRenameConcept, useDeleteConcept, useBackfillConcepts } from '../api/concepts'
 import type { ConceptType } from '../api/concepts'
 import type { UserCalendar } from '../api/types'
@@ -166,15 +166,20 @@ export default function Settings() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Theme customizer ───────────────────────────────────────────────────────
-
-  const { prefs, setPrefs } = useTheme()
-  const [themeOpen, setThemeOpen] = useState(false)
-
   // ── Household ──────────────────────────────────────────────────────────────
 
   const { data: householdData, isLoading: householdLoading } = useHouseholdSettings()
   const isOwner = householdData?.role === 'owner'
+
+  // ── Theme customizer ───────────────────────────────────────────────────────
+
+  const { data: householdTheme } = useHouseholdTheme()
+  const { mutate: updateHouseholdTheme } = useUpdateHouseholdTheme()
+  const { prefs, setPrefs } = useTheme(
+    householdTheme,
+    isOwner ? updateHouseholdTheme : undefined,
+  )
+  const [themeOpen, setThemeOpen] = useState(false)
 
   const [renaming, setRenaming] = useState(false)
   const [nameInput, setNameInput] = useState('')
@@ -267,9 +272,9 @@ export default function Settings() {
         Appearance
       </p>
 
-      <ThemeCustomizer prefs={prefs} setPrefs={setPrefs} open={themeOpen} onOpenChange={setThemeOpen} />
+      <ThemeCustomizer prefs={prefs} setPrefs={setPrefs} open={themeOpen} onOpenChange={setThemeOpen} readOnly={!isOwner} />
       <Button variant="outline" size="sm" className="mb-1" onClick={() => setThemeOpen(true)}>
-        Customize theme
+        {isOwner ? 'Customize theme' : 'View theme'}
       </Button>
 
       <Separator className="my-4" />

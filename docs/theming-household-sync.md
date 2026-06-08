@@ -57,7 +57,7 @@ This makes `rounded-md`, `rounded-lg`, etc. resolve to `var(--radius)` offsets a
 
 ---
 
-## 3. Per-Household Theme — Server Sync
+## ~~3. Per-Household Theme — Server Sync~~ ✅ DONE
 
 ### Backend
 

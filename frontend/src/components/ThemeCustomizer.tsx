@@ -15,9 +15,10 @@ interface ThemeCustomizerProps {
   setPrefs: (prefs: ThemePrefs) => void
   open: boolean
   onOpenChange: (open: boolean) => void
+  readOnly?: boolean
 }
 
-export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange }: ThemeCustomizerProps) {
+export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly }: ThemeCustomizerProps) {
   const isMobile = window.innerWidth < 768
   const radiusValue = Math.round(parseFloat(prefs.radius) / 0.0625)
 
@@ -57,22 +58,27 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange }: ThemeCu
         <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Color
         </Label>
-        <div className="flex gap-2">
-          {COLOR_PRESETS.map((preset) => (
-            <button
-              key={preset.label}
-              title={preset.label}
-              onClick={() => setPrefs({ ...prefs, primaryHsl: preset.hsl })}
-              className={cn(
-                'h-8 w-8 rounded-full transition-all',
-                prefs.primaryHsl === preset.hsl
-                  ? 'ring-2 ring-offset-2 ring-foreground scale-110'
-                  : 'hover:scale-105',
-              )}
-              style={{ backgroundColor: `hsl(${preset.hsl})` }}
-            />
-          ))}
+        <div className={readOnly ? 'opacity-50 pointer-events-none' : ''}>
+          <div className="flex gap-2">
+            {COLOR_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                title={preset.label}
+                onClick={() => setPrefs({ ...prefs, primaryHsl: preset.hsl })}
+                className={cn(
+                  'h-8 w-8 rounded-full transition-all',
+                  prefs.primaryHsl === preset.hsl
+                    ? 'ring-2 ring-offset-2 ring-foreground scale-110'
+                    : 'hover:scale-105',
+                )}
+                style={{ backgroundColor: `hsl(${preset.hsl})` }}
+              />
+            ))}
+          </div>
         </div>
+        {readOnly && (
+          <p className="text-xs text-muted-foreground">Color, fonts, and radius are set by the household owner.</p>
+        )}
       </div>
 
       <Separator />
@@ -81,25 +87,27 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange }: ThemeCu
         <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Heading Font
         </Label>
-        <Select
-          value={prefs.headingFont}
-          onValueChange={(value) => {
-            const option = HEADING_FONT_OPTIONS.find((o) => o.value === value)
-            if (option?.googleFamily) loadGoogleFont(option.googleFamily)
-            setPrefs({ ...prefs, headingFont: value })
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {HEADING_FONT_OPTIONS.map((option) => (
-              <SelectItem key={option.label} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className={readOnly ? 'opacity-50 pointer-events-none' : ''}>
+          <Select
+            value={prefs.headingFont}
+            onValueChange={(value) => {
+              const option = HEADING_FONT_OPTIONS.find((o) => o.value === value)
+              if (option?.googleFamily) loadGoogleFont(option.googleFamily)
+              setPrefs({ ...prefs, headingFont: value })
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {HEADING_FONT_OPTIONS.map((option) => (
+                <SelectItem key={option.label} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Separator />
@@ -108,25 +116,27 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange }: ThemeCu
         <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Body Font
         </Label>
-        <Select
-          value={prefs.bodyFont}
-          onValueChange={(value) => {
-            const option = FONT_OPTIONS.find((o) => o.value === value)
-            if (option?.googleFamily) loadGoogleFont(option.googleFamily)
-            setPrefs({ ...prefs, bodyFont: value })
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {FONT_OPTIONS.map((option) => (
-              <SelectItem key={option.label} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className={readOnly ? 'opacity-50 pointer-events-none' : ''}>
+          <Select
+            value={prefs.bodyFont}
+            onValueChange={(value) => {
+              const option = FONT_OPTIONS.find((o) => o.value === value)
+              if (option?.googleFamily) loadGoogleFont(option.googleFamily)
+              setPrefs({ ...prefs, bodyFont: value })
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {FONT_OPTIONS.map((option) => (
+                <SelectItem key={option.label} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Separator />
@@ -138,27 +148,32 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange }: ThemeCu
           </Label>
           <span className="text-sm text-muted-foreground">{prefs.radius}</span>
         </div>
-        <Slider
-          min={0}
-          max={16}
-          step={1}
-          value={[radiusValue]}
-          onValueChange={([v]) => {
-            const rem = v === 0 ? '0rem' : `${(v * 0.0625).toFixed(3).replace(/0+$/, '')}rem`
-            setPrefs({ ...prefs, radius: rem })
-          }}
-        />
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>None</span>
-          <span>Rounded</span>
+        <div className={readOnly ? 'opacity-50 pointer-events-none' : ''}>
+          <Slider
+            min={0}
+            max={16}
+            step={1}
+            value={[radiusValue]}
+            onValueChange={([v]) => {
+              const rem = v === 0 ? '0rem' : `${(v * 0.0625).toFixed(3).replace(/0+$/, '')}rem`
+              setPrefs({ ...prefs, radius: rem })
+            }}
+          />
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>None</span>
+            <span>Rounded</span>
+          </div>
         </div>
       </div>
 
-      <Separator />
-
-      <Button variant="ghost" onClick={() => setPrefs(DEFAULT_THEME)} className="w-full">
-        Reset to defaults
-      </Button>
+      {!readOnly && (
+        <>
+          <Separator />
+          <Button variant="ghost" onClick={() => setPrefs(DEFAULT_THEME)} className="w-full">
+            Reset to defaults
+          </Button>
+        </>
+      )}
     </div>
   )
 
