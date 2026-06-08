@@ -36,6 +36,7 @@ import { AuthProvider, useAuth, useHousehold } from './context/AuthContext'
 const RecipeFormPage  = lazy(() => import('./components/RecipeFormPage'))
 const Settings        = lazy(() => import('./components/Settings'))
 const HouseholdSetup  = lazy(() => import('./components/HouseholdSetup'))
+const ThemePreview    = lazy(() => import('./components/ThemePreview'))
 
 export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
 
@@ -231,6 +232,11 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/theme-preview" element={
+          <Suspense fallback={null}>
+            <ThemePreview />
+          </Suspense>
+        } />
         <Route path="/login" element={<Navigate to="/sign-in" replace />} />
         <Route path="/sign-in/*" element={<SignInPage />} />
         <Route path="/sign-up/*" element={<SignUpPage />} />

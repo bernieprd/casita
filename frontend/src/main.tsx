@@ -1,3 +1,4 @@
+import './index.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ClerkProvider } from '@clerk/clerk-react'
@@ -6,6 +7,8 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { ThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { BrowserRouter } from 'react-router-dom'
+import { applyTheme, loadTheme } from './lib/theme'
+import { Toaster } from 'sonner'
 import theme from './theme'
 import App from './App'
 
@@ -14,6 +17,8 @@ const queryClient = new QueryClient({
     queries: { staleTime: 1000 * 60, retry: 1 },
   },
 })
+
+applyTheme(loadTheme())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -29,6 +34,7 @@ createRoot(document.getElementById('root')!).render(
           <CssBaseline />
           <BrowserRouter>
             <App />
+            <Toaster richColors position="top-center" />
           </BrowserRouter>
         </ThemeProvider>
         <ReactQueryDevtools initialIsOpen={false} />
