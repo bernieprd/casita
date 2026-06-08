@@ -11,14 +11,12 @@ The app currently uses MUI v7 + Emotion. The goal is to replace it with shadcn/u
 | Phase | Status | Notes |
 |-------|--------|-------|
 | Phase 0a — Remove MUI, install Tailwind + shadcn | ⚠️ Partial | Tailwind + shadcn installed; MUI still in `package.json` and vite chunks |
-| Phase 0b — Base CSS + main.tsx cleanup | ⚠️ Partial | `index.css` done (vars + `@theme inline`); `main.tsx` still has `ThemeProvider`/`CssBaseline`; `theme.ts` not deleted |
-| Phase 0c — shadcn components | ✅ Done | 18 components in `src/components/ui/` |
+| Phase 0b — Base CSS + main.tsx cleanup | ✅ Done | `index.css` done; `main.tsx` clean (ThemeProvider/CssBaseline removed, `applyTheme` + `<Toaster>` present); `theme.ts` deleted |
+| Phase 0c — shadcn components | ✅ Done | 19 components in `src/components/ui/` (collapsible added in Phase 2) |
 | Phase 1 — Theme customization system | ✅ Done | `lib/theme.ts`, `hooks/useTheme.ts`, `ThemeCustomizer.tsx` all complete |
 | ThemePreview route (added, not in original plan) | ✅ Done | `/theme-preview` showcases all shadcn components with live theming |
-| Phase 2 — Component migrations (A–F) | ❌ Not started | All 15 app files still import from `@mui/material` (231 occurrences) |
-| Phase 3 — Integration pass | ❌ Not started | Blocked by Phase 2 |
-
-**The remaining `main.tsx` MUI references (`ThemeProvider`, `CssBaseline`) must stay until Phase 2 is complete** — removing them now would break the live app. Remove them as part of the Phase 2/Workstream A pass on `App.tsx`.
+| Phase 2 — Component migrations (A–F) | ✅ Done | All 15 app files migrated (commit `120f617`) |
+| Phase 3 — Integration pass | ❌ Not started | MUI packages + vite chunk not yet removed; `App.css` not deleted; build not verified |
 
 ---
 
@@ -86,9 +84,9 @@ npx shadcn@latest init
 }
 ```
 
-**`frontend/src/main.tsx`** ⚠️ — `applyTheme(loadTheme())` is called before `createRoot` ✅. `ThemeProvider` and `CssBaseline` are still present ❌ — remove as part of Workstream A (after `App.tsx` is migrated).
+**`frontend/src/main.tsx`** ✅ — `applyTheme(loadTheme())` called before `createRoot`; `ThemeProvider` and `CssBaseline` removed; `<Toaster>` mounted.
 
-**`frontend/src/theme.ts`** ❌ — still exists; delete after Workstream A.
+**`frontend/src/theme.ts`** ✅ — deleted.
 
 ### 0c. Add all shadcn components needed
 
@@ -98,10 +96,10 @@ npx shadcn@latest add button input dialog drawer tabs select checkbox \
   form sonner progress collapsible sheet scroll-area slider popover command
 ```
 
-**Status:** ✅ 18 components installed in `src/components/ui/`:
-avatar, badge, button, card, checkbox, dialog, drawer, input, label, radio-group, select, separator, sheet, skeleton, slider, switch, tabs, textarea
+**Status:** ✅ 19 components installed in `src/components/ui/`:
+avatar, badge, button, card, checkbox, collapsible, dialog, drawer, input, label, radio-group, select, separator, sheet, skeleton, slider, switch, tabs, textarea
 
-**Still to add** (referenced in Phase 2 but not yet installed): `alert`, `form`, `sonner`, `progress`, `collapsible`, `scroll-area`, `popover`, `command`
+Note: `collapsible` was added during Phase 2 (Workstream C). The remaining originally-listed components (`alert`, `form`, `sonner`, `progress`, `scroll-area`, `popover`, `command`) were not needed — Phase 2 migrations used `sonner` via the `sonner` package directly and the other components were not required by the migrated files.
 
 ---
 
@@ -127,18 +125,13 @@ Route `/theme-preview` — full component showcase (typography, buttons, form co
 ### Integration
 
 - ✅ `main.tsx` calls `applyTheme(loadTheme())` before `createRoot` (no flash of unstyled content)
-- ❌ `Settings.tsx` — Appearance section with `<ThemeCustomizer />` not yet added (blocked by Workstream F)
+- ✅ `Settings.tsx` — Appearance section with `<ThemeCustomizer />` added (completed in Workstream F)
 
 ---
 
-## Phase 2 — Component Migrations (6 parallel agent workstreams) ❌ Not started
+## Phase 2 — Component Migrations (6 parallel agent workstreams) ✅ Complete (commit `120f617`)
 
-All agents work on the same branch. Each agent handles independent files. After all complete, do a single integration pass.
-
-**Before starting any workstream**, install remaining shadcn components:
-```bash
-npx shadcn@latest add alert form sonner progress collapsible scroll-area popover command
-```
+All workstreams completed on `feat/shadcn-theming`. All 15 app component files migrated.
 
 ### Icon mapping (Lucide replacements for `@mui/icons-material`)
 
@@ -220,7 +213,7 @@ Replace `Box sx={{ maxWidth: 600, mx: 'auto' }}` with `<div className="max-w-xl 
 - `Box`, `Typography`, `Alert`, `CircularProgress`, `LinearProgress` → Tailwind divs + shadcn components
 - All `sx` → Tailwind classes
 
-**After migrating `App.tsx`:** remove `ThemeProvider`, `CssBaseline`, and the `theme` import from `main.tsx`, then delete `src/theme.ts`.
+**After migrating `App.tsx`:** ✅ Done — `ThemeProvider`, `CssBaseline`, and the `theme` import removed from `main.tsx`; `src/theme.ts` deleted.
 
 **`Home.tsx`** — replace `Box`, `Typography`, `Skeleton`, `Chip`, `IconButton` with Tailwind + shadcn `Skeleton`, `Badge`
 
@@ -289,17 +282,17 @@ Replace `Box sx={{ maxWidth: 600, mx: 'auto' }}` with `<div className="max-w-xl 
 
 | File | Action | Status |
 |------|--------|--------|
-| `frontend/src/theme.ts` | Delete | ❌ Still exists |
-| `frontend/src/App.css` | Replace with `index.css` | ❌ Still exists |
-| `frontend/src/main.tsx` | Remove ThemeProvider/CssBaseline, add theme init call | ⚠️ Theme init done; ThemeProvider/CssBaseline still present |
-| `frontend/vite.config.ts` | Add Tailwind vite plugin, remove MUI chunks | ⚠️ Plugin added; MUI chunks still present |
-| `frontend/package.json` | Remove MUI/Emotion, add Tailwind + Lucide | ⚠️ Tailwind + Lucide added; MUI/Emotion still present |
+| `frontend/src/theme.ts` | Delete | ✅ Deleted |
+| `frontend/src/App.css` | Replace with `index.css` | ❌ Still exists — delete in Phase 3 |
+| `frontend/src/main.tsx` | Remove ThemeProvider/CssBaseline, add theme init call + Toaster | ✅ Done |
+| `frontend/vite.config.ts` | Add Tailwind vite plugin, remove MUI chunks | ⚠️ Plugin added; `vendor-mui` chunk still present — remove in Phase 3 |
+| `frontend/package.json` | Remove MUI/Emotion, add Tailwind + Lucide | ⚠️ Tailwind + Lucide added; MUI/Emotion still present — remove in Phase 3 |
 | `frontend/src/lib/theme.ts` | Create — theme prefs model + CSS var helpers | ✅ Done |
 | `frontend/src/hooks/useTheme.ts` | Create — React hook for theme prefs | ✅ Done |
 | `frontend/src/components/ThemeCustomizer.tsx` | Create — user-facing theme panel | ✅ Done |
 | `frontend/src/components/ThemePreview.tsx` | Create — component showcase at `/theme-preview` | ✅ Done (added to plan) |
-| `frontend/src/components/ui/` | Generated by shadcn CLI | ✅ Done (18 components) |
-| All `src/components/*.tsx` | Migrate MUI → shadcn + Tailwind | ❌ Not started |
+| `frontend/src/components/ui/` | Generated by shadcn CLI | ✅ Done (19 components) |
+| All `src/components/*.tsx` | Migrate MUI → shadcn + Tailwind | ✅ Done (commit `120f617`) |
 
 ---
 
