@@ -131,7 +131,7 @@ Route `/theme-preview` — full component showcase (typography, buttons, form co
 
 ## Phase 2 — Component Migrations (6 parallel agent workstreams) ✅ Complete (commit `120f617`)
 
-All workstreams completed on `feat/shadcn-theming`. All 15 app component files migrated.
+All workstreams completed on `feat/shadcn-theming`. All 15 originally-planned app component files migrated. `Items.tsx` (not in the original workstream plan) was migrated as part of Phase 3.
 
 ### Icon mapping (Lucide replacements for `@mui/icons-material`)
 
@@ -265,16 +265,17 @@ Replace `Box sx={{ maxWidth: 600, mx: 'auto' }}` with `<div className="max-w-xl 
 
 ---
 
-## Phase 3 — Integration Pass (sequential, after all Phase 2 workstreams done)
+## Phase 3 — Integration Pass ✅ Complete (commit `fac6485`)
 
-1. Delete `src/theme.ts` (if not already deleted in Workstream A)
-2. Delete `src/App.css` (now replaced by `index.css`)
-3. Remove MUI packages: `npm remove @mui/material @mui/icons-material @emotion/react @emotion/styled`
-4. Remove `vendor-mui` manual chunk from `vite.config.ts` rollupOptions
-5. Verify no remaining `@mui` imports: `grep -r "@mui" src/`
-6. Verify no remaining `sx` prop usage: `grep -r " sx=" src/`
-7. Ensure `sonner` `<Toaster>` is mounted in `main.tsx` or `App.tsx`
-8. Run `npm run build` — resolve any TypeScript errors
+1. ✅ Migrate `Items.tsx` — missed by original workstreams; migrated in this phase
+2. ✅ Delete `src/theme.ts` — done in Workstream A
+3. ✅ Delete `src/App.css` — deleted; superseded by `index.css`
+4. ✅ Remove MUI packages — `@mui/material`, `@mui/icons-material`, `@emotion/react`, `@emotion/styled` removed from `package.json`
+5. ✅ Remove `vendor-mui` manual chunk from `vite.config.ts`
+6. ✅ Verify no remaining `@mui` imports — `grep -r "@mui" src/` returns nothing
+7. ✅ Verify no remaining `sx` prop usage — `grep -r " sx=" src/` returns nothing
+8. ✅ `<Toaster richColors position="top-center" />` mounted in `main.tsx`
+9. ✅ `npm run build` passes — 0 TypeScript errors, bundle succeeds
 
 ---
 
