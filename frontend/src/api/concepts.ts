@@ -55,7 +55,7 @@ export function useRenameConcept(type: ConceptType) {
 export function useBackfillConcepts() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => api.post<{ categories: number; supermarkets: number }>('/concepts/backfill', {}),
+    mutationFn: () => api.post<{ categories: number; supermarkets: number; recipeTypes: number }>('/concepts/backfill', {}),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['concepts'] }),
   })
 }

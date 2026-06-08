@@ -188,7 +188,7 @@ export async function seedHouseholdConcepts(env: Env, householdId: string): Prom
 export async function backfillConcepts(
   env: Env,
   householdId: string,
-): Promise<{ categories: number; supermarkets: number }> {
+): Promise<{ categories: number; supermarkets: number; recipeTypes: number }> {
   const { results: catRows } = await env.DB
     .prepare('SELECT DISTINCT category FROM items WHERE household_id = ? AND category IS NOT NULL')
     .bind(householdId)
@@ -220,7 +220,21 @@ export async function backfillConcepts(
     supermarkets += result.meta.changes
   }
 
-  return { categories, supermarkets }
+  const { results: typeRows } = await env.DB
+    .prepare('SELECT DISTINCT type FROM recipes WHERE household_id = ? AND type IS NOT NULL')
+    .bind(householdId)
+    .all<{ type: string }>()
+
+  let recipeTypes = 0
+  for (const { type } of typeRows) {
+    const result = await env.DB
+      .prepare('INSERT OR IGNORE INTO household_recipe_types (id, household_id, name, sort_order) VALUES (?, ?, ?, 0)')
+      .bind(crypto.randomUUID(), householdId, type)
+      .run()
+    recipeTypes += result.meta.changes
+  }
+
+  return { categories, supermarkets, recipeTypes }
 }
 
 export async function backfillConceptsRoute(
