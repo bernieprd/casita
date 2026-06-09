@@ -6,7 +6,7 @@ import { getTodos, createTodo, updateTodo, deleteTodo } from './routes/todos-d1'
 import { getCalendarEvents } from './routes/calendar'
 import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, disconnectGoogle } from './routes/google-auth'
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
-import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings } from './routes/household'
+import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold } from './routes/household'
 import { listConcepts, createConcept, updateConcept, deleteConcept, backfillConceptsRoute } from './routes/concepts-d1'
 import { verifyClerkToken } from './auth/clerk'
 import { runMigrationItems, runMigrationRecipes, runMigrationIngredients, runMigrationTodos, runMigrationTokens } from './db/migrate-from-notion'
@@ -87,6 +87,7 @@ async function handleAdminMigrate(req: Request, env: Env): Promise<Response> {
 }
 
 const routes: Array<[string, URLPattern, AuthHandler]> = [
+  ['DELETE', new URLPattern({ pathname: '/household/leave',             search: '*' }), leaveHousehold],
   ['GET',    new URLPattern({ pathname: '/household/me',                search: '*' }), getHousehold],
   ['POST',   new URLPattern({ pathname: '/household',                   search: '*' }), createHousehold],
   ['PATCH',  new URLPattern({ pathname: '/household',                   search: '*' }), renameHousehold],

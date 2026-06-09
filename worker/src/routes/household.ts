@@ -1,5 +1,6 @@
 import type { Env, RequestContext, HouseholdNotionConfig } from '../types'
 import { seedHouseholdConcepts } from './concepts-d1'
+import { getClerkClient } from '../auth/clerk'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -47,15 +48,38 @@ export async function getHousehold(
     return Response.json({ householdId: null })
   }
 
+  const memberIds = members.results.map(m => m.clerk_user_id)
+  type ClerkProfile = { displayName: string | null; email: string | null; imageUrl: string | null }
+  const profileMap = new Map<string, ClerkProfile>()
+  try {
+    const clerk = getClerkClient(env)
+    const { data: clerkUsers } = await clerk.users.getUserList({ userId: memberIds, limit: 100 })
+    for (const u of clerkUsers) {
+      profileMap.set(u.id, {
+        displayName: u.fullName ?? u.firstName ?? null,
+        email: u.emailAddresses[0]?.emailAddress ?? null,
+        imageUrl: u.imageUrl ?? null,
+      })
+    }
+  } catch {
+    // degrade gracefully — profiles stay null
+  }
+
   return Response.json({
     householdId: household.id,
     householdName: household.name,
     role: ctx.role,
     inviteCode: household.invite_code ?? null,
-    members: members.results.map(m => ({
-      clerkUserId: m.clerk_user_id,
-      role: m.role,
-    })),
+    members: members.results.map(m => {
+      const profile = profileMap.get(m.clerk_user_id)
+      return {
+        clerkUserId: m.clerk_user_id,
+        role: m.role,
+        displayName: profile?.displayName ?? null,
+        email: profile?.email ?? null,
+        imageUrl: profile?.imageUrl ?? null,
+      }
+    }),
   })
 }
 
@@ -244,7 +268,6 @@ export async function updateHouseholdSettings(
   ctx: RequestContext,
 ): Promise<Response> {
   if (!ctx.householdId) return err(403, 'Forbidden')
-  if (ctx.role !== 'owner') return err(403, 'Forbidden')
 
   const body = await req.json<Record<string, unknown>>()
   const { colorScheme: _dropped, ...rest } = body
@@ -293,4 +316,22 @@ export async function updateHouseholdSettings(
     .run()
 
   return Response.json(rest)
+}
+
+/**
+ * DELETE /household/leave
+ * Removes the current (non-owner) user from their household.
+ */
+export async function leaveHousehold(
+  _req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return err(400, 'Not in a household')
+  if (ctx.role === 'owner') return err(400, 'Owners cannot leave the household')
+  await env.DB
+    .prepare('DELETE FROM household_members WHERE clerk_user_id = ? AND household_id = ?')
+    .bind(ctx.clerkUserId, ctx.householdId)
+    .run()
+  return Response.json({ ok: true })
 }
