@@ -20,7 +20,7 @@ import {
   useDisconnectGoogle,
   initiateGoogleConnect,
 } from '../api/google-calendar'
-import { useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold, useHouseholdTheme, useUpdateHouseholdTheme, householdThemeKeys } from '../api/household'
+import { useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold, useHouseholdTheme, useUpdateHouseholdTheme, useLeaveHousehold, householdThemeKeys } from '../api/household'
 import { useConceptList, useCreateConcept, useRenameConcept, useDeleteConcept, useBackfillConcepts } from '../api/concepts'
 import type { ConceptType } from '../api/concepts'
 import type { UserCalendar } from '../api/types'
@@ -184,10 +184,7 @@ export default function Settings() {
 
   const { data: householdTheme } = useHouseholdTheme()
   const { mutate: updateHouseholdTheme, isPending: themeSaving } = useUpdateHouseholdTheme()
-  const { prefs, setPrefs } = useTheme(
-    householdTheme,
-    isOwner ? updateHouseholdTheme : undefined,
-  )
+  const { prefs, setPrefs } = useTheme(householdTheme, updateHouseholdTheme)
   const [themeOpen, setThemeOpen] = useState(false)
 
   const [renaming, setRenaming] = useState(false)
@@ -195,6 +192,7 @@ export default function Settings() {
   const { mutate: generateInvite, isPending: generatingInvite } = useGenerateInvite()
   const { mutate: revokeInvite, isPending: revokingInvite } = useRevokeInvite()
   const { mutate: renameHousehold, isPending: renamePending } = useRenameHousehold()
+  const { mutate: leaveHousehold, isPending: leaving } = useLeaveHousehold()
 
   function handleRenameOpen() {
     setNameInput(householdData?.householdName ?? '')
@@ -287,9 +285,9 @@ export default function Settings() {
         Appearance
       </p>
 
-      <ThemeCustomizer prefs={prefs} setPrefs={setPrefs} open={themeOpen} onOpenChange={setThemeOpen} readOnly={!isOwner} isPending={themeSaving} />
+      <ThemeCustomizer prefs={prefs} setPrefs={setPrefs} open={themeOpen} onOpenChange={setThemeOpen} isPending={themeSaving} />
       <Button variant="outline" size="sm" className="mb-1" onClick={() => setThemeOpen(true)}>
-        {isOwner ? 'Customize theme' : 'View theme'}
+        Customize theme
       </Button>
 
       <Separator className="my-4" />
@@ -361,6 +359,39 @@ export default function Settings() {
           {generatingInvite ? 'Generating…' : 'Generate invite code'}
         </Button>
       ) : null}
+
+      {/* Members */}
+      {householdData?.members && householdData.members.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {householdData.members.map(member => (
+            <div key={member.clerkUserId} className="flex items-center gap-2">
+              <Avatar className="h-7 w-7 flex-shrink-0">
+                <AvatarImage src={member.imageUrl ?? undefined} />
+                <AvatarFallback>{member.displayName?.[0] ?? '?'}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm truncate">{member.displayName ?? member.email ?? '—'}</p>
+                {member.displayName && member.email && (
+                  <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                )}
+              </div>
+              <Badge variant="secondary" className="text-xs capitalize">{member.role}</Badge>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!isOwner && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3 text-destructive border-destructive/50 hover:bg-destructive/10"
+          onClick={() => leaveHousehold(undefined, { onSuccess: refreshHousehold })}
+          disabled={leaving}
+        >
+          Leave household
+        </Button>
+      )}
 
       <Separator className="my-4" />
 

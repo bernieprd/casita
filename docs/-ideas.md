@@ -1,7 +1,7 @@
 ## App
 💡 Production Clerk and remove branding
 💡 Landing page
-💡 Default logo (caldas late night) and empty states
+💡 Default logo (caldas late night estilo) and empty states
 💡 Onboarding for new users
 📄 docs/notion-cleanup.md
 
@@ -9,11 +9,12 @@
 💡 Enable or disable widgets
 💡 Nice little welcome section in Home!
 💡 Revamp shopping widget
+💡 Guide people to add it to their home screens
 
 
 ## Settings
-💡 Allow other members of the household to change the theme, besides the system appearance
-💡 Show household members
+✅ Allow other members of the household to change the theme, besides the system appearance
+✅ Show household members
 💡 Background image?
 
 ## Calendar
@@ -38,3 +39,10 @@
 ✅ IA alignment 
 ✅ Markdown editor
 ✅ Recipe page should be full page, remove the bottom bar
+
+
+## Finances
+- 
+
+## Trips
+💡 Trips with people from the outside - bring them into the app

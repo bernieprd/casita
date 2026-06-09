@@ -6,7 +6,13 @@ export interface HouseholdSettings {
   householdName: string | null
   role: 'owner' | 'member' | null
   inviteCode: string | null
-  members: { clerkUserId: string; role: string }[]
+  members: {
+    clerkUserId: string
+    role: string
+    displayName: string | null
+    email: string | null
+    imageUrl: string | null
+  }[]
 }
 
 export const householdKeys = {
@@ -67,6 +73,16 @@ export function useHouseholdTheme() {
     queryKey: householdThemeKeys.theme,
     queryFn: () => api.get<HouseholdThemePrefs>('/household/settings'),
     staleTime: 30_000,
+  })
+}
+
+export function useLeaveHousehold() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.delete('/household/leave'),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: householdKeys.settings })
+    },
   })
 }
 
