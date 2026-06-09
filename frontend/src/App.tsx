@@ -144,19 +144,23 @@ function AppShell() {
       </header>
 
       {needRefresh && (
-        <div className="flex items-center gap-2 px-4 py-1.5 bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-200 text-sm border-b border-blue-200 dark:border-blue-800">
-          <RefreshCw className="size-4 shrink-0" />
-          <span className="flex-1">Update available</span>
-          <button onClick={() => updateServiceWorker(true)} className="font-semibold underline">
-            Reload
-          </button>
+        <div className="bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-200 text-sm border-b border-blue-200 dark:border-blue-800">
+          <div className="flex items-center gap-2 px-4 py-1.5 max-w-xl mx-auto">
+            <RefreshCw className="size-4 shrink-0" />
+            <span className="flex-1">Update available</span>
+            <button onClick={() => updateServiceWorker(true)} className="font-semibold underline">
+              Reload
+            </button>
+          </div>
         </div>
       )}
 
       {!isOnline && (
-        <div className="flex items-center gap-2 px-4 py-1.5 bg-yellow-50 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 text-sm border-b border-yellow-200 dark:border-yellow-800">
-          <WifiOff className="size-4 shrink-0" />
-          Offline — showing cached data
+        <div className="bg-yellow-50 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 text-sm border-b border-yellow-200 dark:border-yellow-800">
+          <div className="flex items-center gap-2 px-4 py-1.5 max-w-xl mx-auto">
+            <WifiOff className="size-4 shrink-0" />
+            Offline — showing cached data
+          </div>
         </div>
       )}
 

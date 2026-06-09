@@ -11,7 +11,7 @@
 💡 Revamp shopping widget
 
 
-## Settings
+## Settings (feat/household-members-flexibility)
 💡 Allow other members of the household to change the theme, besides the system appearance
 💡 Show household members
 💡 Background image?
