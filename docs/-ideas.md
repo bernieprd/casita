@@ -2,12 +2,14 @@
 💡 Production Clerk and remove branding
 💡 Landing page
 💡 Default logo (caldas late night) and empty states
+💡 Onboarding for new users
 📄 docs/notion-cleanup.md
 
 ## Home
 💡 Enable or disable widgets
 💡 Nice little welcome section in Home!
 💡 Revamp shopping widget
+
 
 ## Settings
 💡 Allow other members of the household to change the theme, besides the system appearance

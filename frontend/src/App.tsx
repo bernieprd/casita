@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react'
-import { Settings, WifiOff, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
+import { Settings, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { itemKeys, itemsApi, todoKeys, todosApi } from './api'
@@ -15,6 +15,7 @@ import { SignIn, SignUp, SignedIn, useUser } from '@clerk/clerk-react'
 import { AuthProvider, useAuth, useHousehold } from './context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useRegisterSW } from 'virtual:pwa-register/react'
 
 const RecipeFormPage  = lazy(() => import('./components/RecipeFormPage'))
 const SettingsPage    = lazy(() => import('./components/Settings'))
@@ -102,6 +103,8 @@ function AppShell() {
   const { householdName } = useHousehold()
   const qc = useQueryClient()
   const isOnline = useOnlineStatus()
+  const [needRefresh, setNeedRefresh] = useState(false)
+  const { updateServiceWorker } = useRegisterSW({ onNeedRefresh() { setNeedRefresh(true) } })
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -139,6 +142,16 @@ function AppShell() {
           )}
         </div>
       </header>
+
+      {needRefresh && (
+        <div className="flex items-center gap-2 px-4 py-1.5 bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-200 text-sm border-b border-blue-200 dark:border-blue-800">
+          <RefreshCw className="size-4 shrink-0" />
+          <span className="flex-1">Update available</span>
+          <button onClick={() => updateServiceWorker(true)} className="font-semibold underline">
+            Reload
+          </button>
+        </div>
+      )}
 
       {!isOnline && (
         <div className="flex items-center gap-2 px-4 py-1.5 bg-yellow-50 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 text-sm border-b border-yellow-200 dark:border-yellow-800">

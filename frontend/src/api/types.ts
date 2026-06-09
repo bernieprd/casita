@@ -13,6 +13,8 @@ export interface Recipe {
   day: string | null
   url: string | null
   coverPhotoUrl: string | null
+  createdAt: number
+  updatedAt: number
 }
 
 export interface Block {

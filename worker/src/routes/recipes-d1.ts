@@ -41,6 +41,8 @@ function rowToRecipe(row: RecipeRow): Recipe {
     day: row.day,
     url: row.url,
     coverPhotoUrl: row.cover_photo_url,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }
 }
 

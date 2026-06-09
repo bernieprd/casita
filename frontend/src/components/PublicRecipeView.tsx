@@ -5,17 +5,18 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { usePublicRecipe } from '../api'
 import type { Block, RecipeIngredient } from '../api'
 import { useMemo, useState } from 'react'
+import { ChevronUp, ChevronDown } from 'lucide-react'
 
 // ── Block renderer ────────────────────────────────────────────────────────────
 
 function RenderBlock({ block }: { block: Block }) {
   switch (block.type) {
     case 'heading_1':
-      return <h2 className="text-lg font-bold mt-10 mb-2">{block.text}</h2>
+      return <h3 className="text-lg font-bold mt-10 mb-2">{block.text}</h3>
     case 'heading_2':
-      return <h3 className="text-base font-semibold mt-8 mb-2">{block.text}</h3>
+      return <h4 className="text-base font-semibold mt-8 mb-2">{block.text}</h4>
     case 'heading_3':
-      return <h4 className="text-sm font-semibold mt-6 mb-2">{block.text}</h4>
+      return <h5 className="text-sm font-semibold mt-6 mb-2">{block.text}</h5>
     case 'bulleted_list_item':
       return <p className="text-sm pl-4 mb-1">• {block.text}</p>
     case 'numbered_list_item':
@@ -31,6 +32,41 @@ function RenderBlock({ block }: { block: Block }) {
 }
 
 // ── Static ingredient groups ──────────────────────────────────────────────────
+
+function CollapsibleStaticGroup({ section, items }: { section: string; items: RecipeIngredient[] }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        className={`flex items-center w-full px-4 py-3 bg-card hover:bg-background transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
+      >
+        <h3 className="flex-1 text-left text-xs font-semibold tracking-widest uppercase text-muted-foreground leading-none">
+          {section}
+        </h3>
+        <span className="text-xs text-muted-foreground mr-2">{items.length}</span>
+        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+      </button>
+      <div style={{ overflow: 'hidden', transition: 'max-height 0.2s ease', maxHeight: open ? '9999px' : 0 }}>
+        <div className="rounded-b-lg overflow-hidden">
+          <hr className="border-border" />
+          <ul>
+            {items.map((ing, idx) => (
+              <li key={ing.id}>
+                {idx > 0 && <hr className="border-border" />}
+                <div className="px-4 py-2.5">
+                  <p className="text-sm">{ing.itemName}</p>
+                  {ing.quantity && <p className="text-xs text-muted-foreground">{ing.quantity}</p>}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function StaticIngredientGroups({ ingredients }: { ingredients: RecipeIngredient[] }) {
   const groups = useMemo(() => {
@@ -51,25 +87,27 @@ function StaticIngredientGroups({ ingredients }: { ingredients: RecipeIngredient
   }, [ingredients])
 
   return (
-    <div className="mb-6">
-      {groups.map(({ section, items }, groupIdx) => (
-        <div key={section ?? '__none__'}>
-          {groupIdx > 0 && <Separator className="my-4" />}
-          {section && (
-            <p className="block text-[10px] tracking-widest uppercase text-muted-foreground mb-1">
-              {section}
-            </p>
-          )}
-          <ul className="divide-y divide-border">
-            {items.map((ing) => (
-              <li key={ing.id} className="py-2">
-                <p className="text-sm">{ing.itemName}</p>
-                {ing.quantity && <p className="text-xs text-muted-foreground">{ing.quantity}</p>}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+    <div className="mb-4 flex flex-col gap-2">
+      {groups.map(({ section, items }) => {
+        if (!section) {
+          return (
+            <div key="__none__" className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] overflow-hidden">
+              <ul>
+                {items.map((ing, idx) => (
+                  <li key={ing.id}>
+                    {idx > 0 && <hr className="border-border" />}
+                    <div className="px-4 py-2.5">
+                      <p className="text-sm">{ing.itemName}</p>
+                      {ing.quantity && <p className="text-xs text-muted-foreground">{ing.quantity}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+        return <CollapsibleStaticGroup key={section} section={section} items={items} />
+      })}
     </div>
   )
 }
@@ -156,8 +194,11 @@ export default function PublicRecipeView() {
         {/* Ingredients */}
         {ingredients.length > 0 && (
           <>
-            <p className="text-xs tracking-wider uppercase text-muted-foreground">Ingredients</p>
-            <Separator className="mt-1 mb-1" />
+            <div className="flex items-center gap-1 mb-3">
+              <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground">
+                Ingredients
+              </h2>
+            </div>
             <StaticIngredientGroups ingredients={ingredients} />
           </>
         )}
@@ -165,8 +206,11 @@ export default function PublicRecipeView() {
         {/* Instructions */}
         {recipe.blocks && recipe.blocks.length > 0 && (
           <>
-            <p className="text-xs tracking-wider uppercase text-muted-foreground">Instructions</p>
-            <Separator className="mt-1 mb-3" />
+            <div className="flex items-center gap-1 mb-3">
+              <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground">
+                Instructions
+              </h2>
+            </div>
             <div>
               {recipe.blocks.map(block => (
                 <RenderBlock key={block.id} block={block} />

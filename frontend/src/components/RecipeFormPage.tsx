@@ -231,9 +231,9 @@ function SectionHeader({
         </>
       ) : (
         <>
-          <span className="flex-1 text-xs font-semibold tracking-widest uppercase text-muted-foreground">
+          <h3 className="flex-1 text-xs font-semibold tracking-widest uppercase text-muted-foreground">
             {name}
-          </span>
+          </h3>
           <Button variant="ghost" size="icon-xs" onClick={startEdit} className="text-muted-foreground">
             <Pencil className="size-3" />
           </Button>
@@ -563,10 +563,12 @@ export default function RecipeFormPage() {
 
   const ingredientSection = (
     <div>
-      <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground">
-        Ingredients
-      </span>
-      <Separator className="mt-1 mb-3" />
+      <div className="flex items-center gap-1 mb-2">
+        <h2 className="flex-1 text-sm font-semibold tracking-widest uppercase text-muted-foreground">
+          Ingredients
+        </h2>
+      </div>
+      <Separator className="mb-3" />
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <DroppableGroup sectionKey={NO_SECTION}>
@@ -734,6 +736,12 @@ export default function RecipeFormPage() {
 
       {ingredientSection}
 
+      <div className="flex items-center gap-1 mt-6 mb-2">
+        <h2 className="flex-1 text-sm font-semibold tracking-widest uppercase text-muted-foreground">
+          Instructions
+        </h2>
+      </div>
+      <Separator className="mb-3" />
       <MarkdownEditor
         value={instructions}
         onChange={setInstructions}
