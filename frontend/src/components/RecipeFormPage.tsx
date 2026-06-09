@@ -333,14 +333,14 @@ export default function RecipeFormPage() {
   const [nameError, setNameError] = useState(false)
   const [type, setType] = useState<string | null>(null)
   const [url, setUrl] = useState('')
-  const [coverUrl, setCoverUrl] = useState('')
+  const [coverUrl, setCoverUrl] = useState<string | null>('')
   const [instructions, setInstructions] = useState('')
   const [rows, setRows] = useState<IngRow[]>([])
   const [removedIds, setRemovedIds] = useState<string[]>([])
   const [sectionOrder, setSectionOrder] = useState<string[]>([])
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
-  const [previewUrl, setPreviewUrl] = useState<string>('')
+  const [previewUrl, setPreviewUrl] = useState<string | null>('')
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState(false)
 
@@ -506,7 +506,7 @@ export default function RecipeFormPage() {
       name: name.trim(),
       type: type || null,
       url: url.trim() || null,
-      coverUrl: coverUrl.trim() || null,
+      coverUrl: (coverUrl ?? '').trim() || null,
       instructions: instructions.trim(),
     }
 

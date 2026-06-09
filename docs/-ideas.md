@@ -12,6 +12,7 @@
 ✅ Guide people to add it to their home screens
 
 
+
 ## Settings
 ✅ Allow other members of the household to change the theme, besides the system appearance
 ✅ Show household members
