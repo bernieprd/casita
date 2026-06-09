@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
+import PlanRecipeSheet from './PlanRecipeSheet'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Pencil, Search, Share, ArrowLeft } from 'lucide-react'
+import { Plus, Pencil, Search, Share, ArrowLeft, CalendarPlus, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping, useItems, useShareRecipe } from '../api'
 import type { Block, RecipeIngredient, Item } from '../api'
@@ -203,12 +204,21 @@ function RecipeGrid({ onSelect, setHeader }: { onSelect: (id: string) => void; s
               </div>
               <div className="p-3">
                 <p className="text-sm font-semibold leading-tight mb-1.5">{recipe.name}</p>
-                <div className="flex flex-wrap gap-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {recipe.type && (
                     <Badge className="text-[10px] h-[18px] px-1.5">{recipe.type}</Badge>
                   )}
-                  {recipe.day && (
-                    <Badge variant="outline" className="text-[10px] h-[18px] px-1.5">{recipe.day}</Badge>
+                  {recipe.url && (
+                    <a
+                      href={recipe.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      className="text-[10px] h-[18px] px-1.5 inline-flex items-center rounded-full border text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <ExternalLink className="size-2.5 mr-1" />
+                      Recipe
+                    </a>
                   )}
                 </div>
               </div>
@@ -311,6 +321,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
   const shareRecipe = useShareRecipe(id)
   const onBackRef = useRef(onBack)
   onBackRef.current = onBack
+  const [planOpen, setPlanOpen] = useState(false)
 
   function handleShare() {
     shareRecipe.mutate(undefined, {
@@ -328,6 +339,9 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
           <ArrowLeft />
         </Button>
         <h1 className="flex-1 text-lg font-bold truncate">{recipe?.name ?? ''}</h1>
+        <Button variant="ghost" size="icon" onClick={() => setPlanOpen(true)}>
+          <CalendarPlus className="h-5 w-5" />
+        </Button>
         <Button variant="ghost" size="icon" onClick={() => navigate(`/recipes/${id}/edit`)}>
           <Pencil className="h-5 w-5" />
         </Button>
@@ -342,6 +356,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
 
   return (
     <div className="pb-10">
+      <PlanRecipeSheet open={planOpen} recipeName={recipe?.name ?? ''} onClose={() => setPlanOpen(false)} />
 
       {recipeLoading && !recipe ? (
         <>
@@ -385,10 +400,20 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
 
           {/* Title + badges */}
           <h1 className="text-2xl font-bold mb-3">{recipe.name}</h1>
-          {(recipe.type || recipe.day) && (
-            <div className="flex gap-1.5 mb-6 flex-wrap">
+          {(recipe.type || recipe.url) && (
+            <div className="flex items-center gap-1.5 mb-6 flex-wrap">
               {recipe.type && <Badge>{recipe.type}</Badge>}
-              {recipe.day && <Badge variant="outline">{recipe.day}</Badge>}
+              {recipe.url && (
+                <a
+                  href={recipe.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ExternalLink className="size-3.5" />
+                  View original
+                </a>
+              )}
             </div>
           )}
 

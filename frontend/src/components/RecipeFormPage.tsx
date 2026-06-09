@@ -12,7 +12,7 @@ import {
   useDraggable,
 } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
-import { useItems, useRecipes, useCreateRecipe, useEditRecipe, useDeleteRecipe, useRecipe, useRecipeIngredients, useConceptList } from '../api'
+import { useItems, useCreateRecipe, useEditRecipe, useDeleteRecipe, useRecipe, useRecipeIngredients, useConceptList } from '../api'
 import type { Item } from '../api'
 import { uploadPhoto } from '../api/client'
 import { Button } from '@/components/ui/button'
@@ -46,7 +46,6 @@ interface IngRow {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const DAY_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const NO_SECTION = ''
 
 // ── Item combobox ─────────────────────────────────────────────────────────────
@@ -321,12 +320,6 @@ export default function RecipeFormPage() {
   const typeOptions = useMemo(() =>
     recipeTypeConcepts.map(c => c.name)
   , [recipeTypeConcepts])
-  const { data: recipes } = useRecipes()
-  const dayOptions = useMemo(() => {
-    const fromDb = (recipes ?? []).map(r => r.day).filter(Boolean) as string[]
-    return [...new Set([...DAY_OPTIONS, ...fromDb])].sort()
-  }, [recipes])
-
   const createRecipe = useCreateRecipe()
   const editRecipe = useEditRecipe(id ?? '')
   const deleteRecipe = useDeleteRecipe(id ?? '')
@@ -339,7 +332,6 @@ export default function RecipeFormPage() {
   const [name, setName] = useState('')
   const [nameError, setNameError] = useState(false)
   const [type, setType] = useState<string | null>(null)
-  const [day, setDay] = useState<string | null>(null)
   const [url, setUrl] = useState('')
   const [coverUrl, setCoverUrl] = useState('')
   const [instructions, setInstructions] = useState('')
@@ -368,7 +360,6 @@ export default function RecipeFormPage() {
 
     setName(recipe.name)
     setType(recipe.type)
-    setDay(recipe.day)
     setUrl(recipe.url ?? '')
     setCoverUrl(recipe.coverPhotoUrl ?? '')
     setPreviewUrl(recipe.coverPhotoUrl ?? '')
@@ -514,7 +505,6 @@ export default function RecipeFormPage() {
     const recipeBody = {
       name: name.trim(),
       type: type || null,
-      day: day || null,
       url: url.trim() || null,
       coverUrl: coverUrl.trim() || null,
       instructions: instructions.trim(),
@@ -644,15 +634,11 @@ export default function RecipeFormPage() {
   // ── Form body ────────────────────────────────────────────────────────────────
 
   const typeId = 'recipe-type-list'
-  const dayId = 'recipe-day-list'
 
   const formBody = (
     <div className="flex flex-col gap-4 pb-4">
       <datalist id={typeId}>
         {typeOptions.map(o => <option key={o} value={o} />)}
-      </datalist>
-      <datalist id={dayId}>
-        {dayOptions.map(o => <option key={o} value={o} />)}
       </datalist>
 
       <div className="flex flex-col gap-1">
@@ -669,20 +655,12 @@ export default function RecipeFormPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Input
-          value={type ?? ''}
-          onChange={e => setType(e.target.value || null)}
-          placeholder="Type"
-          list={typeId}
-        />
-        <Input
-          value={day ?? ''}
-          onChange={e => setDay(e.target.value || null)}
-          placeholder="Day"
-          list={dayId}
-        />
-      </div>
+      <Input
+        value={type ?? ''}
+        onChange={e => setType(e.target.value || null)}
+        placeholder="Type"
+        list={typeId}
+      />
 
       <Input
         value={url}
@@ -778,10 +756,7 @@ export default function RecipeFormPage() {
         {isLoadingEdit ? (
           <div className="flex flex-col gap-4">
             <Skeleton className="h-9 w-full" />
-            <div className="grid grid-cols-2 gap-4">
-              <Skeleton className="h-9 w-full" />
-              <Skeleton className="h-9 w-full" />
-            </div>
+            <Skeleton className="h-9 w-full" />
             <Skeleton className="h-9 w-full" />
             <Skeleton className="w-full rounded" style={{ aspectRatio: '16/9' }} />
             <div className="flex flex-col gap-3">

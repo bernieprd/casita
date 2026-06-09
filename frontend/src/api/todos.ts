@@ -17,11 +17,11 @@ export function useTodos() {
 export function useCreateTodo() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { name: string }) => api.post<Todo>('/todos', data),
-    onMutate: async ({ name }) => {
+    mutationFn: (data: { name: string; due?: string | null }) => api.post<Todo>('/todos', data),
+    onMutate: async ({ name, due }) => {
       await qc.cancelQueries({ queryKey: todoKeys.all })
       const previous = qc.getQueryData<Todo[]>(todoKeys.all)
-      const optimistic: Todo = { id: `optimistic-${Date.now()}`, name, status: 'Todo', priority: null, due: null }
+      const optimistic: Todo = { id: `optimistic-${Date.now()}`, name, status: 'Todo', priority: null, due: due ?? null }
       qc.setQueryData<Todo[]>(todoKeys.all, old => [optimistic, ...(old ?? [])])
       return { previous }
     },

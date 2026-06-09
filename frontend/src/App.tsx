@@ -107,6 +107,7 @@ function AppShell() {
 
   const activeTab = pathnameToTab(location.pathname)
   const isSettings = location.pathname === '/settings'
+  const isRecipeDetail = /^\/recipes\/[^/]+$/.test(location.pathname)
 
   useEffect(() => {
     qc.prefetchQuery({ queryKey: itemKeys.shopping, queryFn: itemsApi.listShopping })
@@ -149,7 +150,7 @@ function AppShell() {
       <div
         className={cn(
           'max-w-xl mx-auto px-4 pt-4',
-          isSettings ? 'pb-2' : 'pb-[calc(80px+env(safe-area-inset-bottom))]'
+          isSettings || isRecipeDetail ? 'pb-2' : 'pb-[calc(80px+env(safe-area-inset-bottom))]'
         )}
       >
         <Routes>
@@ -188,7 +189,7 @@ function AppShell() {
         </Routes>
       </div>
 
-      {!isSettings && (
+      {!isSettings && !isRecipeDetail && (
         <nav
           className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}

@@ -2,8 +2,7 @@
 💡 Production Clerk and remove branding
 💡 Landing page
 💡 Default logo (caldas late night) and empty states
-### Planned 
-📄 Notion cleanup
+📄 docs/notion-cleanup.md
 
 ## Home
 💡 Enable or disable widgets
@@ -22,13 +21,16 @@
 ## Todos
 💡 Have them have an event in the calendar
 💡 Assign members
+💡 Add an option to have URL or link - can link to recipes
+💡 Drag and drop from todo to planned, etc.
 
 ## Shopping
-📄 Solve the checkbox on shopping list, doesn't make sense - button maybe
+💡 Find recipes with ingredient
+📄 Solve the checkbox on shopping list, doesn't make sense - button maybe\
 
 ## Recipes
-📄 Plan recipe adds event in calendar or todo
-📄 Markdown editor
-💡 Recipe page should be full page, remove the bottom bar
-💡 Move away from any Notion related constraint and way of working
+📄 Plan recipe in calendar, with write permission (later on)
+✅ Plan recipe in todos
 ✅ IA alignment 
+✅ Markdown editor
+✅ Recipe page should be full page, remove the bottom bar
