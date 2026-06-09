@@ -328,6 +328,7 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
 function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
   const { data: recipes, isLoading } = useRecipes()
   const [seed, setSeed] = useState(() => Math.random())
+  const [recentImgError, setRecentImgError] = useState(false)
 
   const recipe = useMemo(() => {
     if (!recipes?.length) return null
@@ -366,7 +367,7 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
         <SectionCard onClick={() => onNavigate(recipe.id)}>
           <div className="relative w-full aspect-video">
             <div className="absolute inset-0 bg-accent flex items-center justify-center text-4xl">
-              🍽
+              {recentImgError ? '🖼️' : '🍽'}
             </div>
             {recipe.coverPhotoUrl && (
               <>
@@ -384,6 +385,7 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
                   onError={e => {
                     const img = e.target as HTMLImageElement;
                     (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
+                    setRecentImgError(true)
                   }}
                 />
               </>

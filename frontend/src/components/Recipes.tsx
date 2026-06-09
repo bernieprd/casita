@@ -72,6 +72,7 @@ function RecipeGrid({ onSelect, setHeader }: { onSelect: (id: string) => void; s
   const [search, setSearch] = useState('')
   const [selectedType, setSelectedType] = useState<string | null>(null)
   const [scrollToId, setScrollToId] = useState<string | null>(null)
+  const [imgErrors, setImgErrors] = useState<Set<string>>(new Set())
 
   const typeOptions = useMemo(
     () => [...new Set((recipes ?? []).map(r => r.type).filter(Boolean) as string[])].sort(),
@@ -177,7 +178,7 @@ function RecipeGrid({ onSelect, setHeader }: { onSelect: (id: string) => void; s
               <div className="relative w-full aspect-[4/3]">
                 {/* Emoji fallback — always behind; shows when there's no URL or the image errors */}
                 <div className="absolute inset-0 bg-accent flex items-center justify-center text-4xl">
-                  🍽
+                  {imgErrors.has(recipe.id) ? '🖼️' : '🍽'}
                 </div>
                 {recipe.coverPhotoUrl && (
                   <>
@@ -197,6 +198,7 @@ function RecipeGrid({ onSelect, setHeader }: { onSelect: (id: string) => void; s
                       onError={e => {
                         const img = e.target as HTMLImageElement;
                         (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
+                        setImgErrors(prev => new Set(prev).add(recipe.id))
                       }}
                     />
                   </>
@@ -322,6 +324,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
   const onBackRef = useRef(onBack)
   onBackRef.current = onBack
   const [planOpen, setPlanOpen] = useState(false)
+  const [detailImgError, setDetailImgError] = useState(false)
 
   function handleShare() {
     shareRecipe.mutate(undefined, {
@@ -331,6 +334,8 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
       }
     })
   }
+
+  useEffect(() => { setDetailImgError(false) }, [recipe?.id])
 
   useEffect(() => {
     setToolbar?.(
@@ -376,7 +381,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
           {recipe.coverPhotoUrl && (
             <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4">
               <div className="absolute inset-0 bg-accent flex items-center justify-center text-5xl">
-                🍽
+                {detailImgError ? '🖼️' : '🍽'}
               </div>
               <Skeleton className="absolute inset-0 w-full h-full z-[1] rounded-none" />
               <img
@@ -393,6 +398,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
                 onError={e => {
                   const img = e.target as HTMLImageElement;
                   (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
+                  setDetailImgError(true)
                 }}
               />
             </div>

@@ -4,7 +4,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { usePublicRecipe } from '../api'
 import type { Block, RecipeIngredient } from '../api'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 
 // ── Block renderer ────────────────────────────────────────────────────────────
 
@@ -82,6 +82,7 @@ export default function PublicRecipeView() {
 
   const recipe = data?.recipe
   const ingredients = data?.ingredients ?? []
+  const [imgError, setImgError] = useState(false)
 
   if (isLoading) {
     return (
@@ -119,7 +120,7 @@ export default function PublicRecipeView() {
         {recipe.coverPhotoUrl && (
           <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4">
             <div className="absolute inset-0 bg-accent flex items-center justify-center text-5xl">
-              🍽
+              {imgError ? '🖼️' : '🍽'}
             </div>
             <Skeleton className="absolute inset-0 w-full h-full z-[1] rounded-none" />
             <img
@@ -137,6 +138,7 @@ export default function PublicRecipeView() {
               onError={e => {
                 const img = e.target as HTMLImageElement;
                 (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
+                setImgError(true)
               }}
             />
           </div>

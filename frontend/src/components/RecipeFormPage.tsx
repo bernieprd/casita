@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Check, ImagePlus } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Check, ImagePlus, X } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -689,6 +689,19 @@ export default function RecipeFormPage() {
               alt="Cover preview"
               className="w-full h-full object-cover block"
             />
+            {!photoUploading && (
+              <button
+                type="button"
+                className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 rounded-full p-0.5 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setCoverUrl(null)
+                  setPreviewUrl(null)
+                }}
+              >
+                <X className="size-4 text-white" />
+              </button>
+            )}
             {photoUploading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                 <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent" />

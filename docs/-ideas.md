@@ -26,10 +26,12 @@
 
 ## Shopping
 💡 Find recipes with ingredient
-📄 Solve the checkbox on shopping list, doesn't make sense - button maybe\
+📄 Solve the checkbox on shopping list, doesn't make sense - button maybe
 
 ## Recipes
 📄 Plan recipe in calendar, with write permission (later on)
+-- docs/plan-recipe-calendar-v2.md
+✅ Solve image erroring and removing images
 ✅ Plan recipe in todos
 ✅ IA alignment 
 ✅ Markdown editor
