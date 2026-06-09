@@ -732,14 +732,14 @@ export default function RecipeFormPage() {
         )}
       </div>
 
+      {ingredientSection}
+
       <Textarea
         value={instructions}
         onChange={e => setInstructions(e.target.value)}
         placeholder="One paragraph per line…"
         rows={4}
       />
-
-      {ingredientSection}
     </div>
   )
 
@@ -775,6 +775,11 @@ export default function RecipeFormPage() {
             </div>
             <Skeleton className="h-9 w-full" />
             <Skeleton className="w-full rounded" style={{ aspectRatio: '16/9' }} />
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-3/4" />
+            </div>
             <Skeleton className="h-28 w-full" />
           </div>
         ) : formBody}
