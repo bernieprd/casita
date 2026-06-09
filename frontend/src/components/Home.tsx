@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { RotateCcw } from 'lucide-react'
+import { RotateCcw, ExternalLink } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -395,7 +395,18 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
             <p className="text-base font-semibold mb-2">{recipe.name}</p>
             <div className="flex gap-1 flex-wrap">
               {recipe.type && <Badge variant="default" className="text-[11px] h-5">{recipe.type}</Badge>}
-              {recipe.day  && <Badge variant="outline" className="text-[11px] h-5">{recipe.day}</Badge>}
+                {recipe.url && (
+                  <a
+                    href={recipe.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    className="text-[11px] h-5 px-1.5 inline-flex items-center rounded-full border text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ExternalLink className="size-2.5 mr-1" />
+                    Recipe
+                  </a>
+                )}
             </div>
           </div>
         </SectionCard>
