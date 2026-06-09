@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ThemeCustomizer } from './ThemeCustomizer'
-import { useTheme } from '@/hooks/useTheme'
+import type { ThemePrefs } from '@/lib/theme'
 import {
   useGoogleStatus,
   useUserCalendars,
@@ -20,7 +20,7 @@ import {
   useDisconnectGoogle,
   initiateGoogleConnect,
 } from '../api/google-calendar'
-import { useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold, useHouseholdTheme, useUpdateHouseholdTheme, useLeaveHousehold, householdThemeKeys } from '../api/household'
+import { useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold, useLeaveHousehold, householdThemeKeys } from '../api/household'
 import { useConceptList, useCreateConcept, useRenameConcept, useDeleteConcept, useBackfillConcepts } from '../api/concepts'
 import type { ConceptType } from '../api/concepts'
 import type { UserCalendar } from '../api/types'
@@ -153,7 +153,15 @@ function ConceptSection({ type, label, addLabel }: { type: ConceptType; label: s
   )
 }
 
-export default function Settings() {
+
+interface SettingsProps {
+  themePrefs: ThemePrefs
+  setThemePrefs: (prefs: ThemePrefs) => void
+  themeSaving: boolean
+}
+
+export default function Settings({ themePrefs, setThemePrefs, themeSaving }: SettingsProps) {
+
   const { user } = useUser()
   const { logout } = useAuth()
   const { refreshHousehold } = useHousehold()
@@ -181,10 +189,6 @@ export default function Settings() {
   const isOwner = householdData?.role === 'owner'
 
   // ── Theme customizer ───────────────────────────────────────────────────────
-
-  const { data: householdTheme } = useHouseholdTheme()
-  const { mutate: updateHouseholdTheme, isPending: themeSaving } = useUpdateHouseholdTheme()
-  const { prefs, setPrefs } = useTheme(householdTheme, updateHouseholdTheme)
   const [themeOpen, setThemeOpen] = useState(false)
 
   const [renaming, setRenaming] = useState(false)
@@ -285,7 +289,7 @@ export default function Settings() {
         Appearance
       </p>
 
-      <ThemeCustomizer prefs={prefs} setPrefs={setPrefs} open={themeOpen} onOpenChange={setThemeOpen} isPending={themeSaving} />
+      <ThemeCustomizer prefs={themePrefs} setPrefs={setThemePrefs} open={themeOpen} onOpenChange={setThemeOpen} isPending={themeSaving} />
       <Button variant="outline" size="sm" className="mb-1" onClick={() => setThemeOpen(true)}>
         Customize theme
       </Button>

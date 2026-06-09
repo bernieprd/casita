@@ -17,6 +17,9 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import InstallBanner from './components/InstallBanner'
+import { useHouseholdTheme, useUpdateHouseholdTheme } from './api/household'
+import { useTheme } from '@/hooks/useTheme'
+
 
 const RecipeFormPage  = lazy(() => import('./components/RecipeFormPage'))
 const SettingsPage    = lazy(() => import('./components/Settings'))
@@ -102,6 +105,10 @@ function SignUpPage() {
 function AppShell() {
   const [headerContent, setHeaderContent] = useState<ReactNode | null>(null)
   const { householdName } = useHousehold()
+  const { data: householdTheme } = useHouseholdTheme()
+  const { mutate: updateHouseholdTheme, isPending: themeSaving } = useUpdateHouseholdTheme()
+  const { prefs: themePrefs, setPrefs: setThemePrefs } = useTheme(householdTheme, updateHouseholdTheme)
+
   const qc = useQueryClient()
   const isOnline = useOnlineStatus()
   const [needRefresh, setNeedRefresh] = useState(false)
@@ -204,7 +211,8 @@ function AppShell() {
               <Recipes setToolbar={setHeaderContent} />
             </TabErrorBoundary>
           } />
-          <Route path="/settings" element={<TabErrorBoundary key="settings"><Suspense fallback={<SuspenseFallback />}><SettingsPage /></Suspense></TabErrorBoundary>} />
+          <Route path="/settings" element={
+          <TabErrorBoundary key="settings"><Suspense fallback={<SuspenseFallback />}><SettingsPage themePrefs={themePrefs} setThemePrefs={setThemePrefs} themeSaving={themeSaving} /></Suspense></TabErrorBoundary>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
