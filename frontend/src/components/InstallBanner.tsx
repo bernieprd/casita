@@ -7,7 +7,7 @@ export default function InstallBanner() {
   if (!showBanner) return null
 
   return (
-    <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 text-primary text-sm border-b border-primary/20">
+    <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 text-primary text-sm border-b border-primary/20">
       {isIOS ? (
         <>
           <Share className="size-4 shrink-0" />

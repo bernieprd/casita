@@ -21,6 +21,9 @@
 ## Calendar
 💡 Calendar views: time based, 3 days, etc.
 💡 Edit events 
+⚠️ Publish the app
+-- If your app requests only basic scopes (like `email` and `profile`), Google will approve it quickly — often instantly
+-- If it requests sensitive or restricted scopes (like access to Drive, Calendar, etc.), you’ll need to go through Google’s verification review, which can take days to weeks and requires a privacy policy, homepage, etc.
 
 ## Todos
 💡 Have them have an event in the calendar
