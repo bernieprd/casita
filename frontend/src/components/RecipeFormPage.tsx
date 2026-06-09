@@ -17,8 +17,8 @@ import type { Item } from '../api'
 import { uploadPhoto } from '../api/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
+import { MarkdownEditor } from '@/components/MarkdownEditor'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
@@ -375,7 +375,16 @@ export default function RecipeFormPage() {
     setPhotoError(false)
     setInstructions(
       (recipe.blocks ?? [])
-        .map(b => (b.type === 'divider' ? '---' : b.text))
+        .map(b => {
+          switch (b.type) {
+            case 'divider':            return '---'
+            case 'heading_1':          return `# ${b.text}`
+            case 'heading_2':          return `## ${b.text}`
+            case 'heading_3':          return `### ${b.text}`
+            case 'bulleted_list_item': return `- ${b.text}`
+            default:                   return b.text
+          }
+        })
         .join('\n'),
     )
     const ingRows: IngRow[] = ingredients.map(ing => ({
@@ -734,11 +743,11 @@ export default function RecipeFormPage() {
 
       {ingredientSection}
 
-      <Textarea
+      <MarkdownEditor
         value={instructions}
-        onChange={e => setInstructions(e.target.value)}
+        onChange={setInstructions}
         placeholder="One paragraph per line…"
-        rows={4}
+        rows={6}
       />
     </div>
   )

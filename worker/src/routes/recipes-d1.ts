@@ -60,6 +60,15 @@ function rowToIngredient(row: IngredientJoinRow): RecipeIngredient {
   }
 }
 
+function textToBlock(line: string): { type: string; text: string } {
+  if (line === '---')                                     return { type: 'divider',            text: '' }
+  if (line.startsWith('# ') && !line.startsWith('## '))  return { type: 'heading_1',          text: line.slice(2) }
+  if (line.startsWith('## ') && !line.startsWith('### ')) return { type: 'heading_2',         text: line.slice(3) }
+  if (line.startsWith('### '))                            return { type: 'heading_3',          text: line.slice(4) }
+  if (line.startsWith('- ') || line.startsWith('* '))    return { type: 'bulleted_list_item', text: line.slice(2) }
+  return { type: 'paragraph', text: line }
+}
+
 export async function createRecipe(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
   if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
 
@@ -81,13 +90,14 @@ export async function createRecipe(req: Request, env: Env, ctx: RequestContext):
   ).bind(id, ctx.householdId, body.name, body.type ?? null, body.day ?? null, body.url ?? null, body.coverUrl ?? null, now, now).run()
 
   if (body.instructions) {
-    const lines = body.instructions.split('\n').filter(l => l.trim())
-    if (lines.length) {
-      await Promise.all(lines.map((text, i) =>
-        env.DB.prepare(
+    const lines = body.instructions.split('\n')
+    if (lines.some(l => l.trim())) {
+      await Promise.all(lines.map((line, i) => {
+        const { type, text } = textToBlock(line)
+        return env.DB.prepare(
           'INSERT INTO recipe_blocks (id, recipe_id, type, text, sort_order) VALUES (?, ?, ?, ?, ?)',
-        ).bind(crypto.randomUUID(), id, 'paragraph', text, i).run(),
-      ))
+        ).bind(crypto.randomUUID(), id, type, text, i).run()
+      }))
     }
   }
 
@@ -149,13 +159,14 @@ export async function updateRecipe(req: Request, env: Env, ctx: RequestContext, 
 
   if ('instructions' in body) {
     await env.DB.prepare('DELETE FROM recipe_blocks WHERE recipe_id = ?').bind(id).run()
-    const lines = (body.instructions ?? '').split('\n').filter(l => l.trim())
-    if (lines.length) {
-      await Promise.all(lines.map((text, i) =>
-        env.DB.prepare(
+    const lines = (body.instructions ?? '').split('\n')
+    if (lines.some(l => l.trim())) {
+      await Promise.all(lines.map((line, i) => {
+        const { type, text } = textToBlock(line)
+        return env.DB.prepare(
           'INSERT INTO recipe_blocks (id, recipe_id, type, text, sort_order) VALUES (?, ?, ?, ?, ?)',
-        ).bind(crypto.randomUUID(), id, 'paragraph', text, i).run(),
-      ))
+        ).bind(crypto.randomUUID(), id, type, text, i).run()
+      }))
     }
   }
 

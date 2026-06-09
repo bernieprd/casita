@@ -10,6 +10,17 @@ import { toast } from 'sonner'
 import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping, useItems, useShareRecipe } from '../api'
 import type { Block, RecipeIngredient, Item } from '../api'
 
+// ── Inline markdown renderer ──────────────────────────────────────────────────
+
+function renderInline(text: string): ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/)
+  return parts.map((part, i) =>
+    part.startsWith('**') && part.endsWith('**')
+      ? <strong key={i}>{part.slice(2, -2)}</strong>
+      : part
+  )
+}
+
 // ── Block renderer ────────────────────────────────────────────────────────────
 
 function RenderBlock({ block }: { block: Block }) {
@@ -21,7 +32,7 @@ function RenderBlock({ block }: { block: Block }) {
     case 'heading_3':
       return <h4 className="text-sm font-semibold mt-6 mb-2">{block.text}</h4>
     case 'bulleted_list_item':
-      return <p className="text-sm pl-4 mb-1">• {block.text}</p>
+      return <p className="text-sm pl-4 mb-1">• {renderInline(block.text)}</p>
     case 'numbered_list_item':
       return <p className="text-sm pl-4 mb-1">{block.text}</p>
     case 'divider':
@@ -29,7 +40,7 @@ function RenderBlock({ block }: { block: Block }) {
     case 'paragraph':
     default:
       return block.text
-        ? <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{block.text}</p>
+        ? <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{renderInline(block.text)}</p>
         : <div className="h-1.5" />
   }
 }
