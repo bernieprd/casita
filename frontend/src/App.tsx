@@ -16,6 +16,7 @@ import { AuthProvider, useAuth, useHousehold } from './context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useRegisterSW } from 'virtual:pwa-register/react'
+import InstallBanner from './components/InstallBanner'
 
 const RecipeFormPage  = lazy(() => import('./components/RecipeFormPage'))
 const SettingsPage    = lazy(() => import('./components/Settings'))
@@ -159,6 +160,8 @@ function AppShell() {
           Offline — showing cached data
         </div>
       )}
+
+      <InstallBanner />
 
       <div
         className={cn(
