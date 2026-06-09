@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Check, ImagePlus } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Check, ImagePlus, X } from 'lucide-react'
 import {
   DndContext,
   DragOverlay,
@@ -12,13 +12,13 @@ import {
   useDraggable,
 } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
-import { useItems, useRecipes, useCreateRecipe, useEditRecipe, useDeleteRecipe, useRecipe, useRecipeIngredients, useConceptList } from '../api'
+import { useItems, useCreateRecipe, useEditRecipe, useDeleteRecipe, useRecipe, useRecipeIngredients, useConceptList } from '../api'
 import type { Item } from '../api'
 import { uploadPhoto } from '../api/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
+import { MarkdownEditor } from '@/components/MarkdownEditor'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
@@ -46,7 +46,6 @@ interface IngRow {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const DAY_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 const NO_SECTION = ''
 
 // ── Item combobox ─────────────────────────────────────────────────────────────
@@ -232,9 +231,9 @@ function SectionHeader({
         </>
       ) : (
         <>
-          <span className="flex-1 text-xs font-semibold tracking-widest uppercase text-muted-foreground">
+          <h3 className="flex-1 text-xs font-semibold tracking-widest uppercase text-muted-foreground">
             {name}
-          </span>
+          </h3>
           <Button variant="ghost" size="icon-xs" onClick={startEdit} className="text-muted-foreground">
             <Pencil className="size-3" />
           </Button>
@@ -321,12 +320,6 @@ export default function RecipeFormPage() {
   const typeOptions = useMemo(() =>
     recipeTypeConcepts.map(c => c.name)
   , [recipeTypeConcepts])
-  const { data: recipes } = useRecipes()
-  const dayOptions = useMemo(() => {
-    const fromDb = (recipes ?? []).map(r => r.day).filter(Boolean) as string[]
-    return [...new Set([...DAY_OPTIONS, ...fromDb])].sort()
-  }, [recipes])
-
   const createRecipe = useCreateRecipe()
   const editRecipe = useEditRecipe(id ?? '')
   const deleteRecipe = useDeleteRecipe(id ?? '')
@@ -339,7 +332,6 @@ export default function RecipeFormPage() {
   const [name, setName] = useState('')
   const [nameError, setNameError] = useState(false)
   const [type, setType] = useState<string | null>(null)
-  const [day, setDay] = useState<string | null>(null)
   const [url, setUrl] = useState('')
   const [coverUrl, setCoverUrl] = useState('')
   const [instructions, setInstructions] = useState('')
@@ -368,14 +360,22 @@ export default function RecipeFormPage() {
 
     setName(recipe.name)
     setType(recipe.type)
-    setDay(recipe.day)
     setUrl(recipe.url ?? '')
     setCoverUrl(recipe.coverPhotoUrl ?? '')
     setPreviewUrl(recipe.coverPhotoUrl ?? '')
     setPhotoError(false)
     setInstructions(
       (recipe.blocks ?? [])
-        .map(b => (b.type === 'divider' ? '---' : b.text))
+        .map(b => {
+          switch (b.type) {
+            case 'divider':            return '---'
+            case 'heading_1':          return `# ${b.text}`
+            case 'heading_2':          return `## ${b.text}`
+            case 'heading_3':          return `### ${b.text}`
+            case 'bulleted_list_item': return `- ${b.text}`
+            default:                   return b.text
+          }
+        })
         .join('\n'),
     )
     const ingRows: IngRow[] = ingredients.map(ing => ({
@@ -505,7 +505,6 @@ export default function RecipeFormPage() {
     const recipeBody = {
       name: name.trim(),
       type: type || null,
-      day: day || null,
       url: url.trim() || null,
       coverUrl: coverUrl.trim() || null,
       instructions: instructions.trim(),
@@ -564,10 +563,12 @@ export default function RecipeFormPage() {
 
   const ingredientSection = (
     <div>
-      <span className="text-xs font-semibold tracking-widest uppercase text-muted-foreground">
-        Ingredients
-      </span>
-      <Separator className="mt-1 mb-3" />
+      <div className="flex items-center gap-1 mb-2">
+        <h2 className="flex-1 text-sm font-semibold tracking-widest uppercase text-muted-foreground">
+          Ingredients
+        </h2>
+      </div>
+      <Separator className="mb-3" />
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <DroppableGroup sectionKey={NO_SECTION}>
@@ -635,15 +636,11 @@ export default function RecipeFormPage() {
   // ── Form body ────────────────────────────────────────────────────────────────
 
   const typeId = 'recipe-type-list'
-  const dayId = 'recipe-day-list'
 
   const formBody = (
     <div className="flex flex-col gap-4 pb-4">
       <datalist id={typeId}>
         {typeOptions.map(o => <option key={o} value={o} />)}
-      </datalist>
-      <datalist id={dayId}>
-        {dayOptions.map(o => <option key={o} value={o} />)}
       </datalist>
 
       <div className="flex flex-col gap-1">
@@ -660,20 +657,12 @@ export default function RecipeFormPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Input
-          value={type ?? ''}
-          onChange={e => setType(e.target.value || null)}
-          placeholder="Type"
-          list={typeId}
-        />
-        <Input
-          value={day ?? ''}
-          onChange={e => setDay(e.target.value || null)}
-          placeholder="Day"
-          list={dayId}
-        />
-      </div>
+      <Input
+        value={type ?? ''}
+        onChange={e => setType(e.target.value || null)}
+        placeholder="Type"
+        list={typeId}
+      />
 
       <Input
         value={url}
@@ -702,6 +691,19 @@ export default function RecipeFormPage() {
               alt="Cover preview"
               className="w-full h-full object-cover block"
             />
+            {!photoUploading && (
+              <button
+                type="button"
+                className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 rounded-full p-0.5 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setCoverUrl(null)
+                  setPreviewUrl(null)
+                }}
+              >
+                <X className="size-4 text-white" />
+              </button>
+            )}
             {photoUploading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                 <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent" />
@@ -732,14 +734,20 @@ export default function RecipeFormPage() {
         )}
       </div>
 
-      <Textarea
-        value={instructions}
-        onChange={e => setInstructions(e.target.value)}
-        placeholder="One paragraph per line…"
-        rows={4}
-      />
-
       {ingredientSection}
+
+      <div className="flex items-center gap-1 mt-6 mb-2">
+        <h2 className="flex-1 text-sm font-semibold tracking-widest uppercase text-muted-foreground">
+          Instructions
+        </h2>
+      </div>
+      <Separator className="mb-3" />
+      <MarkdownEditor
+        value={instructions}
+        onChange={setInstructions}
+        placeholder="One paragraph per line…"
+        rows={6}
+      />
     </div>
   )
 
@@ -769,12 +777,14 @@ export default function RecipeFormPage() {
         {isLoadingEdit ? (
           <div className="flex flex-col gap-4">
             <Skeleton className="h-9 w-full" />
-            <div className="grid grid-cols-2 gap-4">
-              <Skeleton className="h-9 w-full" />
-              <Skeleton className="h-9 w-full" />
-            </div>
+            <Skeleton className="h-9 w-full" />
             <Skeleton className="h-9 w-full" />
             <Skeleton className="w-full rounded" style={{ aspectRatio: '16/9' }} />
+            <div className="flex flex-col gap-3">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-8 w-3/4" />
+            </div>
             <Skeleton className="h-28 w-full" />
           </div>
         ) : formBody}

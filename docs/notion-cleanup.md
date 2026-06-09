@@ -1,18 +1,42 @@
 # Notion Integration Cleanup
 
-D1 migration is complete. These items remain before Notion can be fully removed:
+**Context:** Production runs entirely on D1. The Notion-backed route files are orphaned. The only Notion references remaining in `index.ts` are the migration endpoint and `NotionError`.
 
-## Worker
+## Files to delete
 
-- [ ] Delete `worker/src/notion.ts`
-- [ ] Delete `worker/src/normalize.ts`
-- [ ] Remove any remaining references to `household_notion_config` (table can stay as a dead archive or be dropped via a migration)
+```
+worker/src/notion.ts
+worker/src/normalize.ts
+worker/src/routes/recipes.ts            (Notion-backed — NOT recipes-d1.ts)
+worker/src/routes/recipe-ingredients.ts (Notion-backed — NOT recipe-ingredients-d1.ts)
+worker/src/routes/items.ts              (Notion-backed — NOT items-d1.ts)
+worker/src/routes/todos.ts              (Notion-backed — NOT todos-d1.ts)
+worker/src/db/migrate-from-notion.ts
+```
+
+## Changes to worker/src/index.ts
+
+- Remove import of `runMigration*` from `./db/migrate-from-notion`
+- Remove import of `NotionError` from `./notion`
+- Remove the `/admin/migrate` route block
+- Remove the `NotionError` catch block in the error handler
+
+## Changes to worker/src/routes/household.ts
+
+- Remove `getNotionConfig` function and any reference to `household_notion_config` — only used in legacy migration paths.
+
+## Optional DB migration
+
+Add `worker/src/db/migrations/003_drop_notion_config.sql`:
+```sql
+DROP TABLE IF EXISTS household_notion_config;
+```
 
 ## Cloudflare Secrets & Config
 
 - [ ] `wrangler secret delete NOTION_TOKEN`
 - [ ] Remove `NOTION_TOKEN` from any `wrangler.toml` / `wrangler.jsonc` entries
 
-## Optional DB Cleanup
+## Verification
 
-- [ ] Add `worker/src/db/migrations/003_drop_notion_config.sql` to drop the `household_notion_config` table if no longer needed as an archive
+Run `npx tsc --noEmit` in `/worker` — zero errors. Deploy to staging and confirm recipe CRUD, todos, and shopping all work.

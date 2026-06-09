@@ -146,13 +146,20 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
     const incomplete = todos
       .filter(t => t.status !== 'Done')
       .sort((a, b) => {
-        const pa = a.priority ? (PRIORITY_ORDER[a.priority] ?? 3) : 3
-        const pb = b.priority ? (PRIORITY_ORDER[b.priority] ?? 3) : 3
-        if (pa !== pb) return pa - pb
-        if (a.due && b.due) return a.due.localeCompare(b.due)
-        if (a.due) return -1
-        if (b.due) return 1
-        return 0
+        const hasDueA = !!a.due, hasDueB = !!b.due
+        if (hasDueA !== hasDueB) return hasDueA ? -1 : 1
+        if (hasDueA && hasDueB) {
+          const dateCmp = a.due!.localeCompare(b.due!)
+          if (dateCmp !== 0) return dateCmp
+          const pa = PRIORITY_ORDER[a.priority ?? ''] ?? 3
+          const pb = PRIORITY_ORDER[b.priority ?? ''] ?? 3
+          return pa - pb
+        }
+        const hasPriA = !!a.priority, hasPriB = !!b.priority
+        if (hasPriA !== hasPriB) return hasPriA ? -1 : 1
+        const pa = PRIORITY_ORDER[a.priority ?? ''] ?? 3
+        const pb = PRIORITY_ORDER[b.priority ?? ''] ?? 3
+        return pa - pb
       })
     return { topTodos: incomplete.slice(0, 3), remaining: Math.max(0, incomplete.length - 3) }
   }, [todos])
@@ -321,6 +328,7 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
 function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
   const { data: recipes, isLoading } = useRecipes()
   const [seed, setSeed] = useState(() => Math.random())
+  const [recentImgError, setRecentImgError] = useState(false)
 
   const recipe = useMemo(() => {
     if (!recipes?.length) return null
@@ -359,7 +367,7 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
         <SectionCard onClick={() => onNavigate(recipe.id)}>
           <div className="relative w-full aspect-video">
             <div className="absolute inset-0 bg-accent flex items-center justify-center text-4xl">
-              🍽
+              {recentImgError ? '🖼️' : '🍽'}
             </div>
             {recipe.coverPhotoUrl && (
               <>
@@ -377,6 +385,7 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
                   onError={e => {
                     const img = e.target as HTMLImageElement;
                     (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
+                    setRecentImgError(true)
                   }}
                 />
               </>

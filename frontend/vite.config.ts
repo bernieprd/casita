@@ -13,7 +13,7 @@ export default defineConfig({
     tailwindcss(),
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Casita',
@@ -30,6 +30,7 @@ export default defineConfig({
           { src: 'apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
         ],
       },
+      devOptions: { enabled: true },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webp,ico,woff2}'],
         globIgnores: ['casita.png'], // original 3.4 MB file — kept as fallback, not precached

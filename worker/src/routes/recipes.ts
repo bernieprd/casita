@@ -3,6 +3,16 @@ import { normalizeRecipe, normalizeBlock, normalizeRecipeIngredient, normalizeIt
 import type { Env, RecipeWithBlocks, RequestContext } from '../types'
 import { getNotionConfig } from './household'
 
+function textToNotionBlock(text: string) {
+  if (text === '---')          return { type: 'divider', divider: {} }
+  if (text.startsWith('# '))   return { type: 'heading_1', heading_1: { rich_text: [{ type: 'text', text: { content: text.slice(2) } }] } }
+  if (text.startsWith('## '))  return { type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: text.slice(3) } }] } }
+  if (text.startsWith('### ')) return { type: 'heading_3', heading_3: { rich_text: [{ type: 'text', text: { content: text.slice(4) } }] } }
+  if (text.startsWith('- ') || text.startsWith('* '))
+    return { type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: text.slice(2) } }] } }
+  return { type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: text } }] } }
+}
+
 export async function createRecipe(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
   if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
 
@@ -32,15 +42,12 @@ export async function createRecipe(req: Request, env: Env, ctx: RequestContext):
   const page = await createPage(env.NOTION_TOKEN, config.recipes_db, props, cover)
 
   if (body.instructions) {
-    const lines = body.instructions.split('\n').filter(l => l.trim())
-    if (lines.length) {
+    const lines = body.instructions.split('\n')
+    if (lines.some(l => l.trim())) {
       await appendBlockChildren(
         env.NOTION_TOKEN,
         page.id,
-        lines.map(text => ({
-          type: 'paragraph',
-          paragraph: { rich_text: [{ type: 'text', text: { content: text } }] },
-        })),
+        lines.map(textToNotionBlock),
       )
     }
   }
@@ -102,15 +109,12 @@ export async function updateRecipe(req: Request, env: Env, ctx: RequestContext, 
   // Replace instructions blocks when provided
   if ('instructions' in body) {
     await Promise.all(existing.map(b => deleteBlock(env.NOTION_TOKEN, b.id)))
-    const lines = (body.instructions ?? '').split('\n').filter(l => l.trim())
-    if (lines.length) {
+    const lines = (body.instructions ?? '').split('\n')
+    if (lines.some(l => l.trim())) {
       await appendBlockChildren(
         env.NOTION_TOKEN,
         id,
-        lines.map(text => ({
-          type: 'paragraph',
-          paragraph: { rich_text: [{ type: 'text', text: { content: text } }] },
-        })),
+        lines.map(textToNotionBlock),
       )
     }
   }

@@ -1,27 +1,40 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
+import PlanRecipeSheet from './PlanRecipeSheet'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Pencil, Search, Share, ArrowLeft } from 'lucide-react'
+import { Plus, Pencil, Search, Share, ArrowLeft, CalendarPlus, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping, useItems, useShareRecipe } from '../api'
 import type { Block, RecipeIngredient, Item } from '../api'
+
+// ── Inline markdown renderer ──────────────────────────────────────────────────
+
+function renderInline(text: string): ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/)
+  return parts.map((part, i) =>
+    part.startsWith('**') && part.endsWith('**')
+      ? <strong key={i}>{part.slice(2, -2)}</strong>
+      : part
+  )
+}
 
 // ── Block renderer ────────────────────────────────────────────────────────────
 
 function RenderBlock({ block }: { block: Block }) {
   switch (block.type) {
     case 'heading_1':
-      return <h2 className="text-lg font-bold mt-10 mb-2">{block.text}</h2>
+      return <h3 className="text-lg font-bold mt-10 mb-2">{block.text}</h3>
     case 'heading_2':
-      return <h3 className="text-base font-semibold mt-8 mb-2">{block.text}</h3>
+      return <h4 className="text-base font-semibold mt-8 mb-2">{block.text}</h4>
     case 'heading_3':
-      return <h4 className="text-sm font-semibold mt-6 mb-2">{block.text}</h4>
+      return <h5 className="text-sm font-semibold mt-6 mb-2">{block.text}</h5>
     case 'bulleted_list_item':
-      return <p className="text-sm pl-4 mb-1">• {block.text}</p>
+      return <p className="text-sm pl-4 mb-1">• {renderInline(block.text)}</p>
     case 'numbered_list_item':
       return <p className="text-sm pl-4 mb-1">{block.text}</p>
     case 'divider':
@@ -29,7 +42,7 @@ function RenderBlock({ block }: { block: Block }) {
     case 'paragraph':
     default:
       return block.text
-        ? <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{block.text}</p>
+        ? <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{renderInline(block.text)}</p>
         : <div className="h-1.5" />
   }
 }
@@ -54,12 +67,20 @@ function RecipeGridSkeleton() {
 
 // ── Recipe grid ───────────────────────────────────────────────────────────────
 
-function RecipeGrid({ onSelect, setHeader }: { onSelect: (id: string) => void; setHeader?: (node: ReactNode | null) => void }) {
+type SortOption = 'name-asc' | 'name-desc' | 'updated-desc' | 'created-desc' | 'created-asc' | 'type'
+
+function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: string) => void; setHeader?: (node: ReactNode | null) => void; initialScroll?: number | null }) {
   const { data: recipes, isLoading, error } = useRecipes()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [selectedType, setSelectedType] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<SortOption>('updated-desc')
   const [scrollToId, setScrollToId] = useState<string | null>(null)
+  const [imgErrors, setImgErrors] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    if (initialScroll) requestAnimationFrame(() => window.scrollTo(0, initialScroll))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const typeOptions = useMemo(
     () => [...new Set((recipes ?? []).map(r => r.type).filter(Boolean) as string[])].sort(),
@@ -69,12 +90,23 @@ function RecipeGrid({ onSelect, setHeader }: { onSelect: (id: string) => void; s
   const filtered = useMemo(() => {
     if (!recipes) return []
     const q = search.trim().toLowerCase()
-    return recipes.filter(r => {
+    const list = recipes.filter(r => {
       const matchesSearch = !q || r.name.toLowerCase().includes(q)
       const matchesType = !selectedType || r.type === selectedType
       return matchesSearch && matchesType
     })
-  }, [recipes, search, selectedType])
+    return list.sort((a, b) => {
+      switch (sortBy) {
+        case 'name-asc':     return a.name.localeCompare(b.name)
+        case 'name-desc':    return b.name.localeCompare(a.name)
+        case 'updated-desc': return (b.updatedAt ?? 0) - (a.updatedAt ?? 0)
+        case 'created-desc': return (b.createdAt ?? 0) - (a.createdAt ?? 0)
+        case 'created-asc':  return (a.createdAt ?? 0) - (b.createdAt ?? 0)
+        case 'type':         return (a.type ?? '').localeCompare(b.type ?? '')
+        default:             return 0
+      }
+    })
+  }, [recipes, search, selectedType, sortBy])
 
   // Scroll to newly created recipe once it appears in the rendered list
   useMemo(() => {
@@ -101,13 +133,84 @@ function RecipeGrid({ onSelect, setHeader }: { onSelect: (id: string) => void; s
             onChange={e => setSearch(e.target.value)}
           />
         </div>
+        <Select value={sortBy} onValueChange={v => setSortBy(v as SortOption)}>
+          <SelectTrigger size="sm" className="w-auto shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="end">
+            <SelectItem value="name-asc">Name (A → Z)</SelectItem>
+            <SelectItem value="name-desc">Name (Z → A)</SelectItem>
+            <SelectItem value="updated-desc">Recently updated</SelectItem>
+            <SelectItem value="created-desc">Newest first</SelectItem>
+            <SelectItem value="created-asc">Oldest first</SelectItem>
+            <SelectItem value="type">Group by type</SelectItem>
+          </SelectContent>
+        </Select>
         <Button size="sm" onClick={() => navigate('/recipes/new')}>
           <Plus className="h-4 w-4 mr-1" /> New
         </Button>
       </div>
     )
     return () => setHeader(null)
-  }, [search, setHeader])
+  }, [search, sortBy, setHeader])
+
+  const renderCard = (recipe: NonNullable<typeof recipes>[number]) => (
+    <div
+      key={recipe.id}
+      id={`recipe-card-${recipe.id}`}
+      onClick={() => onSelect(recipe.id)}
+      className="cursor-pointer rounded-lg overflow-hidden bg-card border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] transition-opacity active:opacity-75"
+    >
+      <div className="relative w-full aspect-[4/3]">
+        <div className="absolute inset-0 bg-accent flex items-center justify-center text-4xl">
+          {imgErrors.has(recipe.id) ? '🖼️' : '🍽'}
+        </div>
+        {recipe.coverPhotoUrl && (
+          <>
+            <Skeleton className="absolute inset-0 w-full h-full z-[1] rounded-none" />
+            <img
+              src={recipe.coverPhotoUrl}
+              alt={recipe.name}
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover block z-[2]"
+              style={{ opacity: 0, transition: 'opacity .25s' }}
+              onLoad={e => {
+                const img = e.target as HTMLImageElement
+                img.style.opacity = '1';
+                (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
+              }}
+              onError={e => {
+                const img = e.target as HTMLImageElement;
+                (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
+                setImgErrors(prev => new Set(prev).add(recipe.id))
+              }}
+            />
+          </>
+        )}
+      </div>
+      <div className="p-3">
+        <p className="text-sm font-semibold leading-tight mb-1.5">{recipe.name}</p>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {recipe.type && (
+            <Badge className="text-[10px] h-[18px] px-1.5">{recipe.type}</Badge>
+          )}
+          {recipe.url && (
+            <a
+              href={recipe.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              className="text-[10px] h-[18px] px-1.5 inline-flex items-center rounded-full border text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ExternalLink className="size-2.5 mr-1" />
+              Recipe
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 
   if (isLoading) return <RecipeGridSkeleton />
   if (error) return <p className="text-destructive p-4">Failed to load recipes.</p>
@@ -153,56 +256,35 @@ function RecipeGrid({ onSelect, setHeader }: { onSelect: (id: string) => void; s
           <div className="text-5xl mb-4 opacity-35">🔍</div>
           <p className="text-sm font-medium text-muted-foreground">No recipes match</p>
         </div>
+      ) : sortBy === 'type' ? (
+        (() => {
+          const groupMap = new Map<string, typeof filtered>()
+          for (const r of filtered) {
+            const key = r.type ?? '__other__'
+            if (!groupMap.has(key)) groupMap.set(key, [])
+            groupMap.get(key)!.push(r)
+          }
+          const groups: [string, typeof filtered][] = []
+          for (const [key, gr] of groupMap) {
+            if (key !== '__other__') groups.push([key, gr])
+          }
+          if (groupMap.has('__other__')) groups.push(['Other', groupMap.get('__other__')!])
+          return (
+            <div className="flex flex-col gap-6">
+              {groups.map(([label, groupRecipes]) => (
+                <div key={label}>
+                  <h3 className="text-xs font-semibold tracking-widest uppercase text-muted-foreground mb-3">{label}</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {groupRecipes.map(recipe => renderCard(recipe))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        })()
       ) : (
         <div className="grid grid-cols-2 gap-3">
-          {filtered.map(recipe => (
-            <div
-              key={recipe.id}
-              id={`recipe-card-${recipe.id}`}
-              onClick={() => onSelect(recipe.id)}
-              className="cursor-pointer rounded-lg overflow-hidden bg-card border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] transition-opacity active:opacity-75"
-            >
-              <div className="relative w-full aspect-[4/3]">
-                {/* Emoji fallback — always behind; shows when there's no URL or the image errors */}
-                <div className="absolute inset-0 bg-accent flex items-center justify-center text-4xl">
-                  🍽
-                </div>
-                {recipe.coverPhotoUrl && (
-                  <>
-                    <Skeleton className="absolute inset-0 w-full h-full z-[1] rounded-none" />
-                    <img
-                      src={recipe.coverPhotoUrl}
-                      alt={recipe.name}
-                      loading="lazy"
-                      decoding="async"
-                      className="absolute inset-0 w-full h-full object-cover block z-[2]"
-                      style={{ opacity: 0, transition: 'opacity .25s' }}
-                      onLoad={e => {
-                        const img = e.target as HTMLImageElement
-                        img.style.opacity = '1';
-                        (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
-                      }}
-                      onError={e => {
-                        const img = e.target as HTMLImageElement;
-                        (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
-                      }}
-                    />
-                  </>
-                )}
-              </div>
-              <div className="p-3">
-                <p className="text-sm font-semibold leading-tight mb-1.5">{recipe.name}</p>
-                <div className="flex flex-wrap gap-1">
-                  {recipe.type && (
-                    <Badge className="text-[10px] h-[18px] px-1.5">{recipe.type}</Badge>
-                  )}
-                  {recipe.day && (
-                    <Badge variant="outline" className="text-[10px] h-[18px] px-1.5">{recipe.day}</Badge>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+          {filtered.map(recipe => renderCard(recipe))}
         </div>
       )}
 
@@ -213,6 +295,66 @@ function RecipeGrid({ onSelect, setHeader }: { onSelect: (id: string) => void; s
 // ── Ingredient groups ─────────────────────────────────────────────────────────
 
 type ToggleMutation = ReturnType<typeof useToggleNeedsShopping>
+
+function CollapsibleIngredientGroup({
+  section,
+  items,
+  toggle,
+  inList,
+}: {
+  section: string
+  items: RecipeIngredient[]
+  toggle: ToggleMutation
+  inList: (ing: RecipeIngredient) => boolean
+}) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        className={`flex items-center w-full px-4 py-3 bg-card hover:bg-background transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
+      >
+        <h3 className="flex-1 text-left text-xs font-semibold tracking-widest uppercase text-muted-foreground leading-none">
+          {section}
+        </h3>
+        <span className="text-xs text-muted-foreground mr-2">{items.length}</span>
+        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+      </button>
+      <div style={{ overflow: 'hidden', transition: 'max-height 0.2s ease', maxHeight: open ? '9999px' : 0 }}>
+        <div className="rounded-b-lg overflow-hidden">
+          <hr className="border-border" />
+          <ul>
+            {items.map((ing, idx) => (
+              <li key={ing.id}>
+                {idx > 0 && <hr className="border-border" />}
+                <div className="flex items-center justify-between px-4 py-2.5 gap-4 hover:bg-accent transition-colors">
+                  <div className="min-w-0">
+                    <p className="text-sm">{ing.itemName}</p>
+                    {ing.quantity && <p className="text-xs text-muted-foreground">{ing.quantity}</p>}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={inList(ing) ? 'outline' : 'default'}
+                    className="shrink-0 min-w-[68px]"
+                    onClick={() => toggle.mutate({
+                      id: ing.id,
+                      needsShopping: !inList(ing),
+                      itemId: ing.itemId,
+                      itemName: ing.itemName,
+                    })}
+                  >
+                    {inList(ing) ? 'Remove' : 'Add'}
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function IngredientGroups({
   ingredients,
@@ -231,7 +373,6 @@ function IngredientGroups({
     return ing.needsShopping
   }
 
-  // Group: null/empty section first, then named sections in order of first appearance
   const groups = useMemo(() => {
     const order: Array<string | null> = []
     const map = new Map<string | null, RecipeIngredient[]>()
@@ -245,46 +386,55 @@ function IngredientGroups({
       map.get(key)!.push(ing)
     }
 
-    // Ensure null (no section) is always first
     const sorted = [null, ...order.filter(k => k !== null)]
     return sorted.filter(k => map.has(k)).map(k => ({ section: k, items: map.get(k)! }))
   }, [ingredients])
 
   return (
-    <div className="mb-6">
-      {groups.map(({ section, items }, groupIdx) => (
-        <div key={section ?? '__none__'}>
-          {groupIdx > 0 && <Separator className="my-4" />}
-          {section && (
-            <p className="block text-[10px] tracking-widest uppercase text-muted-foreground mb-1">
-              {section}
-            </p>
-          )}
-          <ul className="divide-y divide-border">
-            {items.map((ing) => (
-              <li key={ing.id} className="flex items-center justify-between py-2 gap-4">
-                <div className="min-w-0">
-                  <p className="text-sm">{ing.itemName}</p>
-                  {ing.quantity && <p className="text-xs text-muted-foreground">{ing.quantity}</p>}
-                </div>
-                <Button
-                  size="sm"
-                  variant={inList(ing) ? 'outline' : 'default'}
-                  className="shrink-0 min-w-[68px]"
-                  onClick={() => toggle.mutate({
-                    id: ing.id,
-                    needsShopping: !inList(ing),
-                    itemId: ing.itemId,
-                    itemName: ing.itemName,
-                  })}
-                >
-                  {inList(ing) ? 'Remove' : 'Add'}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+    <div className="mb-4 flex flex-col gap-2">
+      {groups.map(({ section, items }) => {
+        if (!section) {
+          return (
+            <div key="__none__" className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] overflow-hidden">
+              <ul>
+                {items.map((ing, idx) => (
+                  <li key={ing.id}>
+                    {idx > 0 && <hr className="border-border" />}
+                    <div className="flex items-center justify-between px-4 py-2.5 gap-4 hover:bg-accent transition-colors">
+                      <div className="min-w-0">
+                        <p className="text-sm">{ing.itemName}</p>
+                        {ing.quantity && <p className="text-xs text-muted-foreground">{ing.quantity}</p>}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={inList(ing) ? 'outline' : 'default'}
+                        className="shrink-0 min-w-[68px]"
+                        onClick={() => toggle.mutate({
+                          id: ing.id,
+                          needsShopping: !inList(ing),
+                          itemId: ing.itemId,
+                          itemName: ing.itemName,
+                        })}
+                      >
+                        {inList(ing) ? 'Remove' : 'Add'}
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+        return (
+          <CollapsibleIngredientGroup
+            key={section}
+            section={section}
+            items={items}
+            toggle={toggle}
+            inList={inList}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -300,6 +450,8 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
   const shareRecipe = useShareRecipe(id)
   const onBackRef = useRef(onBack)
   onBackRef.current = onBack
+  const [planOpen, setPlanOpen] = useState(false)
+  const [detailImgError, setDetailImgError] = useState(false)
 
   function handleShare() {
     shareRecipe.mutate(undefined, {
@@ -310,6 +462,8 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
     })
   }
 
+  useEffect(() => { setDetailImgError(false) }, [recipe?.id])
+
   useEffect(() => {
     setToolbar?.(
       <>
@@ -317,6 +471,9 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
           <ArrowLeft />
         </Button>
         <h1 className="flex-1 text-lg font-bold truncate">{recipe?.name ?? ''}</h1>
+        <Button variant="ghost" size="icon" onClick={() => setPlanOpen(true)}>
+          <CalendarPlus className="h-5 w-5" />
+        </Button>
         <Button variant="ghost" size="icon" onClick={() => navigate(`/recipes/${id}/edit`)}>
           <Pencil className="h-5 w-5" />
         </Button>
@@ -331,6 +488,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
 
   return (
     <div className="pb-10">
+      <PlanRecipeSheet open={planOpen} recipeName={recipe?.name ?? ''} onClose={() => setPlanOpen(false)} />
 
       {recipeLoading && !recipe ? (
         <>
@@ -350,7 +508,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
           {recipe.coverPhotoUrl && (
             <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4">
               <div className="absolute inset-0 bg-accent flex items-center justify-center text-5xl">
-                🍽
+                {detailImgError ? '🖼️' : '🍽'}
               </div>
               <Skeleton className="absolute inset-0 w-full h-full z-[1] rounded-none" />
               <img
@@ -367,6 +525,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
                 onError={e => {
                   const img = e.target as HTMLImageElement;
                   (img.previousElementSibling as HTMLElement | null)?.style.setProperty('display', 'none')
+                  setDetailImgError(true)
                 }}
               />
             </div>
@@ -374,16 +533,29 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
 
           {/* Title + badges */}
           <h1 className="text-2xl font-bold mb-3">{recipe.name}</h1>
-          {(recipe.type || recipe.day) && (
-            <div className="flex gap-1.5 mb-6 flex-wrap">
+          {(recipe.type || recipe.url) && (
+            <div className="flex items-center gap-1.5 mb-6 flex-wrap">
               {recipe.type && <Badge>{recipe.type}</Badge>}
-              {recipe.day && <Badge variant="outline">{recipe.day}</Badge>}
+              {recipe.url && (
+                <a
+                  href={recipe.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ExternalLink className="size-3.5" />
+                  View original
+                </a>
+              )}
             </div>
           )}
 
           {/* Ingredients */}
-          <p className="text-xs tracking-wider uppercase text-muted-foreground">Ingredients</p>
-          <Separator className="mt-1 mb-1" />
+          <div className="flex items-center gap-1 mb-3">
+            <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground">
+              Ingredients
+            </h2>
+          </div>
 
           {ingredientsLoading ? (
             <div className="py-4 flex justify-center">
@@ -398,8 +570,11 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
           {/* Instructions */}
           {recipe.blocks && recipe.blocks.length > 0 && (
             <>
-              <p className="text-xs tracking-wider uppercase text-muted-foreground">Instructions</p>
-              <Separator className="mt-1 mb-3" />
+              <div className="flex items-center gap-1 mb-3">
+                <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground">
+                  Instructions
+                </h2>
+              </div>
               <div>
                 {recipe.blocks.map(block => (
                   <RenderBlock key={block.id} block={block} />
@@ -422,10 +597,20 @@ export default function Recipes({
 }) {
   const { id } = useParams<{ id?: string }>()
   const navigate = useNavigate()
+  const savedScrollRef = useRef<number | null>(null)
 
   if (id) {
     return <RecipeDetail id={id} onBack={() => navigate('/recipes')} setToolbar={setToolbar} />
   }
 
-  return <RecipeGrid onSelect={id => navigate(`/recipes/${id}`)} setHeader={setToolbar} />
+  return (
+    <RecipeGrid
+      onSelect={recipeId => {
+        savedScrollRef.current = window.scrollY
+        navigate(`/recipes/${recipeId}`)
+      }}
+      initialScroll={savedScrollRef.current}
+      setHeader={setToolbar}
+    />
+  )
 }
