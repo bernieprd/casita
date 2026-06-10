@@ -102,7 +102,7 @@ export function useTransferOwnership() {
     mutationFn: (newOwnerId: string) =>
       api.patch('/household/owner', { newOwnerId }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: householdThemeKeys.theme })
+      qc.invalidateQueries({ queryKey: householdKeys.settings })
     },
   })
 }

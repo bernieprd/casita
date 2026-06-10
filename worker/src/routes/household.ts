@@ -1,6 +1,7 @@
 import type { Env, RequestContext, HouseholdNotionConfig } from '../types'
 import { seedHouseholdConcepts } from './concepts-d1'
 import { getClerkClient } from '../auth/clerk'
+import { rebuildSharedIndex } from './shared-calendar-index'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -342,15 +343,14 @@ export async function transferOwnership(
 
   if (!member) return err(404, 'Member not found')
 
-  await env.DB
-    .prepare('UPDATE household_members SET role = ? WHERE clerk_user_id = ? AND household_id = ?')
-    .bind('owner', newOwnerId, ctx.householdId)
-    .run()
-
-  await env.DB
-    .prepare('UPDATE household_members SET role = ? WHERE clerk_user_id = ? AND household_id = ?')
-    .bind('member', ctx.clerkUserId, ctx.householdId)
-    .run()
+  await env.DB.batch([
+    env.DB
+      .prepare('UPDATE household_members SET role = ? WHERE clerk_user_id = ? AND household_id = ?')
+      .bind('owner', newOwnerId, ctx.householdId),
+    env.DB
+      .prepare('UPDATE household_members SET role = ? WHERE clerk_user_id = ? AND household_id = ?')
+      .bind('member', ctx.clerkUserId, ctx.householdId),
+  ])
 
   return Response.json({ ok: true })
 }
@@ -390,10 +390,28 @@ export async function deleteHousehold(
     return err(400, 'Transfer ownership or remove all members before deleting the household')
   }
 
-  await env.DB
-    .prepare('DELETE FROM households WHERE id = ?')
+  const allMembers = await env.DB
+    .prepare('SELECT email FROM household_members WHERE household_id = ?')
     .bind(ctx.householdId)
-    .run()
+    .all<{ email: string }>()
+
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM household_members WHERE household_id = ?').bind(ctx.householdId),
+    env.DB.prepare('DELETE FROM households WHERE id = ?').bind(ctx.householdId),
+  ])
+
+  await Promise.all(
+    allMembers.results.flatMap(({ email }) => [
+      env.AUTH_KV.delete(`google_tokens:${email}`),
+      env.AUTH_KV.delete(`user_calendars:${email}`),
+    ])
+  )
+
+  await Promise.all(
+    allMembers.results.map(({ email }) =>
+      rebuildSharedIndex(email, [], ctx.householdId!, env)
+    )
+  )
 
   return Response.json({ ok: true })
 }

@@ -7,6 +7,8 @@ function err(status: number, message: string): Response {
 }
 
 export async function deleteAccount(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
+  await getClerkClient(env).users.deleteUser(ctx.clerkUserId)
+
   if (ctx.householdId) {
     if (ctx.role === 'owner') {
       const others = await env.DB
@@ -18,10 +20,10 @@ export async function deleteAccount(_req: Request, env: Env, ctx: RequestContext
         return err(400, 'Transfer ownership to another member before deleting your account')
       }
 
-      await env.DB
-        .prepare('DELETE FROM households WHERE id = ?')
-        .bind(ctx.householdId)
-        .run()
+      await env.DB.batch([
+        env.DB.prepare('DELETE FROM household_members WHERE household_id = ?').bind(ctx.householdId),
+        env.DB.prepare('DELETE FROM households WHERE id = ?').bind(ctx.householdId),
+      ])
     } else {
       await env.DB
         .prepare('DELETE FROM household_members WHERE clerk_user_id = ? AND household_id = ?')
@@ -38,8 +40,6 @@ export async function deleteAccount(_req: Request, env: Env, ctx: RequestContext
   if (ctx.householdId) {
     await rebuildSharedIndex(ctx.email, [], ctx.householdId, env)
   }
-
-  await getClerkClient(env).users.deleteUser(ctx.clerkUserId)
 
   return Response.json({ ok: true })
 }

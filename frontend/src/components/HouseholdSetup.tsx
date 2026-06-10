@@ -180,14 +180,15 @@ export default function HouseholdSetup() {
                 <AlertDialogAction
                   className="bg-destructive text-white hover:bg-destructive/90"
                   disabled={deletingAccount}
-                  onClick={() =>
+                  onClick={(e) => {
+                    e.preventDefault()
                     deleteAccount(undefined, {
-                      onSuccess: () => signOut(() => navigate('/sign-in', { replace: true })),
+                      onSuccess: () => { setDeleteOpen(false); signOut(() => navigate('/sign-in', { replace: true })) },
                       onError: (err: unknown) => {
                         toast.error((err as { message?: string })?.message ?? 'Failed to delete account')
                       },
                     })
-                  }
+                  }}
                 >
                   Delete account
                 </AlertDialogAction>

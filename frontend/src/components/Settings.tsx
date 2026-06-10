@@ -359,13 +359,14 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
             <AlertDialogAction
               className="bg-destructive text-white hover:bg-destructive/90"
               disabled={deletingAccount}
-              onClick={() =>
+              onClick={(e) => {
+                e.preventDefault()
                 deleteAccount(undefined, {
-                  onSuccess: () => logout(),
+                  onSuccess: () => { setDeleteOpen(false); logout() },
                   onError: (err: unknown) =>
                     toast.error((err as { message?: string })?.message ?? 'Failed to delete account'),
                 })
-              }
+              }}
             >
               Delete account
             </AlertDialogAction>
@@ -546,13 +547,14 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
             <AlertDialogAction
               className="bg-destructive text-white hover:bg-destructive/90"
               disabled={deletingHousehold}
-              onClick={() =>
+              onClick={(e) => {
+                e.preventDefault()
                 deleteHousehold(undefined, {
                   onSuccess: () => { setDeleteHouseholdOpen(false); refreshHousehold() },
                   onError: (err: unknown) =>
                     toast.error((err as { message?: string })?.message ?? 'Failed to delete household'),
                 })
-              }
+              }}
             >
               Delete household
             </AlertDialogAction>
