@@ -108,8 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (cancelled) return
         setHouseholdState({
           householdId: data.householdId,
-          householdName: data.householdName,
-          role: data.role,
+          householdName: data.householdName ?? null,
+          role: data.role ?? null,
           isLoading: false,
         })
       })
