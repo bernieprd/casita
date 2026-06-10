@@ -3,9 +3,7 @@ import { getValidAccessToken } from './google-auth'
 import { rebuildSharedIndex } from './shared-calendar-index'
 
 export async function listUserCalendars(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  const clerkUserId = ctx.clerkUserId
-
-  const accessToken = await getValidAccessToken(clerkUserId, env)
+  const accessToken = await getValidAccessToken(ctx.email, env)
   if (!accessToken) {
     return Response.json({ calendars: [], connected: false })
   }
@@ -15,7 +13,7 @@ export async function listUserCalendars(_req: Request, env: Env, ctx: RequestCon
   })
   const googleData = await googleRes.json() as { items: Array<{ id: string; summary: string; backgroundColor?: string }> }
 
-  const storedRaw = await env.AUTH_KV.get(`user_calendars:${clerkUserId}`)
+  const storedRaw = await env.AUTH_KV.get(`user_calendars:${ctx.email}`)
   const stored: UserCalendar[] = storedRaw ? JSON.parse(storedRaw) : []
 
   const calendars: UserCalendar[] = (googleData.items ?? []).map(item => {
@@ -33,11 +31,9 @@ export async function listUserCalendars(_req: Request, env: Env, ctx: RequestCon
 }
 
 export async function updateUserCalendars(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  const clerkUserId = ctx.clerkUserId
-
   const calendars = await req.json() as UserCalendar[]
-  await env.AUTH_KV.put(`user_calendars:${clerkUserId}`, JSON.stringify(calendars))
-  await rebuildSharedIndex(clerkUserId, calendars, ctx.householdId, env)
+  await env.AUTH_KV.put(`user_calendars:${ctx.email}`, JSON.stringify(calendars))
+  await rebuildSharedIndex(ctx.email, calendars, ctx.householdId, env)
 
   return Response.json({ ok: true })
 }

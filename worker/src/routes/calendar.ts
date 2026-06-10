@@ -43,15 +43,15 @@ interface FreeBusyResponse {
 }
 
 async function fetchUserOAuthEvents(
-  clerkUserId: string,
+  email: string,
   env: Env,
   timeMin: string,
   timeMax: string,
 ): Promise<CalendarEvent[]> {
-  const accessToken = await getValidAccessToken(clerkUserId, env)
+  const accessToken = await getValidAccessToken(email, env)
   if (!accessToken) return []
 
-  const calendarsRaw = await env.AUTH_KV.get(`user_calendars:${clerkUserId}`)
+  const calendarsRaw = await env.AUTH_KV.get(`user_calendars:${email}`)
   if (!calendarsRaw) return []
 
   const allCalendars = JSON.parse(calendarsRaw) as UserCalendar[]
@@ -70,7 +70,7 @@ async function fetchUserOAuthEvents(
   // Check for 401 from any calendar — revoke tokens and bail out
   for (const result of results) {
     if (result.status === 'fulfilled' && result.value.res.status === 401) {
-      await env.AUTH_KV.delete(`google_tokens:${clerkUserId}`)
+      await env.AUTH_KV.delete(`google_tokens:${email}`)
       return []
     }
   }
@@ -159,7 +159,7 @@ async function fetchFreeBusyCalendar(
 }
 
 async function fetchSharedCalendarEvents(
-  clerkUserId: string,
+  email: string,
   householdId: string | null,
   env: Env,
   timeMin: string,
@@ -173,7 +173,7 @@ async function fetchSharedCalendarEvents(
   const index = JSON.parse(raw) as SharedCalendar[]
 
   // Skip entries owned by the requesting user — already fetched via fetchUserOAuthEvents
-  const othersEntries = index.filter(e => e.ownerEmail !== clerkUserId)
+  const othersEntries = index.filter(e => e.ownerEmail !== email)
 
   if (othersEntries.length === 0) return []
 
@@ -207,12 +207,12 @@ export async function getCalendarEvents(
   const timeMin = reqUrl.searchParams.get('timeMin') ?? now.toISOString()
   const timeMax = reqUrl.searchParams.get('timeMax') ?? defaultMax.toISOString()
 
-  const clerkUserId = ctx.clerkUserId
+  const email = ctx.email
 
   try {
     const [userEvents, sharedEvents] = await Promise.all([
-      fetchUserOAuthEvents(clerkUserId, env, timeMin, timeMax),
-      fetchSharedCalendarEvents(clerkUserId, ctx.householdId, env, timeMin, timeMax),
+      fetchUserOAuthEvents(email, env, timeMin, timeMax),
+      fetchSharedCalendarEvents(email, ctx.householdId, env, timeMin, timeMax),
     ])
 
     const events = [...userEvents, ...sharedEvents]
