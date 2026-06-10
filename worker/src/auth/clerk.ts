@@ -5,36 +5,26 @@ export function getClerkClient(env: Env) {
   return createClerkClient({ secretKey: env.CLERK_SECRET_KEY })
 }
 
-// ── JWKS → PEM cache ──────────────────────────────────────────────────────────
-// Cloudflare Worker isolates reuse module-level state across requests, so we
-// only pay the JWKS network round-trip once per isolate lifetime.
-// If CLERK_JWT_KEY is set as a wrangler secret, that PEM is used directly
-// (fastest path, no network call ever).
+// Cache derived PEM keyed by (secretKey, kid) so we only pay the JWKS round-trip once
+// per isolate lifetime. Re-fetch after 24 h to handle key rotation.
+const _pemCache = new Map<string, { pem: string; expiry: number }>()
 
-let _pemCache: string | null = null
-let _pemCacheSecretKey = ''
-let _pemCacheExpiry = 0
-
-async function getPem(secretKey: string): Promise<string> {
-  const now = Date.now()
-  if (_pemCache && _pemCacheSecretKey === secretKey && _pemCacheExpiry > now) {
-    return _pemCache
-  }
+async function getPemForKid(secretKey: string, kid: string): Promise<string> {
+  const cacheKey = `${secretKey}:${kid}`
+  const cached = _pemCache.get(cacheKey)
+  if (cached && cached.expiry > Date.now()) return cached.pem
 
   const res = await fetch('https://api.clerk.com/v1/jwks', {
     headers: { Authorization: `Bearer ${secretKey}` },
   })
   if (!res.ok) throw new Error(`JWKS fetch failed: ${res.status}`)
 
-  const { keys } = await res.json() as { keys: JsonWebKey[] }
-  const jwk = keys.find(k => k.kty === 'RSA' && k.use === 'sig')
-  if (!jwk) throw new Error('No RSA signing key in Clerk JWKS')
+  const { keys } = await res.json() as { keys: (JsonWebKey & { kid?: string })[] }
+  const jwk = keys.find(k => k.kid === kid)
+  if (!jwk) throw new Error(`No JWKS key with kid=${kid}`)
 
-  // Convert JWK → PEM using Web Crypto (available in all CF Workers runtimes)
   const cryptoKey = await crypto.subtle.importKey(
-    'jwk', jwk,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    true, ['verify'],
+    'jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, true, ['verify'],
   )
   const spki = await crypto.subtle.exportKey('spki', cryptoKey) as ArrayBuffer
   const bytes = new Uint8Array(spki)
@@ -43,9 +33,7 @@ async function getPem(secretKey: string): Promise<string> {
   const b64 = btoa(binary)
   const pem = `-----BEGIN PUBLIC KEY-----\n${b64.match(/.{1,64}/g)!.join('\n')}\n-----END PUBLIC KEY-----`
 
-  _pemCache = pem
-  _pemCacheSecretKey = secretKey
-  _pemCacheExpiry = now + 24 * 60 * 60 * 1000 // re-fetch after 24 h (handles key rotation)
+  _pemCache.set(cacheKey, { pem, expiry: Date.now() + 24 * 60 * 60 * 1000 })
   return pem
 }
 
@@ -54,12 +42,39 @@ export async function verifyClerkToken(
   env: Env,
 ): Promise<{ userId: string; email: string } | null> {
   try {
-    // CLERK_JWT_KEY secret → instant local verification, zero network.
-    // Otherwise auto-fetch JWKS once and cache the derived PEM.
-    const jwtKey = env.CLERK_JWT_KEY ?? await getPem(env.CLERK_SECRET_KEY)
-    const payload = await verifyToken(token, { secretKey: env.CLERK_SECRET_KEY, jwtKey })
-    return { userId: payload.sub, email: (payload as Record<string, unknown>).email as string ?? '' }
-  } catch {
+    // Decode header without verification to get kid for key lookup
+    const [headerB64] = token.split('.')
+    const header = JSON.parse(atob(headerB64.replace(/-/g, '+').replace(/_/g, '/'))) as { kid?: string }
+    if (!header.kid) throw new Error('JWT missing kid in header')
+
+    // Always fetch the key by kid from JWKS so we get the correct key for the exact
+    // Clerk instance (dev vs. prod). Result is cached 24h per isolate — fast enough
+    // for production. A static CLERK_JWT_KEY secret would only work if it happens to
+    // match the kid in the JWT, which breaks when dev/prod instances differ.
+    const jwtKey = await getPemForKid(env.CLERK_SECRET_KEY, header.kid)
+    const payload = await verifyToken(token, {
+      jwtKey,
+      issuer: (iss: string) => iss.includes('clerk'),
+    })
+
+    const userId = payload.sub
+
+    let email = (payload as Record<string, unknown>).email as string ?? ''
+
+    if (!email) {
+      // JWT template doesn't include the email claim (e.g. dev Clerk instance without a
+      // custom template). Fall back to the Clerk Users API so Phase 4 email-based
+      // household re-link still works.
+      const clerk = getClerkClient(env)
+      const user = await clerk.users.getUser(userId)
+      email = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId)?.emailAddress
+           ?? user.emailAddresses[0]?.emailAddress
+           ?? ''
+    }
+
+    return { userId, email }
+  } catch (e) {
+    console.error('[verifyClerkToken] error:', e)
     return null
   }
 }
