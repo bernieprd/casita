@@ -8,7 +8,7 @@ import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, di
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
 import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold } from './routes/household'
 import { listConcepts, createConcept, updateConcept, deleteConcept, backfillConceptsRoute } from './routes/concepts-d1'
-import { verifyClerkToken } from './auth/clerk'
+import { verifyClerkToken, getClerkClient } from './auth/clerk'
 import { runMigrationItems, runMigrationRecipes, runMigrationIngredients, runMigrationTodos, runMigrationTokens } from './db/migrate-from-notion'
 import { NotionError } from './notion'
 import type { Env, RequestContext } from './types'
@@ -54,6 +54,8 @@ const publicRoutes: Array<[string, URLPattern, PublicHandler]> = [
   ['GET',    new URLPattern({ pathname: '/auth/google/callback',    search: '*' }), handleGoogleOAuthCallback],
   ['GET',    new URLPattern({ pathname: '/public/recipes/:token',   search: '*' }), getPublicRecipe],
   ['POST',   new URLPattern({ pathname: '/admin/migrate',           search: '*' }), handleAdminMigrate],
+  ['POST',   new URLPattern({ pathname: '/admin/backfill-emails',  search: '*' }), handleBackfillEmails],
+  ['POST',   new URLPattern({ pathname: '/admin/migrate-kv-to-email', search: '*' }), handleMigrateKvToEmail],
   ['GET',    new URLPattern({ pathname: '/recipe-photos/:key',      search: '*' }), serveRecipePhoto],
 ]
 
@@ -84,6 +86,71 @@ async function handleAdminMigrate(req: Request, env: Env): Promise<Response> {
   }
 
   return Response.json({ ok: true, log })
+}
+
+async function handleBackfillEmails(req: Request, env: Env): Promise<Response> {
+  const secret = req.headers.get('X-Admin-Secret')
+  if (!secret || secret !== env.ADMIN_MIGRATE_SECRET) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const { results } = await env.DB.prepare(
+    'SELECT clerk_user_id FROM household_members WHERE email IS NULL'
+  ).all<{ clerk_user_id: string }>()
+
+  const clerk = getClerkClient(env)
+  const log: string[] = []
+
+  for (const row of results) {
+    const clerkUserId = row.clerk_user_id
+    const user = await clerk.users.getUser(clerkUserId)
+    const email = user.emailAddresses[0]?.emailAddress
+    if (email) {
+      await env.DB.prepare(
+        'UPDATE household_members SET email = ? WHERE clerk_user_id = ?'
+      ).bind(email, clerkUserId).run()
+      log.push(`backfilled ${clerkUserId} → ${email}`)
+    } else {
+      log.push(`skipped ${clerkUserId} — no email found`)
+    }
+  }
+
+  return Response.json({ ok: true, log })
+}
+
+async function handleMigrateKvToEmail(req: Request, env: Env): Promise<Response> {
+  const secret = req.headers.get('X-Admin-Secret')
+  if (!secret || secret !== env.ADMIN_MIGRATE_SECRET) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const { results } = await env.DB
+    .prepare('SELECT clerk_user_id, email FROM household_members WHERE email IS NOT NULL')
+    .all<{ clerk_user_id: string; email: string }>()
+
+  const log: string[] = []
+
+  for (const row of results) {
+    const { clerk_user_id, email } = row
+
+    // Migrate google_tokens
+    const tokensRaw = await env.AUTH_KV.get(`google_tokens:${clerk_user_id}`)
+    if (tokensRaw) {
+      await env.AUTH_KV.put(`google_tokens:${email}`, tokensRaw)
+      await env.AUTH_KV.delete(`google_tokens:${clerk_user_id}`)
+      log.push(`google_tokens: ${clerk_user_id} → ${email}`)
+    }
+
+    // Migrate user_calendars
+    const calsRaw = await env.AUTH_KV.get(`user_calendars:${clerk_user_id}`)
+    if (calsRaw) {
+      await env.AUTH_KV.put(`user_calendars:${email}`, calsRaw)
+      await env.AUTH_KV.delete(`user_calendars:${clerk_user_id}`)
+      log.push(`user_calendars: ${clerk_user_id} → ${email}`)
+    }
+  }
+
+  return Response.json({ ok: true, migrated: results.length, log })
 }
 
 const routes: Array<[string, URLPattern, AuthHandler]> = [
@@ -158,15 +225,36 @@ export default {
       // Verify Clerk JWT
       const verified = await verifyClerkToken(token, env)
       if (!verified) return err(401, 'Unauthorized', origin)
-      const clerkUserId = verified.userId
+      const { userId: clerkUserId, email } = verified
 
       // Resolve household membership from D1
-      const membership = await env.DB.prepare(
-        'SELECT household_id, role FROM household_members WHERE clerk_user_id = ?'
-      ).bind(clerkUserId).first<{ household_id: string; role: string }>()
+      let membership = await env.DB.prepare(
+        'SELECT household_id, role, email FROM household_members WHERE clerk_user_id = ?'
+      ).bind(clerkUserId).first<{ household_id: string; role: string; email: string | null }>()
+
+      // Phase 4: if no membership found by clerk_user_id, try email (handles Clerk instance switch)
+      if (!membership && email) {
+        const byEmail = await env.DB.prepare(
+          'SELECT household_id, role FROM household_members WHERE email = ?'
+        ).bind(email).first<{ household_id: string; role: string }>()
+        if (byEmail) {
+          await env.DB.prepare(
+            'UPDATE household_members SET clerk_user_id = ? WHERE email = ?'
+          ).bind(clerkUserId, email).run()
+          membership = { ...byEmail, email }
+        }
+      }
+
+      // Keep stored email in sync if it changed in Clerk
+      if (membership && email && membership.email !== email) {
+        await env.DB.prepare(
+          'UPDATE household_members SET email = ? WHERE clerk_user_id = ?'
+        ).bind(email, clerkUserId).run()
+      }
 
       const ctx: RequestContext = {
         clerkUserId,
+        email,
         householdId: membership?.household_id ?? null,
         role: (membership?.role as 'owner' | 'member') ?? null,
       }

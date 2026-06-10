@@ -6,10 +6,8 @@ const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 const GOOGLE_SCOPES = 'openid email https://www.googleapis.com/auth/calendar.readonly'
 
 export async function initiateGoogleOAuth(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  const clerkUserId = ctx.clerkUserId
-
   const state = crypto.randomUUID()
-  await env.AUTH_KV.put(`oauth_state:${state}`, JSON.stringify({ clerkUserId }), { expirationTtl: 600 })
+  await env.AUTH_KV.put(`oauth_state:${state}`, JSON.stringify({ email: ctx.email }), { expirationTtl: 600 })
 
   const googleUrl = new URL(GOOGLE_AUTH_URL)
   googleUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID ?? '')
@@ -39,7 +37,7 @@ export async function handleGoogleOAuthCallback(req: Request, env: Env): Promise
 
   await env.AUTH_KV.delete(`oauth_state:${state}`)
 
-  const { clerkUserId } = JSON.parse(stateRaw) as { clerkUserId: string }
+  const { email } = JSON.parse(stateRaw) as { email: string }
 
   const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
     method: 'POST',
@@ -64,7 +62,7 @@ export async function handleGoogleOAuthCallback(req: Request, env: Env): Promise
   }
 
   await env.AUTH_KV.put(
-    `google_tokens:${clerkUserId}`,
+    `google_tokens:${email}`,
     JSON.stringify({
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
@@ -77,24 +75,22 @@ export async function handleGoogleOAuthCallback(req: Request, env: Env): Promise
 }
 
 export async function getGoogleAuthStatus(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  const tokensRaw = await env.AUTH_KV.get(`google_tokens:${ctx.clerkUserId}`)
+  const tokensRaw = await env.AUTH_KV.get(`google_tokens:${ctx.email}`)
   return Response.json({ connected: tokensRaw !== null })
 }
 
 export async function disconnectGoogle(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  const clerkUserId = ctx.clerkUserId
-
   await Promise.all([
-    env.AUTH_KV.delete(`google_tokens:${clerkUserId}`),
-    env.AUTH_KV.delete(`user_calendars:${clerkUserId}`),
+    env.AUTH_KV.delete(`google_tokens:${ctx.email}`),
+    env.AUTH_KV.delete(`user_calendars:${ctx.email}`),
   ])
-  await rebuildSharedIndex(clerkUserId, [], ctx.householdId, env)
+  await rebuildSharedIndex(ctx.email, [], ctx.householdId, env)
 
   return Response.json({ ok: true })
 }
 
-export async function getValidAccessToken(clerkUserId: string, env: Env): Promise<string | null> {
-  const raw = await env.AUTH_KV.get(`google_tokens:${clerkUserId}`)
+export async function getValidAccessToken(email: string, env: Env): Promise<string | null> {
+  const raw = await env.AUTH_KV.get(`google_tokens:${email}`)
   if (!raw) return null
 
   const tokens = JSON.parse(raw) as GoogleTokens
@@ -122,8 +118,8 @@ export async function getValidAccessToken(clerkUserId: string, env: Env): Promis
 
   if (refreshData.error === 'invalid_grant') {
     await Promise.all([
-      env.AUTH_KV.delete(`google_tokens:${clerkUserId}`),
-      env.AUTH_KV.delete(`user_calendars:${clerkUserId}`),
+      env.AUTH_KV.delete(`google_tokens:${email}`),
+      env.AUTH_KV.delete(`user_calendars:${email}`),
     ])
     return null
   }
@@ -133,7 +129,7 @@ export async function getValidAccessToken(clerkUserId: string, env: Env): Promis
   }
 
   await env.AUTH_KV.put(
-    `google_tokens:${clerkUserId}`,
+    `google_tokens:${email}`,
     JSON.stringify({
       accessToken: refreshData.access_token,
       refreshToken: tokens.refreshToken,

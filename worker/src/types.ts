@@ -168,6 +168,7 @@ export interface ConceptItem {
 
 export interface RequestContext {
   clerkUserId: string
+  email: string
   householdId: string | null
   role: 'owner' | 'member' | null
 }

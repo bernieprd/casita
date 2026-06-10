@@ -114,8 +114,8 @@ export async function createHousehold(
     .run()
 
   await env.DB
-    .prepare('INSERT INTO household_members (household_id, clerk_user_id, role, joined_at) VALUES (?, ?, ?, ?)')
-    .bind(id, ctx.clerkUserId, 'owner', now)
+    .prepare('INSERT INTO household_members (household_id, clerk_user_id, role, joined_at, email) VALUES (?, ?, ?, ?, ?)')
+    .bind(id, ctx.clerkUserId, 'owner', now, ctx.email)
     .run()
 
   await seedHouseholdConcepts(env, id)
@@ -157,8 +157,8 @@ export async function joinHousehold(
   const now = Date.now()
 
   await env.DB
-    .prepare('INSERT INTO household_members (household_id, clerk_user_id, role, joined_at) VALUES (?, ?, ?, ?)')
-    .bind(household.id, ctx.clerkUserId, 'member', now)
+    .prepare('INSERT INTO household_members (household_id, clerk_user_id, role, joined_at, email) VALUES (?, ?, ?, ?, ?)')
+    .bind(household.id, ctx.clerkUserId, 'member', now, ctx.email)
     .run()
 
   return Response.json({ id: household.id, name: household.name, role: 'member' }, { status: 200 })

@@ -52,13 +52,13 @@ async function getPem(secretKey: string): Promise<string> {
 export async function verifyClerkToken(
   token: string,
   env: Env,
-): Promise<{ userId: string } | null> {
+): Promise<{ userId: string; email: string } | null> {
   try {
     // CLERK_JWT_KEY secret → instant local verification, zero network.
     // Otherwise auto-fetch JWKS once and cache the derived PEM.
     const jwtKey = env.CLERK_JWT_KEY ?? await getPem(env.CLERK_SECRET_KEY)
     const payload = await verifyToken(token, { secretKey: env.CLERK_SECRET_KEY, jwtKey })
-    return { userId: payload.sub }
+    return { userId: payload.sub, email: (payload as Record<string, unknown>).email as string ?? '' }
   } catch {
     return null
   }
