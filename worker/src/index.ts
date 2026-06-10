@@ -6,8 +6,9 @@ import { getTodos, createTodo, updateTodo, deleteTodo } from './routes/todos-d1'
 import { getCalendarEvents } from './routes/calendar'
 import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, disconnectGoogle } from './routes/google-auth'
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
-import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold } from './routes/household'
+import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold, transferOwnership, deleteHousehold } from './routes/household'
 import { listConcepts, createConcept, updateConcept, deleteConcept, backfillConceptsRoute } from './routes/concepts-d1'
+import { deleteAccount, exportAccountData } from './routes/account'
 import { verifyClerkToken, getClerkClient } from './auth/clerk'
 import { runMigrationItems, runMigrationRecipes, runMigrationIngredients, runMigrationTodos, runMigrationTokens } from './db/migrate-from-notion'
 import { NotionError } from './notion'
@@ -157,13 +158,17 @@ async function handleMigrateKvToEmail(req: Request, env: Env): Promise<Response>
 }
 
 const routes: Array<[string, URLPattern, AuthHandler]> = [
+  ['DELETE', new URLPattern({ pathname: '/account',                     search: '*' }), deleteAccount],
+  ['GET',    new URLPattern({ pathname: '/account/export',              search: '*' }), exportAccountData],
   ['DELETE', new URLPattern({ pathname: '/household/leave',             search: '*' }), leaveHousehold],
+  ['DELETE', new URLPattern({ pathname: '/household',                   search: '*' }), deleteHousehold],
   ['GET',    new URLPattern({ pathname: '/household/me',                search: '*' }), getHousehold],
   ['POST',   new URLPattern({ pathname: '/household',                   search: '*' }), createHousehold],
   ['PATCH',  new URLPattern({ pathname: '/household',                   search: '*' }), renameHousehold],
   ['POST',   new URLPattern({ pathname: '/household/join',              search: '*' }), joinHousehold],
   ['POST',   new URLPattern({ pathname: '/household/invite',            search: '*' }), generateInvite],
   ['DELETE', new URLPattern({ pathname: '/household/invite',            search: '*' }), revokeInvite],
+  ['PATCH',  new URLPattern({ pathname: '/household/owner',             search: '*' }), transferOwnership],
   ['GET',    new URLPattern({ pathname: '/household/settings',          search: '*' }), getHouseholdSettings],
   ['PATCH',  new URLPattern({ pathname: '/household/settings',          search: '*' }), updateHouseholdSettings],
   ['GET',    new URLPattern({ pathname: '/items',                       search: '*' }), getItems],
@@ -225,7 +230,9 @@ export default {
         if (!match) continue
         const groups = Object.values(match.pathname.groups).map(v => v ?? '')
         const res = await handler(req, env, ...groups)
-        console.log(`[ROUTE HIT] ${req.method} ${req.url}`)
+        const logUrl = new URL(req.url)
+        logUrl.search = ''
+        console.log(`[ROUTE HIT] ${req.method} ${logUrl.pathname}`)
         return withCors(res, origin)
       }
 
@@ -277,7 +284,9 @@ export default {
         if (!match) continue
         const groups = Object.values(match.pathname.groups).map(v => v ?? '')
         const res = await handler(req, env, ctx, ...groups)
-        console.log(`[ROUTE HIT] ${req.method} ${req.url}`)
+        const logUrl = new URL(req.url)
+        logUrl.search = ''
+        console.log(`[ROUTE HIT] ${req.method} ${logUrl.pathname}`)
         return withCors(res, origin)
       }
 

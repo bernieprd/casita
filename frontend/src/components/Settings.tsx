@@ -4,6 +4,16 @@ import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Pencil, Copy, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
@@ -20,7 +30,8 @@ import {
   useDisconnectGoogle,
   initiateGoogleConnect,
 } from '../api/google-calendar'
-import { useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold, useLeaveHousehold, householdThemeKeys } from '../api/household'
+import { useHouseholdSettings, useGenerateInvite, useRevokeInvite, useRenameHousehold, useLeaveHousehold, useTransferOwnership, useDeleteHousehold, householdThemeKeys } from '../api/household'
+import { useDeleteAccount, useExportAccount } from '../api/account'
 import { useConceptList, useCreateConcept, useRenameConcept, useDeleteConcept, useBackfillConcepts } from '../api/concepts'
 import type { ConceptType } from '../api/concepts'
 import type { UserCalendar } from '../api/types'
@@ -188,6 +199,12 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
   const { data: householdData, isLoading: householdLoading } = useHouseholdSettings()
   const isOwner = householdData?.role === 'owner'
 
+  // ── Account actions ────────────────────────────────────────────────────────
+  const { mutate: deleteAccount, isPending: deletingAccount } = useDeleteAccount()
+  const { mutate: exportAccount, isPending: exportingAccount } = useExportAccount()
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [connectGoogleOpen, setConnectGoogleOpen] = useState(false)
+
   // ── Theme customizer ───────────────────────────────────────────────────────
   const [themeOpen, setThemeOpen] = useState(false)
 
@@ -197,6 +214,10 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
   const { mutate: revokeInvite, isPending: revokingInvite } = useRevokeInvite()
   const { mutate: renameHousehold, isPending: renamePending } = useRenameHousehold()
   const { mutate: leaveHousehold, isPending: leaving } = useLeaveHousehold()
+  const { mutate: transferOwnership, isPending: transferring } = useTransferOwnership()
+  const [transferTarget, setTransferTarget] = useState<{ id: string; name: string } | null>(null)
+  const { mutate: deleteHousehold, isPending: deletingHousehold } = useDeleteHousehold()
+  const [deleteHouseholdOpen, setDeleteHouseholdOpen] = useState(false)
 
   function handleRenameOpen() {
     setNameInput(householdData?.householdName ?? '')
@@ -281,6 +302,76 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
       >
         Sign out
       </button>
+
+      <div className="mt-2 flex flex-col items-start gap-1">
+        <button
+          className="text-xs text-muted-foreground/60 hover:text-muted-foreground cursor-pointer"
+          onClick={() => exportAccount()}
+          disabled={exportingAccount}
+        >
+          {exportingAccount ? 'Preparing…' : 'Download my data'}
+        </button>
+        {isOwner && (householdData?.members?.length ?? 0) > 1 ? (
+          <div className="flex flex-col items-start gap-0.5">
+            <button
+              className="text-xs text-muted-foreground/30 cursor-not-allowed"
+              disabled
+            >
+              Delete account
+            </button>
+            <p className="text-xs text-muted-foreground/50">
+              Transfer ownership to another member first
+            </p>
+          </div>
+        ) : (
+          <button
+            className="text-xs text-muted-foreground/60 hover:text-muted-foreground cursor-pointer"
+            onClick={() => setDeleteOpen(true)}
+          >
+            Delete account
+          </button>
+        )}
+      </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {isOwner && (householdData?.members?.length ?? 0) <= 1
+                ? <>
+                    Deleting your account will also permanently delete your household
+                    {householdData?.householdName ? ` "${householdData.householdName}"` : ''}{' '}
+                    and everything in it — all recipes, shopping items, todos, and your
+                    Google Calendar connection. This cannot be undone.
+                  </>
+                : <>
+                    Your personal information (email, profile, calendar connection) will be
+                    permanently deleted. Recipes, shopping items, and todos you contributed
+                    to the household will remain for other members and will no longer be
+                    linked to you. This cannot be undone.
+                  </>
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              disabled={deletingAccount}
+              onClick={() =>
+                deleteAccount(undefined, {
+                  onSuccess: () => logout(),
+                  onError: (err: unknown) =>
+                    toast.error((err as { message?: string })?.message ?? 'Failed to delete account'),
+                })
+              }
+            >
+              Delete account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Separator className="my-4" />
 
@@ -374,16 +465,48 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
                 <AvatarFallback>{member.displayName?.[0] ?? '?'}</AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <p className="text-sm truncate">{member.displayName ?? member.email ?? '—'}</p>
-                {member.displayName && member.email && (
-                  <p className="text-xs text-muted-foreground truncate">{member.email}</p>
-                )}
+                <p className="text-sm truncate">{member.displayName ?? '—'}</p>
               </div>
               <Badge variant="secondary" className="text-xs capitalize">{member.role}</Badge>
+              {isOwner && member.clerkUserId !== user?.id && member.role !== 'owner' && (
+                <button
+                  className="text-xs text-muted-foreground/60 hover:text-muted-foreground cursor-pointer"
+                  onClick={() => setTransferTarget({ id: member.clerkUserId, name: member.displayName ?? 'this member' })}
+                >
+                  Make owner
+                </button>
+              )}
             </div>
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!transferTarget} onOpenChange={open => { if (!open) setTransferTarget(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Transfer ownership?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {transferTarget?.name} will become the household owner. You will become a regular member.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={transferring}
+              onClick={() => {
+                if (!transferTarget) return
+                transferOwnership(transferTarget.id, {
+                  onSuccess: () => { setTransferTarget(null); refreshHousehold() },
+                  onError: (err: unknown) =>
+                    toast.error((err as { message?: string })?.message ?? 'Transfer failed'),
+                })
+              }}
+            >
+              Transfer ownership
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {!isOwner && (
         <Button
@@ -396,6 +519,46 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
           Leave household
         </Button>
       )}
+
+      {isOwner && (householdData?.members?.length ?? 0) <= 1 && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3 text-destructive border-destructive/50 hover:bg-destructive/10"
+          onClick={() => setDeleteHouseholdOpen(true)}
+        >
+          Delete household
+        </Button>
+      )}
+
+      <AlertDialog open={deleteHouseholdOpen} onOpenChange={setDeleteHouseholdOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this household?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the household and everything in it — all recipes,
+              shopping items, todos, and your Google Calendar connection data. This cannot be undone.
+              Your account will remain and you can join or create a new household.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              disabled={deletingHousehold}
+              onClick={() =>
+                deleteHousehold(undefined, {
+                  onSuccess: () => { setDeleteHouseholdOpen(false); refreshHousehold() },
+                  onError: (err: unknown) =>
+                    toast.error((err as { message?: string })?.message ?? 'Failed to delete household'),
+                })
+              }
+            >
+              Delete household
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Separator className="my-4" />
 
@@ -469,13 +632,42 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
           </Button>
         </>
       ) : (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => initiateGoogleConnect()}
-        >
-          Connect Google Calendar
-        </Button>
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setConnectGoogleOpen(true)}
+          >
+            Connect Google Calendar
+          </Button>
+
+          <AlertDialog open={connectGoogleOpen} onOpenChange={setConnectGoogleOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Connect Google Calendar</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Casita will read your calendar events. You choose which calendars are visible to
+                  your household. View our{' '}
+                  <a
+                    href="https://casita.bernardoprd.com/privacy"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
+                    Privacy policy
+                  </a>
+                  .
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => initiateGoogleConnect()}>
+                  Connect
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       )}
 
       {isOwner && (

@@ -76,7 +76,6 @@ export async function getHousehold(
         clerkUserId: m.clerk_user_id,
         role: m.role,
         displayName: profile?.displayName ?? null,
-        email: profile?.email ?? null,
         imageUrl: profile?.imageUrl ?? null,
       }
     }),
@@ -318,6 +317,44 @@ export async function updateHouseholdSettings(
   return Response.json(rest)
 }
 
+export async function transferOwnership(
+  req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return err(403, 'Forbidden')
+  if (ctx.role !== 'owner') return err(403, 'Forbidden')
+
+  const body = await req.json<{ newOwnerId?: unknown }>()
+  if (!body.newOwnerId || typeof body.newOwnerId !== 'string') {
+    return err(400, 'newOwnerId is required')
+  }
+  const newOwnerId = body.newOwnerId
+
+  if (newOwnerId === ctx.clerkUserId) {
+    return err(400, 'You are already the owner')
+  }
+
+  const member = await env.DB
+    .prepare('SELECT clerk_user_id FROM household_members WHERE clerk_user_id = ? AND household_id = ?')
+    .bind(newOwnerId, ctx.householdId)
+    .first<{ clerk_user_id: string }>()
+
+  if (!member) return err(404, 'Member not found')
+
+  await env.DB
+    .prepare('UPDATE household_members SET role = ? WHERE clerk_user_id = ? AND household_id = ?')
+    .bind('owner', newOwnerId, ctx.householdId)
+    .run()
+
+  await env.DB
+    .prepare('UPDATE household_members SET role = ? WHERE clerk_user_id = ? AND household_id = ?')
+    .bind('member', ctx.clerkUserId, ctx.householdId)
+    .run()
+
+  return Response.json({ ok: true })
+}
+
 /**
  * DELETE /household/leave
  * Removes the current (non-owner) user from their household.
@@ -333,5 +370,30 @@ export async function leaveHousehold(
     .prepare('DELETE FROM household_members WHERE clerk_user_id = ? AND household_id = ?')
     .bind(ctx.clerkUserId, ctx.householdId)
     .run()
+  return Response.json({ ok: true })
+}
+
+export async function deleteHousehold(
+  _req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return err(403, 'Forbidden')
+  if (ctx.role !== 'owner') return err(403, 'Forbidden')
+
+  const others = await env.DB
+    .prepare('SELECT clerk_user_id FROM household_members WHERE household_id = ? AND clerk_user_id != ?')
+    .bind(ctx.householdId, ctx.clerkUserId)
+    .all<{ clerk_user_id: string }>()
+
+  if (others.results.length > 0) {
+    return err(400, 'Transfer ownership or remove all members before deleting the household')
+  }
+
+  await env.DB
+    .prepare('DELETE FROM households WHERE id = ?')
+    .bind(ctx.householdId)
+    .run()
+
   return Response.json({ ok: true })
 }

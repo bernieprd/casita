@@ -86,6 +86,27 @@ export function useLeaveHousehold() {
   })
 }
 
+export function useDeleteHousehold() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.delete('/household'),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: householdKeys.settings })
+    },
+  })
+}
+
+export function useTransferOwnership() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (newOwnerId: string) =>
+      api.patch('/household/owner', { newOwnerId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: householdThemeKeys.theme })
+    },
+  })
+}
+
 export function useUpdateHouseholdTheme() {
   const qc = useQueryClient()
   return useMutation({
