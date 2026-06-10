@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { useNavigate } from 'react-router-dom'
 import { useClerk } from '@clerk/clerk-react'
 import { api } from '../api/client'
 import { useHousehold } from '../context/AuthContext'
+import { useDeleteAccount } from '../api/account'
 
 export default function HouseholdSetup() {
   const navigate = useNavigate()
   const { signOut } = useClerk()
   const { householdId, isLoading, refreshHousehold } = useHousehold()
+  const { mutate: deleteAccount, isPending: deletingAccount } = useDeleteAccount()
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [tab, setTab] = useState<'create' | 'join'>('create')
 
   // Create flow state
@@ -145,13 +150,51 @@ export default function HouseholdSetup() {
           </Tabs>
         </div>
 
-        <div className="text-center pt-4">
-          <button
-            onClick={() => signOut(() => navigate('/sign-in', { replace: true }))}
-            className="text-xs text-muted-foreground/60 cursor-pointer hover:text-muted-foreground transition-colors"
-          >
-            Sign out
-          </button>
+        <div className="text-center pt-4 flex flex-col items-center gap-2">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => signOut(() => navigate('/sign-in', { replace: true }))}
+              className="text-xs text-muted-foreground/60 cursor-pointer hover:text-muted-foreground transition-colors"
+            >
+              Sign out
+            </button>
+            <span className="text-xs text-muted-foreground/40">·</span>
+            <button
+              onClick={() => setDeleteOpen(true)}
+              className="text-xs text-muted-foreground/60 cursor-pointer hover:text-muted-foreground transition-colors"
+            >
+              Delete account
+            </button>
+          </div>
+
+          <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Your account and all associated data will be permanently deleted. This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  disabled={deletingAccount}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    deleteAccount(undefined, {
+                      onSuccess: () => { setDeleteOpen(false); signOut(() => navigate('/sign-in', { replace: true })) },
+                      onError: (err: unknown) => {
+                        toast.error((err as { message?: string })?.message ?? 'Failed to delete account')
+                      },
+                    })
+                  }}
+                >
+                  Delete account
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>

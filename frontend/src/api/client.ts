@@ -39,6 +39,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T
 }
 
+async function requestBlob(path: string, init?: RequestInit): Promise<Blob> {
+  const token = await getToken()
+  const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...init,
+    headers: { ...authHeader, ...init?.headers },
+  })
+  if (res.status === 401) {
+    if (token) onUnauthorized?.()
+    throw new ApiError(401, 'Unauthorized')
+  }
+  if (!res.ok) throw new ApiError(res.status, res.statusText)
+  return res.blob()
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body: unknown) =>
@@ -48,6 +63,7 @@ export const api = {
   put: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
   delete: (path: string) => request<void>(path, { method: 'DELETE' }),
+  blob: (path: string) => requestBlob(path),
 }
 
 export async function publicGet<T>(path: string): Promise<T> {

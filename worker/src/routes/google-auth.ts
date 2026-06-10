@@ -68,6 +68,7 @@ export async function handleGoogleOAuthCallback(req: Request, env: Env): Promise
       refreshToken: tokens.refresh_token,
       expiresAt: Date.now() + tokens.expires_in * 1000,
     }),
+    { expirationTtl: 7_776_000 },
   )
 
   const baseUrl = env.APP_BASE_URL ?? 'https://casita.bernardoprd.com/#'
@@ -135,6 +136,7 @@ export async function getValidAccessToken(email: string, env: Env): Promise<stri
       refreshToken: tokens.refreshToken,
       expiresAt: Date.now() + (refreshData.expires_in ?? 3600) * 1000,
     }),
+    { expirationTtl: 7_776_000 },
   )
 
   return refreshData.access_token

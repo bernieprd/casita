@@ -32,7 +32,7 @@ export async function listUserCalendars(_req: Request, env: Env, ctx: RequestCon
 
 export async function updateUserCalendars(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
   const calendars = await req.json() as UserCalendar[]
-  await env.AUTH_KV.put(`user_calendars:${ctx.email}`, JSON.stringify(calendars))
+  await env.AUTH_KV.put(`user_calendars:${ctx.email}`, JSON.stringify(calendars), { expirationTtl: 7_776_000 })
   await rebuildSharedIndex(ctx.email, calendars, ctx.householdId, env)
 
   return Response.json({ ok: true })
