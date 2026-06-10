@@ -12,7 +12,7 @@ preview_id = "8f83fdfdf2254528b98ec78c65e1b88f"
 # Add non-secret environment variables here.
 # Secrets (e.g. NOTION_TOKEN) must be set via:
 #   wrangler secret put NOTION_TOKEN
-APP_BASE_URL = "https://casita.bernardoprd.com"
+APP_BASE_URL = "https://app.casita.bernardoprd.com"
 GOOGLE_REDIRECT_URI = "https://casita-worker.bernardoprd.workers.dev/auth/google/callback"
 
 [[d1_databases]]

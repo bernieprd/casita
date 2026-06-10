@@ -13,12 +13,15 @@ import { runMigrationItems, runMigrationRecipes, runMigrationIngredients, runMig
 import { NotionError } from './notion'
 import type { Env, RequestContext } from './types'
 
-const DEFAULT_ORIGIN = 'https://casita.bernardoprd.com'
+const DEFAULT_ORIGIN = 'https://app.casita.bernardoprd.com'
+// casita.bernardoprd.com kept during subdomain migration; remove after Phase 3 cutover
+const PROD_ORIGINS = ['https://app.casita.bernardoprd.com', 'https://casita.bernardoprd.com']
 const DEV_ORIGINS = ['http://localhost:5173', 'http://localhost:5174']
 
 function resolveOrigin(req: Request, allowedOrigin: string): string {
   const reqOrigin = req.headers.get('Origin') ?? ''
-  return DEV_ORIGINS.includes(reqOrigin) ? reqOrigin : allowedOrigin
+  if (DEV_ORIGINS.includes(reqOrigin) || PROD_ORIGINS.includes(reqOrigin)) return reqOrigin
+  return allowedOrigin
 }
 
 function corsHeaders(origin: string): HeadersInit {
