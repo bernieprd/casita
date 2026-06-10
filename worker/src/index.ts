@@ -8,7 +8,7 @@ import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, di
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
 import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold } from './routes/household'
 import { listConcepts, createConcept, updateConcept, deleteConcept, backfillConceptsRoute } from './routes/concepts-d1'
-import { verifyClerkToken } from './auth/clerk'
+import { verifyClerkToken, getClerkClient } from './auth/clerk'
 import { runMigrationItems, runMigrationRecipes, runMigrationIngredients, runMigrationTodos, runMigrationTokens } from './db/migrate-from-notion'
 import { NotionError } from './notion'
 import type { Env, RequestContext } from './types'
@@ -54,6 +54,7 @@ const publicRoutes: Array<[string, URLPattern, PublicHandler]> = [
   ['GET',    new URLPattern({ pathname: '/auth/google/callback',    search: '*' }), handleGoogleOAuthCallback],
   ['GET',    new URLPattern({ pathname: '/public/recipes/:token',   search: '*' }), getPublicRecipe],
   ['POST',   new URLPattern({ pathname: '/admin/migrate',           search: '*' }), handleAdminMigrate],
+  ['POST',   new URLPattern({ pathname: '/admin/backfill-emails',  search: '*' }), handleBackfillEmails],
   ['GET',    new URLPattern({ pathname: '/recipe-photos/:key',      search: '*' }), serveRecipePhoto],
 ]
 
@@ -81,6 +82,36 @@ async function handleAdminMigrate(req: Request, env: Env): Promise<Response> {
     log = await runMigrationTodos(env, householdId)
   } else {
     return Response.json({ error: 'type must be one of: items, recipes, ingredients, todos, tokens' }, { status: 400 })
+  }
+
+  return Response.json({ ok: true, log })
+}
+
+async function handleBackfillEmails(req: Request, env: Env): Promise<Response> {
+  const secret = req.headers.get('X-Admin-Secret')
+  if (!secret || secret !== env.ADMIN_MIGRATE_SECRET) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const { results } = await env.DB.prepare(
+    'SELECT clerk_user_id FROM household_members WHERE email IS NULL'
+  ).all<{ clerk_user_id: string }>()
+
+  const clerk = getClerkClient(env)
+  const log: string[] = []
+
+  for (const row of results) {
+    const clerkUserId = row.clerk_user_id
+    const user = await clerk.users.getUser(clerkUserId)
+    const email = user.emailAddresses[0]?.emailAddress
+    if (email) {
+      await env.DB.prepare(
+        'UPDATE household_members SET email = ? WHERE clerk_user_id = ?'
+      ).bind(email, clerkUserId).run()
+      log.push(`backfilled ${clerkUserId} → ${email}`)
+    } else {
+      log.push(`skipped ${clerkUserId} — no email found`)
+    }
   }
 
   return Response.json({ ok: true, log })
