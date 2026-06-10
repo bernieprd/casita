@@ -189,15 +189,36 @@ export default {
       // Verify Clerk JWT
       const verified = await verifyClerkToken(token, env)
       if (!verified) return err(401, 'Unauthorized', origin)
-      const clerkUserId = verified.userId
+      const { userId: clerkUserId, email } = verified
 
       // Resolve household membership from D1
-      const membership = await env.DB.prepare(
-        'SELECT household_id, role FROM household_members WHERE clerk_user_id = ?'
-      ).bind(clerkUserId).first<{ household_id: string; role: string }>()
+      let membership = await env.DB.prepare(
+        'SELECT household_id, role, email FROM household_members WHERE clerk_user_id = ?'
+      ).bind(clerkUserId).first<{ household_id: string; role: string; email: string | null }>()
+
+      // Phase 4: if no membership found by clerk_user_id, try email (handles Clerk instance switch)
+      if (!membership && email) {
+        const byEmail = await env.DB.prepare(
+          'SELECT household_id, role FROM household_members WHERE email = ?'
+        ).bind(email).first<{ household_id: string; role: string }>()
+        if (byEmail) {
+          await env.DB.prepare(
+            'UPDATE household_members SET clerk_user_id = ? WHERE email = ?'
+          ).bind(clerkUserId, email).run()
+          membership = { ...byEmail, email }
+        }
+      }
+
+      // Keep stored email in sync if it changed in Clerk
+      if (membership && email && membership.email !== email) {
+        await env.DB.prepare(
+          'UPDATE household_members SET email = ? WHERE clerk_user_id = ?'
+        ).bind(email, clerkUserId).run()
+      }
 
       const ctx: RequestContext = {
         clerkUserId,
+        email,
         householdId: membership?.household_id ?? null,
         role: (membership?.role as 'owner' | 'member') ?? null,
       }
