@@ -7,19 +7,21 @@ function err(status: number, message: string): Response {
 }
 
 export async function deleteAccount(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
+  if (ctx.householdId && ctx.role === 'owner') {
+    const others = await env.DB
+      .prepare('SELECT clerk_user_id FROM household_members WHERE household_id = ? AND clerk_user_id != ?')
+      .bind(ctx.householdId, ctx.clerkUserId)
+      .all<{ clerk_user_id: string }>()
+
+    if (others.results.length > 0) {
+      return err(400, 'Transfer ownership to another member before deleting your account')
+    }
+  }
+
   await getClerkClient(env).users.deleteUser(ctx.clerkUserId)
 
   if (ctx.householdId) {
     if (ctx.role === 'owner') {
-      const others = await env.DB
-        .prepare('SELECT clerk_user_id FROM household_members WHERE household_id = ? AND clerk_user_id != ?')
-        .bind(ctx.householdId, ctx.clerkUserId)
-        .all<{ clerk_user_id: string }>()
-
-      if (others.results.length > 0) {
-        return err(400, 'Transfer ownership to another member before deleting your account')
-      }
-
       await env.DB.batch([
         env.DB.prepare('DELETE FROM household_members WHERE household_id = ?').bind(ctx.householdId),
         env.DB.prepare('DELETE FROM households WHERE id = ?').bind(ctx.householdId),
