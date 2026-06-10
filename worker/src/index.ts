@@ -206,6 +206,14 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(origin) })
     }
 
+    // Clerk's OAuth callback sometimes redirects to the worker URL instead of the
+    // frontend. Forward it so the frontend JS SDK can process the handshake.
+    const reqUrl = new URL(req.url)
+    if (reqUrl.searchParams.has('__clerk_handshake')) {
+      const base = env.APP_BASE_URL ?? 'http://localhost:5173'
+      return Response.redirect(base + reqUrl.pathname + reqUrl.search, 302)
+    }
+
     try {
       // 1. Dispatch public (unauthenticated) routes
       for (const [method, pattern, handler] of publicRoutes) {

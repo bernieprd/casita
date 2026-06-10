@@ -9,6 +9,7 @@ node_modules/
 
 # build output
 dist/
+dev-dist/
 .wrangler/
 *.tsbuildinfo
 
