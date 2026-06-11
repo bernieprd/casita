@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
 import PlanRecipeSheet from './PlanRecipeSheet'
 import GuidedImport from './GuidedImport'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ImportModal } from './ImportModal'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -76,6 +75,7 @@ type SortOption = 'name-asc' | 'name-desc' | 'updated-desc' | 'created-desc' | '
 function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: string) => void; setHeader?: (node: ReactNode | null) => void; initialScroll?: number | null }) {
   const { data: recipes, isLoading, error } = useRecipes()
   const navigate = useNavigate()
+  const [importOpen, setImportOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedType, setSelectedType] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>('updated-desc')
@@ -220,8 +220,6 @@ function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: str
   if (error) return <p className="text-destructive p-4">Failed to load recipes.</p>
 
   if (!recipes?.length) {
-    const [importOpen, setImportOpen] = useState(false)
-    const isMobileImport = window.innerWidth < 768
     return (
       <>
         <div className="pt-10 text-center px-4">
@@ -236,29 +234,9 @@ function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: str
             Or import your recipes →
           </button>
         </div>
-        {isMobileImport ? (
-          <Drawer open={importOpen} onOpenChange={v => { if (!v) setImportOpen(false) }} dismissible>
-            <DrawerContent className="rounded-t-2xl flex flex-col max-h-[80dvh]">
-              <DrawerHeader className="pb-2 shrink-0">
-                <DrawerTitle className="text-base font-semibold">Import your data</DrawerTitle>
-                <DrawerDescription className="sr-only">Import your recipes.</DrawerDescription>
-              </DrawerHeader>
-              <div className="px-4 pb-4 overflow-auto flex-1 overscroll-contain">
-                <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
-              </div>
-            </DrawerContent>
-          </Drawer>
-        ) : (
-          <Dialog open={importOpen} onOpenChange={v => { if (!v) setImportOpen(false) }}>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Import your data</DialogTitle>
-                <DialogDescription className="sr-only">Import your recipes.</DialogDescription>
-              </DialogHeader>
-              <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
-            </DialogContent>
-          </Dialog>
-        )}
+        <ImportModal open={importOpen} onOpenChange={setImportOpen} description="Import your recipes.">
+          <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
+        </ImportModal>
       </>
     )
   }

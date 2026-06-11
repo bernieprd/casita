@@ -12,6 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from '../api'
 import type { Todo } from '../api'
 import GuidedImport from './GuidedImport'
+import { ImportModal } from './ImportModal'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -485,7 +486,6 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
   const [importOpen, setImportOpen] = useState(false)
-  const isMobileImport = window.innerWidth < 768
   const pendingDeleteRef = useRef<PendingDelete | null>(null)
 
   useEffect(() => { pendingDeleteRef.current = pendingDelete }, [pendingDelete])
@@ -636,29 +636,9 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
       />
 
       {/* Import dialog */}
-      {isMobileImport ? (
-        <Drawer open={importOpen} onOpenChange={v => { if (!v) setImportOpen(false) }} dismissible>
-          <DrawerContent className="rounded-t-2xl flex flex-col max-h-[80dvh]">
-            <DrawerHeader className="pb-2 shrink-0">
-              <DrawerTitle className="text-base font-semibold">Import your data</DrawerTitle>
-              <DrawerDescription className="sr-only">Import your to-dos.</DrawerDescription>
-            </DrawerHeader>
-            <div className="px-4 pb-4 overflow-auto flex-1 overscroll-contain">
-              <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
-            </div>
-          </DrawerContent>
-        </Drawer>
-      ) : (
-        <Dialog open={importOpen} onOpenChange={v => { if (!v) setImportOpen(false) }}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Import your data</DialogTitle>
-              <DialogDescription className="sr-only">Import your to-dos.</DialogDescription>
-            </DialogHeader>
-            <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
-          </DialogContent>
-        </Dialog>
-      )}
+      <ImportModal open={importOpen} onOpenChange={setImportOpen} description="Import your to-do list.">
+        <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
+      </ImportModal>
     </>
   )
 }

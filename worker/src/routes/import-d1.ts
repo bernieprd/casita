@@ -23,15 +23,15 @@ type ImportRecipe = {
 export async function importData(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
   if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
 
-  // Body size guard
-  const contentLength = req.headers.get('Content-Length')
-  if (contentLength && parseInt(contentLength, 10) > 100_000) {
+  // Body size guard — read the actual bytes so chunked/no Content-Length requests
+  // are also covered. 100 000 bytes ≈ 100 KB, plenty for any valid import payload.
+  const bodyText = await req.text()
+  if (bodyText.length > 100_000) {
     return Response.json({ error: 'Payload too large (max 100 000 bytes)' }, { status: 400 })
   }
-
   let body: { items?: ImportItem[]; recipes?: ImportRecipe[]; todos?: ImportTodo[] }
   try {
-    body = await req.json()
+    body = JSON.parse(bodyText) as { items?: ImportItem[]; recipes?: ImportRecipe[]; todos?: ImportTodo[] }
   } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 })
   }
@@ -54,14 +54,24 @@ export async function importData(req: Request, env: Env, ctx: RequestContext): P
 
   // ── Items ──────────────────────────────────────────────────────────────────
 
+  // itemIdByName is declared here (outside the items block) so the recipe
+  // ingredient loop below can reuse it without issuing N+1 SELECT queries.
+  const itemIdByName = new Map<string, string>()
+
   {
     const { results } = await env.DB.prepare(
-      'SELECT name FROM items WHERE household_id = ?'
-    ).bind(householdId).all<{ name: string }>()
+      'SELECT id, name FROM items WHERE household_id = ?'
+    ).bind(householdId).all<{ id: string; name: string }>()
 
+    // existingNames — used for deduplication in the items import section (unchanged)
     const existingNames = new Set(results.map(r => r.name.toLowerCase()))
 
-    const toInsert: ImportItem[] = []
+    // Populate itemIdByName with all pre-existing items
+    for (const r of results) {
+      itemIdByName.set(r.name.toLowerCase(), r.id)
+    }
+
+    const toInsert: (ImportItem & { _id: string })[] = []
     for (const item of items) {
       if (typeof item.name !== 'string' || item.name.trim() === '') {
         skippedItems++
@@ -71,8 +81,10 @@ export async function importData(req: Request, env: Env, ctx: RequestContext): P
         skippedItems++
         continue
       }
+      const _id = crypto.randomUUID()
       existingNames.add(item.name.trim().toLowerCase())
-      toInsert.push(item)
+      itemIdByName.set(item.name.trim().toLowerCase(), _id)
+      toInsert.push({ ...item, _id })
     }
 
     // Batch-insert in chunks of 100
@@ -82,7 +94,7 @@ export async function importData(req: Request, env: Env, ctx: RequestContext): P
         env.DB.prepare(
           'INSERT INTO items (id, household_id, name, category, on_shopping_list, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
         ).bind(
-          crypto.randomUUID(),
+          item._id,
           householdId,
           item.name.trim(),
           item.category ?? null,
@@ -181,16 +193,17 @@ export async function importData(req: Request, env: Env, ctx: RequestContext): P
 
         const ingredientName = ingredient.name.trim()
 
-        // Case-insensitive lookup
-        const existing = await env.DB.prepare(
-          'SELECT id FROM items WHERE household_id = ? AND LOWER(name) = LOWER(?)'
-        ).bind(householdId, ingredientName).first<{ id: string }>()
-
+        // Map lookup — avoids N+1 queries. itemIdByName is populated from the
+        // initial SELECT (all pre-existing items) plus every item inserted during
+        // the items import block above, and any ingredient-only items added below.
+        const lookupKey = ingredientName.toLowerCase()
         let itemId: string
-        if (existing) {
-          itemId = existing.id
+        const mappedId = itemIdByName.get(lookupKey)
+        if (mappedId !== undefined) {
+          itemId = mappedId
         } else {
           itemId = crypto.randomUUID()
+          itemIdByName.set(lookupKey, itemId)
           stmts.push(
             env.DB.prepare(
               'INSERT INTO items (id, household_id, name, category, on_shopping_list, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'

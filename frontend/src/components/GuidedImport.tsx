@@ -76,6 +76,21 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
     }
     try {
       const result = JSON.parse(value) as ImportBody
+      const hasInvalidEntry = (arr: unknown[] | undefined) =>
+        (arr ?? []).some(
+          e =>
+            typeof (e as Record<string, unknown>).name !== 'string' ||
+            !(e as { name: string }).name.trim(),
+        )
+      if (
+        hasInvalidEntry(result.items) ||
+        hasInvalidEntry(result.todos) ||
+        hasInvalidEntry(result.recipes)
+      ) {
+        setParseError('Each entry must have a non-empty "name" field.')
+        setParsed(null)
+        return
+      }
       setParsed(result)
       setParseError(null)
     } catch (e) {
@@ -85,7 +100,7 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
   }
 
   function handleCopyPrompt() {
-    navigator.clipboard.writeText(LLM_PROMPT)
+    navigator.clipboard.writeText(LLM_PROMPT).catch(() => {})
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
