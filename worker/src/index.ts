@@ -16,7 +16,7 @@ import { NotionError } from './notion'
 import type { Env, RequestContext } from './types'
 
 const DEFAULT_ORIGIN = 'https://app.casita.bernardoprd.com'
-const PROD_ORIGINS = ['https://app.casita.bernardoprd.com']
+const PROD_ORIGINS = ['https://app.casita.bernardoprd.com', 'https://dashboard.mycasita.app']
 const DEV_ORIGINS = ['http://localhost:5173', 'http://localhost:5174']
 
 function resolveOrigin(req: Request, allowedOrigin: string): string {
