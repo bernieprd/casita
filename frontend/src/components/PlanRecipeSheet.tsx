@@ -59,7 +59,7 @@ export default function PlanRecipeSheet({ open, recipeName, onClose }: Props) {
       { name: `Cook ${recipeName}`, due: date },
       {
         onSuccess: () => {
-          toast.success('Added to todos')
+          toast.success('Added to to-dos')
           onClose()
         },
       },
@@ -106,7 +106,7 @@ export default function PlanRecipeSheet({ open, recipeName, onClose }: Props) {
         disabled={!date || createTodo.isPending}
         className="w-full"
       >
-        Add to Todos
+        Add to To-Dos
       </Button>
       <Button variant="ghost" onClick={onClose} className="w-full">
         Cancel
@@ -120,7 +120,7 @@ export default function PlanRecipeSheet({ open, recipeName, onClose }: Props) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Plan recipe</DialogTitle>
-            <DialogDescription>Pick a date to add this recipe to your todos.</DialogDescription>
+            <DialogDescription>Pick a date to add this recipe to your to-dos.</DialogDescription>
           </DialogHeader>
           <Separator />
           {formContent}
@@ -138,7 +138,7 @@ export default function PlanRecipeSheet({ open, recipeName, onClose }: Props) {
       <DrawerContent className="flex flex-col">
         <DrawerHeader className="text-left pb-3">
           <DrawerTitle>Plan recipe</DrawerTitle>
-          <DrawerDescription>Pick a date to add this recipe to your todos.</DrawerDescription>
+          <DrawerDescription>Pick a date to add this recipe to your to-dos.</DrawerDescription>
         </DrawerHeader>
         <Separator />
         {formContent}

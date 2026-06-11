@@ -167,7 +167,7 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
   return (
     <div className="mb-6">
       <SectionHeader
-        label="To do"
+        label="To-Dos"
         action={
           <button
             onClick={onSeeAll}

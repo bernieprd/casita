@@ -342,12 +342,12 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
                 ? <>
                     Deleting your account will also permanently delete your household
                     {householdData?.householdName ? ` "${householdData.householdName}"` : ''}{' '}
-                    and everything in it — all recipes, shopping items, todos, and your
+                    and everything in it — all recipes, shopping items, to-dos, and your
                     Google Calendar connection. This cannot be undone.
                   </>
                 : <>
                     Your personal information (email, profile, calendar connection) will be
-                    permanently deleted. Recipes, shopping items, and todos you contributed
+                    permanently deleted. Recipes, shopping items, and to-dos you contributed
                     to the household will remain for other members and will no longer be
                     linked to you. This cannot be undone.
                   </>
@@ -538,7 +538,7 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
             <AlertDialogTitle>Delete this household?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete the household and everything in it — all recipes,
-              shopping items, todos, and your Google Calendar connection data. This cannot be undone.
+              shopping items, to-dos, and your Google Calendar connection data. This cannot be undone.
               Your account will remain and you can join or create a new household.
             </AlertDialogDescription>
           </AlertDialogHeader>

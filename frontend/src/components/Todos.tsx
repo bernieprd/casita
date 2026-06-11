@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from '@/components/ui/drawer'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from '../api'
 import type { Todo } from '../api'
@@ -41,6 +41,13 @@ const PRIORITY_SELECTED_CLASSES: Record<string, string> = {
   High:   'bg-destructive text-white border-destructive',
   Medium: 'bg-amber-500 text-white border-amber-500',
   Low:    'bg-secondary text-secondary-foreground border-secondary',
+}
+
+const UNDO_DURATION_MS = 4000
+
+interface PendingDelete {
+  ids: string[]
+  timeoutId: ReturnType<typeof setTimeout>
 }
 
 // ── Date formatting ───────────────────────────────────────────────────────────
@@ -123,6 +130,7 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
   const [draftDue, setDraftDue] = useState('')
   const [draftStatus, setDraftStatus] = useState<Status>('Todo')
   const [draftPriority, setDraftPriority] = useState<string | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
   const isMobile = useIsMobile()
 
@@ -132,6 +140,7 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
     setDraftDue(todo.due ?? '')
     setDraftStatus((todo.status ?? 'Todo') as Status)
     setDraftPriority(todo.priority)
+    setConfirmingDelete(false)
     const t = setTimeout(() => nameRef.current?.focus(), 150)
     return () => clearTimeout(t)
   }, [todo])
@@ -149,18 +158,36 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
     onClose()
   }
 
+  const confirmBody = (
+    <div className="space-y-3">
+      <DialogTitle className="text-sm font-medium">Delete "{todo?.name}"?</DialogTitle>
+      <DialogDescription className="text-sm text-muted-foreground">
+        This will permanently remove this to-do.
+      </DialogDescription>
+      <div className="flex justify-end gap-2 pt-1">
+        <Button variant="outline" onClick={() => setConfirmingDelete(false)}>Cancel</Button>
+        <Button
+          variant="destructive"
+          onClick={() => { if (todo) { onDelete(todo); onClose() } }}
+        >
+          Delete
+        </Button>
+      </div>
+    </div>
+  )
+
   const formBody = (
-    <div className="overflow-y-auto px-5 pt-1 pb-6 overscroll-contain">
+    <div className={`overflow-y-auto overscroll-contain${isMobile ? ' px-5 pt-2 pb-6' : ' py-1 px-0.5'}`}>
       {/* Name */}
       <Input
         ref={nameRef}
         value={draftName}
         onChange={e => setDraftName(e.target.value)}
         placeholder="To-do name"
-        aria-label="Todo name"
+        aria-label="To-do name"
         enterKeyHint="done"
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); nameRef.current?.blur() } }}
-        className="border-0 border-b rounded-none px-0 text-base shadow-none focus-visible:ring-0 mb-1"
+        className="w-full"
       />
 
       <Separator className="my-4" />
@@ -234,7 +261,7 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
         <Button
           variant="ghost"
           className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5"
-          onClick={() => { if (todo) { onDelete(todo); onClose() } }}
+          onClick={() => setConfirmingDelete(true)}
         >
           <Trash2 className="size-4" />
           Delete
@@ -246,6 +273,8 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
     </div>
   )
 
+  const content = confirmingDelete ? confirmBody : formBody
+
   if (isMobile) {
     return (
       <Drawer
@@ -256,11 +285,33 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
         <DrawerContent
           className="rounded-t-2xl flex flex-col max-h-[80dvh]"
         >
-          <DrawerHeader className="sr-only">
-            <DrawerTitle>Edit To-do</DrawerTitle>
-            <DrawerDescription>Update the to-do details.</DrawerDescription>
-          </DrawerHeader>
-          {formBody}
+          {confirmingDelete ? (
+            <>
+              <DrawerHeader className="px-5 pt-4">
+                <DrawerTitle className="text-sm font-medium text-left">Delete "{todo?.name}"?</DrawerTitle>
+                <DrawerDescription className="text-sm text-muted-foreground">
+                  This will permanently remove this to-do.
+                </DrawerDescription>
+              </DrawerHeader>
+              <div className="flex justify-end gap-2 px-5 pb-6 pt-1">
+                <Button variant="outline" onClick={() => setConfirmingDelete(false)}>Cancel</Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => { if (todo) { onDelete(todo); onClose() } }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <DrawerHeader className="sr-only">
+                <DrawerTitle>Edit To-do</DrawerTitle>
+                <DrawerDescription>Update the to-do details.</DrawerDescription>
+              </DrawerHeader>
+              {formBody}
+            </>
+          )}
         </DrawerContent>
       </Drawer>
     )
@@ -269,11 +320,61 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
   return (
     <Dialog open={!!todo} onOpenChange={open => { if (!open) onClose() }}>
       <DialogContent className="sm:max-w-md">
+        {!confirmingDelete && (
+          <DialogHeader>
+            <DialogTitle>Edit To-do</DialogTitle>
+            <DialogDescription className="sr-only">Update the to-do details.</DialogDescription>
+          </DialogHeader>
+        )}
+        {content}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ── Clear done confirmation ───────────────────────────────────────────────────
+
+interface ClearDoneConfirmProps {
+  open: boolean
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+function ClearDoneConfirm({ open, onConfirm, onCancel }: ClearDoneConfirmProps) {
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={o => { if (!o) onCancel() }}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Clear all done to-dos?</DrawerTitle>
+            <p className="text-sm text-muted-foreground">
+              This will permanently delete all done to-dos and any data associated with them.
+            </p>
+          </DrawerHeader>
+          <DrawerFooter>
+            <Button variant="destructive" onClick={onConfirm}>Clear all</Button>
+            <Button variant="outline" onClick={onCancel}>Cancel</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={o => { if (!o) onCancel() }}>
+      <DialogContent showCloseButton={false} className="max-w-xs">
         <DialogHeader>
-          <DialogTitle>Edit To-do</DialogTitle>
-          <DialogDescription className="sr-only">Update the to-do details.</DialogDescription>
+          <DialogTitle>Clear all done to-dos?</DialogTitle>
         </DialogHeader>
-        {formBody}
+        <DialogDescription className="text-sm text-muted-foreground">
+          This will permanently delete all done to-dos and any data associated with them.
+        </DialogDescription>
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel}>Cancel</Button>
+          <Button variant="destructive" onClick={onConfirm}>Clear all</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
@@ -284,14 +385,14 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
 interface SectionProps {
   status: Status
   todos: Todo[]
-  pendingDeleteId: string | null
   onOpen: (todo: Todo) => void
   onClearDone?: () => void
+  pendingDeleteIds: Set<string>
 }
 
-function Section({ status, todos, pendingDeleteId, onOpen, onClearDone }: SectionProps) {
+function Section({ status, todos, onOpen, onClearDone, pendingDeleteIds }: SectionProps) {
   const [expanded, setExpanded] = useState(status !== 'Done')
-  const visible = todos.filter(t => t.id !== pendingDeleteId)
+  const visible = todos.filter(t => !pendingDeleteIds.has(t.id))
 
   if (visible.length === 0) return null
 
@@ -372,13 +473,6 @@ function TodosSkeleton() {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-const UNDO_DURATION_MS = 3000
-
-interface PendingDelete {
-  todo: Todo
-  timeoutId: ReturnType<typeof setTimeout>
-}
-
 export default function Todos({ setHeader }: { setHeader: (node: ReactNode | null) => void }) {
   const { data: todos, isLoading, error } = useTodos()
   const createTodo = useCreateTodo()
@@ -386,16 +480,45 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
   const deleteTodo = useDeleteTodo()
 
   const [inputValue, setInputValue] = useState('')
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
   const pendingDeleteRef = useRef<PendingDelete | null>(null)
 
-  useEffect(() => {
-    pendingDeleteRef.current = pendingDelete
-  }, [pendingDelete])
+  useEffect(() => { pendingDeleteRef.current = pendingDelete }, [pendingDelete])
 
   const inputValueRef = useRef(inputValue)
   useEffect(() => { inputValueRef.current = inputValue })
+
+  const commitDelete = useCallback((ids: string[]) => {
+    ids.forEach(id => deleteTodo.mutate(id))
+    setPendingDelete(null)
+  }, [deleteTodo.mutate])
+
+  function startDelete(ids: string[], message: string) {
+    const existing = pendingDeleteRef.current
+    if (existing) {
+      clearTimeout(existing.timeoutId)
+      commitDelete(existing.ids)
+    }
+    const timeoutId = setTimeout(() => commitDelete(ids), UNDO_DURATION_MS)
+    const next: PendingDelete = { ids, timeoutId }
+    setPendingDelete(next)
+    pendingDeleteRef.current = next
+    toast(message, {
+      duration: UNDO_DURATION_MS,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const cur = pendingDeleteRef.current
+          if (!cur) return
+          clearTimeout(cur.timeoutId)
+          setPendingDelete(null)
+          pendingDeleteRef.current = null
+        },
+      },
+    })
+  }
 
   const handleAdd = useCallback(() => {
     const name = inputValueRef.current.trim()
@@ -426,36 +549,8 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
     return () => setHeader(null)
   }, [inputValue, setHeader])
 
-  const commitDelete = useCallback((todo: Todo) => {
-    deleteTodo.mutate(todo.id)
-    setPendingDelete(null)
-  }, [deleteTodo.mutate])
-
   function handleDelete(todo: Todo) {
-    const existing = pendingDeleteRef.current
-    if (existing) {
-      clearTimeout(existing.timeoutId)
-      commitDelete(existing.todo)
-    }
-
-    const timeoutId = setTimeout(() => commitDelete(todo), UNDO_DURATION_MS)
-    const next: PendingDelete = { todo, timeoutId }
-    setPendingDelete(next)
-    pendingDeleteRef.current = next
-
-    toast('To-do deleted', {
-      duration: UNDO_DURATION_MS,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          const existing = pendingDeleteRef.current
-          if (!existing) return
-          clearTimeout(existing.timeoutId)
-          setPendingDelete(null)
-          pendingDeleteRef.current = null
-        },
-      },
-    })
+    startDelete([todo.id], `"${todo.name}" deleted`)
   }
 
   function handleOpen(todo: Todo) {
@@ -471,10 +566,17 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
   }
 
   function handleClearDone() {
-    byStatus('Done').forEach(todo => deleteTodo.mutate(todo.id))
+    setShowClearConfirm(true)
   }
 
-  const pendingDeleteId = pendingDelete?.todo.id ?? null
+  function commitClearDone() {
+    const doneIds = byStatus('Done').map(t => t.id)
+    setShowClearConfirm(false)
+    startDelete(doneIds, 'Done to-dos cleared')
+  }
+
+  const pendingDeleteIds = new Set(pendingDelete?.ids ?? [])
+
   const byStatus = (status: Status) =>
     (todos ?? []).filter(t => (t.status ?? 'Todo') === status)
 
@@ -485,7 +587,7 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
         {isLoading && <TodosSkeleton />}
 
         {error && (
-          <p className="text-destructive p-4">Failed to load todos.</p>
+          <p className="text-destructive p-4">Failed to load to-dos.</p>
         )}
 
         {!isLoading && !error && todos?.length === 0 && (
@@ -501,9 +603,9 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
             key={status}
             status={status}
             todos={byStatus(status)}
-            pendingDeleteId={pendingDeleteId}
             onOpen={handleOpen}
             onClearDone={status === 'Done' ? handleClearDone : undefined}
+            pendingDeleteIds={pendingDeleteIds}
           />
         ))}
       </div>
@@ -514,6 +616,13 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
         onClose={handleCloseSheet}
         onUpdate={handleUpdate}
         onDelete={handleDelete}
+      />
+
+      {/* Clear done confirmation */}
+      <ClearDoneConfirm
+        open={showClearConfirm}
+        onConfirm={commitClearDone}
+        onCancel={() => setShowClearConfirm(false)}
       />
     </>
   )
