@@ -9,6 +9,7 @@ import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
 import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold, transferOwnership, deleteHousehold } from './routes/household'
 import { listConcepts, createConcept, updateConcept, deleteConcept, backfillConceptsRoute } from './routes/concepts-d1'
 import { deleteAccount, exportAccountData } from './routes/account'
+import { importData } from './routes/import-d1'
 import { verifyClerkToken, getClerkClient } from './auth/clerk'
 import { runMigrationItems, runMigrationRecipes, runMigrationIngredients, runMigrationTodos, runMigrationTokens } from './db/migrate-from-notion'
 import { NotionError } from './notion'
@@ -160,6 +161,7 @@ async function handleMigrateKvToEmail(req: Request, env: Env): Promise<Response>
 const routes: Array<[string, URLPattern, AuthHandler]> = [
   ['DELETE', new URLPattern({ pathname: '/account',                     search: '*' }), deleteAccount],
   ['GET',    new URLPattern({ pathname: '/account/export',              search: '*' }), exportAccountData],
+  ['POST',   new URLPattern({ pathname: '/import',                      search: '*' }), importData],
   ['DELETE', new URLPattern({ pathname: '/household/leave',             search: '*' }), leaveHousehold],
   ['DELETE', new URLPattern({ pathname: '/household',                   search: '*' }), deleteHousehold],
   ['GET',    new URLPattern({ pathname: '/household/me',                search: '*' }), getHousehold],

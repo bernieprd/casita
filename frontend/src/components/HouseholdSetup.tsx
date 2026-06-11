@@ -9,6 +9,7 @@ import { useClerk } from '@clerk/clerk-react'
 import { api } from '../api/client'
 import { useHousehold } from '../context/AuthContext'
 import { useDeleteAccount } from '../api/account'
+import GuidedImport from './GuidedImport'
 
 export default function HouseholdSetup() {
   const navigate = useNavigate()
@@ -17,6 +18,7 @@ export default function HouseholdSetup() {
   const { mutate: deleteAccount, isPending: deletingAccount } = useDeleteAccount()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [tab, setTab] = useState<'create' | 'join'>('create')
+  const [showImport, setShowImport] = useState(false)
 
   // Create flow state
   const [householdName, setHouseholdName] = useState('')
@@ -29,8 +31,8 @@ export default function HouseholdSetup() {
   const [joinError, setJoinError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isLoading && householdId !== null) navigate('/', { replace: true })
-  }, [householdId, isLoading, navigate])
+    if (!isLoading && householdId !== null && !showImport) navigate('/', { replace: true })
+  }, [householdId, isLoading, navigate, showImport])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -41,7 +43,7 @@ export default function HouseholdSetup() {
         name: householdName.trim(),
       })
       refreshHousehold()
-      navigate('/', { replace: true })
+      setShowImport(true)
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Failed to create household')
     } finally {
@@ -62,6 +64,25 @@ export default function HouseholdSetup() {
     } finally {
       setJoinLoading(false)
     }
+  }
+
+  if (showImport) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm">
+          <h1 className="text-xl font-bold mb-1 text-center">Welcome to Casita</h1>
+          <p className="text-sm text-muted-foreground text-center mb-6">
+            You're all set up. Want to import your existing data?
+          </p>
+          <div className="bg-card rounded-xl shadow-sm p-6">
+            <GuidedImport
+              onDone={() => navigate('/', { replace: true })}
+              onSkip={() => navigate('/', { replace: true })}
+            />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

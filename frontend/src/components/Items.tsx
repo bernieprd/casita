@@ -14,6 +14,7 @@ import ItemFormDialog from './ItemFormDialog'
 import MergeDuplicatesSheet from './MergeDuplicatesSheet'
 import IncompleteItemsSheet from './IncompleteItemsSheet'
 import { ItemRow } from './ItemRow'
+import GuidedImport from './GuidedImport'
 
 // ── Group section ─────────────────────────────────────────────────────────────
 
@@ -190,12 +191,46 @@ export default function Items() {
   }
 
   if (allItems.length === 0) {
+    const [importOpen, setImportOpen] = useState(false)
+    const isMobileImport = window.innerWidth < 768
     return (
-      <div className="pt-10 text-center px-8">
-        <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
-        <p className="text-sm font-medium text-muted-foreground mb-1">No items yet</p>
-        <p className="text-sm text-muted-foreground/60">Use the search above to add your first item</p>
-      </div>
+      <>
+        <div className="pt-10 text-center px-8">
+          <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
+          <p className="text-sm font-medium text-muted-foreground mb-1">No items yet</p>
+          <p className="text-sm text-muted-foreground/60">Use the search above to add your first item</p>
+          <button
+            type="button"
+            onClick={() => setImportOpen(true)}
+            className="mt-3 text-sm text-primary hover:underline underline-offset-4 transition-colors"
+          >
+            Or import your pantry & shopping list →
+          </button>
+        </div>
+        {isMobileImport ? (
+          <Drawer open={importOpen} onOpenChange={v => { if (!v) setImportOpen(false) }} dismissible>
+            <DrawerContent className="rounded-t-2xl flex flex-col max-h-[80dvh]">
+              <DrawerHeader className="pb-2 shrink-0">
+                <DrawerTitle className="text-base font-semibold">Import your data</DrawerTitle>
+                <DrawerDescription className="sr-only">Import your pantry and shopping list data.</DrawerDescription>
+              </DrawerHeader>
+              <div className="px-4 pb-4 overflow-auto flex-1 overscroll-contain">
+                <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
+              </div>
+            </DrawerContent>
+          </Drawer>
+        ) : (
+          <Dialog open={importOpen} onOpenChange={v => { if (!v) setImportOpen(false) }}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Import your data</DialogTitle>
+                <DialogDescription className="sr-only">Import your pantry and shopping list data.</DialogDescription>
+              </DialogHeader>
+              <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
+            </DialogContent>
+          </Dialog>
+        )}
+      </>
     )
   }
 
