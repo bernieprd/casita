@@ -9,6 +9,7 @@ import {
   MessageSquare,
   ChevronRight,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface NavRow {
   icon: React.ReactNode
@@ -161,11 +162,15 @@ export default function SettingsMenu() {
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-1">
           Support Casita
         </p>
-        <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] flex items-center justify-center px-4 py-4">
-          <stripe-buy-button
-            buy-button-id="buy_btn_1Th8Pr8BgLDJ3OdYO6OgpPUL"
-            publishable-key="pk_live_51Th7qh8BgLDJ3OdY7hVv086NoQW9pc5kluIOTUOqosXtN5dRilbQyMfRdo9zsiFWKMxlHNB4BsFSB0LNGIgs73LA00RPjSEk9G"
-          />
+        <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] px-4 py-4 flex flex-col gap-3">
+          <p className="text-sm text-muted-foreground">
+            Support Casita's development with a coffee! Have a feature request or feedback? Send it our way — we'd love to hear from you and will take it into account.
+          </p>
+          <Button asChild className="w-full">
+            <a href="https://buy.stripe.com/eVq14hd4bgafdZzfoZcV200" target="_blank" rel="noreferrer">
+              Buy us a coffee ☕
+            </a>
+          </Button>
         </div>
       </div>
 
