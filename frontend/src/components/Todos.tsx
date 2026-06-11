@@ -151,14 +151,11 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
   }
 
   const confirmBody = (
-    <div className={`space-y-3${isMobile ? ' px-5 pt-4 pb-6' : ''}`}>
-      {isMobile
-        ? <p className="text-sm font-medium">Delete "{todo?.name}"?</p>
-        : <DialogTitle className="text-sm font-medium">Delete "{todo?.name}"?</DialogTitle>
-      }
-      <p className="text-sm text-muted-foreground">
+    <div className="space-y-3">
+      <DialogTitle className="text-sm font-medium">Delete "{todo?.name}"?</DialogTitle>
+      <DialogDescription className="text-sm text-muted-foreground">
         This will permanently remove this to-do.
-      </p>
+      </DialogDescription>
       <div className="flex justify-end gap-2 pt-1">
         <Button variant="outline" onClick={() => setConfirmingDelete(false)}>Cancel</Button>
         <Button
@@ -280,11 +277,33 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
         <DrawerContent
           className="rounded-t-2xl flex flex-col max-h-[80dvh]"
         >
-          <DrawerHeader className="sr-only">
-            <DrawerTitle>Edit To-do</DrawerTitle>
-            <DrawerDescription>Update the to-do details.</DrawerDescription>
-          </DrawerHeader>
-          {content}
+          {confirmingDelete ? (
+            <>
+              <DrawerHeader className="px-5 pt-4">
+                <DrawerTitle className="text-sm font-medium text-left">Delete "{todo?.name}"?</DrawerTitle>
+                <DrawerDescription className="text-sm text-muted-foreground">
+                  This will permanently remove this to-do.
+                </DrawerDescription>
+              </DrawerHeader>
+              <div className="flex justify-end gap-2 px-5 pb-6 pt-1">
+                <Button variant="outline" onClick={() => setConfirmingDelete(false)}>Cancel</Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => { if (todo) { onDelete(todo); onClose() } }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <DrawerHeader className="sr-only">
+                <DrawerTitle>Edit To-do</DrawerTitle>
+                <DrawerDescription>Update the to-do details.</DrawerDescription>
+              </DrawerHeader>
+              {formBody}
+            </>
+          )}
         </DrawerContent>
       </Drawer>
     )
