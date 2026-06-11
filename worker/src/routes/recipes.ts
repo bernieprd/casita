@@ -166,7 +166,7 @@ export async function shareRecipe(_req: Request, env: Env, ctx: RequestContext, 
 
   const existing = await env.AUTH_KV.get(`share-recipe:${recipeId}`)
   if (existing) {
-    const appUrl = env.APP_BASE_URL ?? 'https://casita.bernardoprd.com/#'
+    const appUrl = env.APP_BASE_URL ?? 'https://app.casita.bernardoprd.com'
     return Response.json({ token: existing, url: `${appUrl}/share/${existing}` })
   }
 
@@ -176,7 +176,7 @@ export async function shareRecipe(_req: Request, env: Env, ctx: RequestContext, 
     env.AUTH_KV.put(`share-recipe:${recipeId}`, token),
   ])
 
-  const appUrl = env.APP_BASE_URL ?? 'https://casita.bernardoprd.com/#'
+  const appUrl = env.APP_BASE_URL ?? 'https://app.casita.bernardoprd.com'
   return Response.json({ token, url: `${appUrl}/share/${token}` }, { status: 201 })
 }
 

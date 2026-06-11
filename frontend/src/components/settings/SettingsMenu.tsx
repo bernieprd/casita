@@ -144,7 +144,7 @@ export default function SettingsMenu() {
         </p>
         <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border">
           <a
-            href="https://casita.bernardoprd.com/privacy"
+            href="https://mycasita.app/privacy"
             target="_blank"
             rel="noreferrer"
             className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent transition-colors min-h-[44px] first:rounded-t-lg last:rounded-b-lg"
@@ -153,7 +153,7 @@ export default function SettingsMenu() {
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           </a>
           <a
-            href="https://casita.bernardoprd.com/terms"
+            href="https://mycasita.app/terms"
             target="_blank"
             rel="noreferrer"
             className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent transition-colors min-h-[44px] first:rounded-t-lg last:rounded-b-lg"
