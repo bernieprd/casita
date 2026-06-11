@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -79,14 +79,25 @@ export default function AccountSettings({ setHeader }: Props) {
         </div>
       </div>
 
-      <Button
-        variant="secondary"
-        size="sm"
-        onClick={logout}
-        className="mb-1"
-      >
-        Sign out
-      </Button>
+      <div className="flex gap-2 mb-1">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={logout}
+        >
+          Sign out
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => exportAccount()}
+          disabled={exportingAccount}
+        >
+          <Download className="h-4 w-4" />
+          {exportingAccount ? 'Preparing…' : 'Download my data'}
+        </Button>
+      </div>
 
       <Separator className="my-4" />
 
@@ -96,18 +107,6 @@ export default function AccountSettings({ setHeader }: Props) {
       </p>
 
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
-        <div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="text-destructive border-destructive/50 hover:bg-destructive/10"
-            onClick={() => exportAccount()}
-            disabled={exportingAccount}
-          >
-            {exportingAccount ? 'Preparing…' : 'Download my data'}
-          </Button>
-        </div>
-
         {isOwner && (householdData?.members?.length ?? 0) > 1 ? (
           <div className="flex flex-col items-start gap-0.5">
             <Button

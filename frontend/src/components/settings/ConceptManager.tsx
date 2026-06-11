@@ -108,7 +108,7 @@ function SortableRow({
       style={style}
       role="listitem"
     >
-      <div className="flex items-center gap-2 px-3 py-2.5 bg-card border rounded-md">
+      <div className="flex items-center gap-2 px-3 py-2.5">
         {ownerOnly && (
           <button
             {...attributes}
@@ -357,68 +357,70 @@ export function ConceptManager({ type, label, addPlaceholder, ownerOnly = false 
       ) : isError ? (
         <p className="text-sm text-destructive">Could not load — check your connection</p>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={items.map((i) => i.id)}
-            strategy={verticalListSortingStrategy}
+        <div className="rounded-lg border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border overflow-hidden">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
           >
-            <div role="list" className="space-y-1.5">
-              {items.map((item) => (
-                <SortableRow
-                  key={item.id}
-                  item={item}
-                  label={label}
-                  ownerOnly={ownerOnly}
-                  isEditing={editingId === item.id}
-                  editName={editName}
-                  deleteErrorId={deleteErrorId}
-                  deleteErrorMsg={deleteErrorMsg}
-                  onEditStart={handleEditStart}
-                  onEditChange={setEditName}
-                  onEditConfirm={handleEditConfirm}
-                  onEditCancel={handleEditCancel}
-                  onDeleteRequest={handleDeleteRequest}
-                  onDismissError={() => {
-                    setDeleteErrorId(null)
-                    setDeleteErrorMsg(null)
-                  }}
-                  rowRef={setRowRef(item.id)}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-      )}
-
-      {/* Add row — only shown for owners */}
-      {ownerOnly && !isLoading && !isError && (
-        <div className="mt-2">
-          {addingNew ? (
-            <Input
-              ref={addInputRef}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder={addPlaceholder}
-              className="h-9 text-sm"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleConfirmAdd()
-                if (e.key === 'Escape') setAddingNew(false)
-              }}
-              onBlur={handleConfirmAdd}
-              disabled={creating}
-            />
-          ) : (
-            <button
-              ref={addButtonRef}
-              className="text-sm text-muted-foreground hover:text-foreground px-1 py-1"
-              onClick={handleStartAdd}
+            <SortableContext
+              items={items.map((i) => i.id)}
+              strategy={verticalListSortingStrategy}
             >
-              + {addPlaceholder}
-            </button>
+              <div role="list">
+                {items.map((item) => (
+                  <SortableRow
+                    key={item.id}
+                    item={item}
+                    label={label}
+                    ownerOnly={ownerOnly}
+                    isEditing={editingId === item.id}
+                    editName={editName}
+                    deleteErrorId={deleteErrorId}
+                    deleteErrorMsg={deleteErrorMsg}
+                    onEditStart={handleEditStart}
+                    onEditChange={setEditName}
+                    onEditConfirm={handleEditConfirm}
+                    onEditCancel={handleEditCancel}
+                    onDeleteRequest={handleDeleteRequest}
+                    onDismissError={() => {
+                      setDeleteErrorId(null)
+                      setDeleteErrorMsg(null)
+                    }}
+                    rowRef={setRowRef(item.id)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+
+          {/* Add row — only shown for owners */}
+          {ownerOnly && !isLoading && !isError && (
+            <div className="px-3 py-2">
+              {addingNew ? (
+                <Input
+                  ref={addInputRef}
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder={addPlaceholder}
+                  className="h-9 text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleConfirmAdd()
+                    if (e.key === 'Escape') setAddingNew(false)
+                  }}
+                  onBlur={handleConfirmAdd}
+                  disabled={creating}
+                />
+              ) : (
+                <button
+                  ref={addButtonRef}
+                  className="text-sm text-muted-foreground hover:text-foreground w-full text-left py-0.5"
+                  onClick={handleStartAdd}
+                >
+                  + {addPlaceholder}
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}

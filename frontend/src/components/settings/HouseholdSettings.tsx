@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ArrowLeft, Pencil, Copy } from 'lucide-react'
+import { ArrowLeft, Pencil, Copy, Sun, SunMoon, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -16,11 +16,16 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { ThemeCustomizer } from '../ThemeCustomizer'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { cn } from '@/lib/utils'
 import type { ThemePrefs } from '@/lib/theme'
+import { COLOR_PRESETS, FONT_OPTIONS, HEADING_FONT_OPTIONS, DEFAULT_THEME, loadGoogleFont } from '@/lib/theme'
 import {
   useHouseholdSettings,
   useGenerateInvite,
@@ -68,9 +73,6 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
   const { mutate: deleteHousehold, isPending: deletingHousehold } = useDeleteHousehold()
   const [deleteHouseholdOpen, setDeleteHouseholdOpen] = useState(false)
 
-  // Theme customizer
-  const [themeOpen, setThemeOpen] = useState(false)
-
   useEffect(() => {
     setHeader(
       <>
@@ -109,14 +111,10 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
     <div className="p-4">
 
       {/* Household name */}
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-        Household
-      </p>
-
       {householdLoading ? (
-        <Skeleton className="h-7 w-44 rounded mb-2" />
+        <Skeleton className="h-8 w-44 rounded mb-4" />
       ) : renaming ? (
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-4">
           <Input
             value={nameInput}
             onChange={e => setNameInput(e.target.value)}
@@ -135,13 +133,13 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
           </Button>
         </div>
       ) : (
-        <div className="flex items-center gap-1 mb-2">
-          <span className="text-sm">{householdData?.householdName ?? '—'}</span>
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-xl font-bold flex-1">{householdData?.householdName ?? '—'}</h2>
           {isOwner && (
             <Button
               size="icon"
               variant="ghost"
-              className="h-6 w-6"
+              className="h-7 w-7"
               onClick={handleRenameOpen}
               aria-label="Rename household"
             >
@@ -210,7 +208,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
           {householdData.members.map(member => (
             <div
               key={member.clerkUserId}
-              className="flex items-center gap-2 bg-card border rounded-lg px-3 py-2"
+              className="flex items-center gap-2 bg-card border border-border rounded-lg shadow-[0_1px_2px_rgba(0,0,0,.06)] px-3 py-2"
             >
               <Avatar className="h-7 w-7 flex-shrink-0">
                 <AvatarImage src={member.imageUrl ?? undefined} />
@@ -221,9 +219,6 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
               <div className="min-w-0 flex-1">
                 <p className="text-sm truncate">{member.displayName ?? '—'}</p>
               </div>
-              <Badge variant="secondary" className="text-xs capitalize">
-                {member.role}
-              </Badge>
               {isOwner && member.clerkUserId !== user?.id && member.role !== 'owner' && (
                 <Button
                   variant="ghost"
@@ -240,6 +235,9 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
                   Make owner
                 </Button>
               )}
+              <Badge variant="secondary" className="text-xs capitalize">
+                {member.role}
+              </Badge>
             </div>
           ))}
         </div>
@@ -278,21 +276,145 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
 
       <Separator className="my-4" />
 
-      {/* Appearance / ThemeCustomizer */}
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-        Appearance
-      </p>
 
-      <ThemeCustomizer
-        prefs={themePrefs}
-        setPrefs={setThemePrefs}
-        open={themeOpen}
-        onOpenChange={setThemeOpen}
-        isPending={themeSaving}
-      />
-      <Button variant="outline" size="sm" className="mb-1" onClick={() => setThemeOpen(true)}>
-        Customize theme
-      </Button>
+      <div className="flex flex-col gap-5">
+
+        {/* Color scheme */}
+        <div className="flex flex-col gap-3">
+          <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Color scheme
+          </Label>
+          <ToggleGroup
+            type="single"
+            value={themePrefs.colorScheme}
+            onValueChange={(value) => {
+              if (!value || themeSaving) return
+              setThemePrefs({ ...themePrefs, colorScheme: value as ThemePrefs['colorScheme'] })
+            }}
+            className={cn('justify-start [&_[data-state=on]]:bg-primary [&_[data-state=on]]:text-primary-foreground', themeSaving && 'opacity-50 pointer-events-none')}
+          >
+            <ToggleGroupItem value="light" aria-label="Light mode">
+              <Sun className="h-4 w-4" />
+              <span className="ml-1 text-sm">Light</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="system" aria-label="System default">
+              <SunMoon className="h-4 w-4" />
+              <span className="ml-1 text-sm">System</span>
+            </ToggleGroupItem>
+            <ToggleGroupItem value="dark" aria-label="Dark mode">
+              <Moon className="h-4 w-4" />
+              <span className="ml-1 text-sm">Dark</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
+        <Separator />
+
+        <div className="flex flex-col gap-3">
+          <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Color
+          </Label>
+          <div className={themeSaving ? 'opacity-50 pointer-events-none' : ''}>
+            <div className="flex gap-2">
+              {COLOR_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  title={preset.label}
+                  aria-label={preset.label}
+                  onClick={() => setThemePrefs({ ...themePrefs, primaryHsl: preset.hsl })}
+                  className={cn(
+                    'h-8 w-8 rounded-full transition-all',
+                    themePrefs.primaryHsl === preset.hsl
+                      ? 'ring-2 ring-offset-2 ring-foreground scale-110'
+                      : 'hover:scale-105',
+                  )}
+                  style={{ backgroundColor: `hsl(${preset.hsl})` }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Heading Font
+          </Label>
+          <div className={themeSaving ? 'opacity-50 pointer-events-none' : ''}>
+            <Select
+              value={themePrefs.headingFont}
+              onValueChange={(value) => {
+                const option = HEADING_FONT_OPTIONS.find((o) => o.value === value)
+                if (option?.googleFamily) loadGoogleFont(option.googleFamily)
+                setThemePrefs({ ...themePrefs, headingFont: value })
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {HEADING_FONT_OPTIONS.map((option) => (
+                  <SelectItem key={option.label} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Body Font
+          </Label>
+          <div className={themeSaving ? 'opacity-50 pointer-events-none' : ''}>
+            <Select
+              value={themePrefs.bodyFont}
+              onValueChange={(value) => {
+                const option = FONT_OPTIONS.find((o) => o.value === value)
+                if (option?.googleFamily) loadGoogleFont(option.googleFamily)
+                setThemePrefs({ ...themePrefs, bodyFont: value })
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FONT_OPTIONS.map((option) => (
+                  <SelectItem key={option.label} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Radius
+          </Label>
+          <div className={themeSaving ? 'opacity-50 pointer-events-none' : ''}>
+            <Slider
+              min={0}
+              max={16}
+              step={1}
+              value={[Math.round(parseFloat(themePrefs.radius) / 0.0625)]}
+              onValueChange={([v]) => {
+                const rem = v === 0 ? '0rem' : `${(v * 0.0625).toFixed(3).replace(/\.?0+$/, '')}rem`
+                setThemePrefs({ ...themePrefs, radius: rem })
+              }}
+            />
+            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+              <span>None</span>
+              <span>Rounded</span>
+            </div>
+          </div>
+        </div>
+
+        <Button variant="outline" onClick={() => setThemePrefs(DEFAULT_THEME)} className="w-full" disabled={themeSaving}>
+          Reset to defaults
+        </Button>
+      </div>
 
       <Separator className="my-4" />
 

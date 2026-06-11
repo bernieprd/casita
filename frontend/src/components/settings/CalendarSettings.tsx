@@ -103,9 +103,6 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
         <Skeleton className="h-9 w-56 rounded" />
       ) : isConnected ? (
         <>
-          <p className="text-sm text-muted-foreground mb-3">
-            Choose which of your Google calendars are visible to your household.
-          </p>
 
           {calendarsLoading ? (
             <>
@@ -163,7 +160,7 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
           <Button
             variant="outline"
             size="sm"
-            className="mt-1 text-destructive border-destructive/50 hover:bg-destructive/10"
+            className="mt-8 text-destructive border-destructive/50 hover:bg-destructive/10 w-full"
             onClick={() => disconnectGoogle()}
           >
             Disconnect

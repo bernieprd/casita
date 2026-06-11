@@ -41,7 +41,7 @@ export default function RecipesSettings({ setHeader }: RecipesSettingsProps) {
 
       <ConceptManager
         type="recipe-types"
-        label="Recipe Types"
+        label="Types"
         addPlaceholder="Add a type"
         ownerOnly={isOwner}
       />

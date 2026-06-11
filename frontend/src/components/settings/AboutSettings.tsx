@@ -30,18 +30,12 @@ export default function AboutSettings({ setHeader }: Props) {
 
   return (
     <div className="py-2 space-y-5">
-      {/* App identity */}
-      <div className="bg-card rounded-lg border px-4 py-5 text-center">
-        <p className="text-lg font-bold">Casita</p>
-        <p className="text-sm text-muted-foreground mt-1">Your household, organized.</p>
-      </div>
-
       {/* Legal links */}
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-1">
           Legal
         </p>
-        <div className="bg-card rounded-lg border divide-y">
+        <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border">
           <a
             href="https://casita.bernardoprd.com/privacy"
             target="_blank"
@@ -68,7 +62,7 @@ export default function AboutSettings({ setHeader }: Props) {
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-1">
           Support Casita
         </p>
-        <div className="bg-card rounded-lg border px-4 py-4 flex items-center gap-3">
+        <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] px-4 py-4 flex items-center gap-3">
           <Coffee className="size-5 shrink-0 text-muted-foreground" />
           <div className="min-w-0">
             <p className="text-sm font-medium">Tipping jar</p>

@@ -444,11 +444,11 @@ Total wall-clock time with parallel execution: ~3 agent rounds vs ~5 sequential.
 | Question | Recommendation |
 |----------|----------------|
 | Should todos get a settings subpage? | Skip for now — no todo-specific settings exist. Add later if needed. |
-| Should Appearance stay in Account, or be its own subpage? | Keep in Account — it's a personal preference, not a household setting. |
-| Tipping jar: Stripe, Ko-fi embed, or external link? | External link (Ko-fi or Buy Me a Coffee) — least complexity. |
+| Should Appearance stay in Account, or be its own subpage? | Let's have it in Household as it's a household setting.|
+| Tipping jar: Stripe, Ko-fi embed, or external link? | Nothing for now, don't tackle it |
 | Keyboard reordering in ConceptManager? | Defer — dnd-kit supports it, add in a follow-up when accessibility audit runs. |
-| Terms of Service URL? | TBD — create placeholder row, link it when the page exists. |
-| `VITE_APP_VERSION` env var: where set? | `vite.config.ts` `define` block pulling from `package.json` version: `define: { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env.npm_package_version) }` |
+| Terms of Service URL? | https://casita.bernardoprd.com/terms |
+| `VITE_APP_VERSION` env var: where set? | We don't need an app version for now |
 | Does reorder need a new backend endpoint? | No — existing `PATCH /concepts/:type/:id` already accepts `sort_order`. Fire N PATCHes in parallel. Add a bulk endpoint if lists grow large. |
 | Non-owners: show or hide Shopping/Recipes in menu? | Show rows to everyone; access guard lives inside the subpage, not on the menu. Prevents the menu from changing shape after ownership transfers. |
 
@@ -469,3 +469,15 @@ After implementation, verify:
 9. AboutSettings: privacy link opens in new tab
 10. Mobile: bottom nav hidden on all `/settings/*` routes
 11. Resize to 320px wide — all rows still readable, no horizontal scroll
+
+
+## 12. Review
+
+1. Delete my data shouldn't be destructive nor inside of the danger zone.
+2. Customize theme could be in the household page isntead of a dialog
+3. Let's have the make owner on the left side of the member tag 
+4. Let's have the name of the household be a heading row similar to recipeform and then below you have the users in the household with tags and button. The code and options can leave below this card.
+5. The reaction of the calendar toggles is a bit wonky. I click and nothing happens.
+6. The tags in shopping are also not using the cards like we have in recipeform. A single card for categories with itemrow to order, edit and delete.
+7. In recipes, we should have "Type" only, not "Recipe Type".
+

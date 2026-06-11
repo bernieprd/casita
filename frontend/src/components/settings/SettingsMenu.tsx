@@ -85,7 +85,7 @@ export default function SettingsMenu() {
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-1">
             {group.heading}
           </p>
-          <div className="bg-card rounded-lg border divide-y">
+          <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border">
             {group.rows.map((row) => (
               <button
                 key={row.path}
