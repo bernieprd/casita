@@ -333,7 +333,7 @@ function CollapsibleIngredientGroup({
                   variant="recipe"
                   name={ing.itemName}
                   subtitle={ing.quantity ?? undefined}
-                  inList={inList(ing)}
+                  onShoppingList={inList(ing)}
                   onToggle={() => toggle.mutate({ id: ing.id, needsShopping: !inList(ing), itemId: ing.itemId, itemName: ing.itemName })}
                 />
               </li>
@@ -393,7 +393,7 @@ function IngredientGroups({
                       variant="recipe"
                       name={ing.itemName}
                       subtitle={ing.quantity ?? undefined}
-                      inList={inList(ing)}
+                      onShoppingList={inList(ing)}
                       onToggle={() => toggle.mutate({ id: ing.id, needsShopping: !inList(ing), itemId: ing.itemId, itemName: ing.itemName })}
                     />
                   </li>

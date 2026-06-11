@@ -31,7 +31,7 @@ type RecipeVariant = {
   variant: 'recipe'
   name: string
   subtitle?: string
-  inList: boolean
+  onShoppingList: boolean
   onToggle: () => void
 }
 
@@ -44,7 +44,7 @@ export function ItemRow(props: ItemRowProps) {
         style={{
           overflow: 'hidden',
           transition: `opacity ${EXIT_DURATION_MS}ms ease, max-height ${EXIT_DURATION_MS}ms ease`,
-          maxHeight: props.removing ? 0 : '80px',
+          maxHeight: props.removing ? 0 : '200px',
           opacity: props.removing ? 0 : 1,
         }}
       >
@@ -85,7 +85,7 @@ export function ItemRow(props: ItemRowProps) {
           aria-label={props.onShoppingList
             ? `Remove ${props.name} from shopping list`
             : `Add ${props.name} to shopping list`}
-          onClick={e => { e.stopPropagation(); props.onToggle() }}
+          onClick={props.onToggle}
         >
           {props.onShoppingList
             ? <Check className="size-4" />
@@ -107,12 +107,12 @@ export function ItemRow(props: ItemRowProps) {
         variant="ghost"
         size="icon-sm"
         className="shrink-0 text-muted-foreground"
-        aria-label={props.inList
+        aria-label={props.onShoppingList
           ? `Remove ${props.name} from shopping list`
           : `Add ${props.name} to shopping list`}
         onClick={props.onToggle}
       >
-        {props.inList
+        {props.onShoppingList
           ? <Check className="size-4" />
           : <ShoppingCart className="size-4" />}
       </Button>
