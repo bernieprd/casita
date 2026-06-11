@@ -173,19 +173,16 @@ export function ConceptManager({ type, label, addPlaceholder, ownerOnly = false 
   const [items, setItems] = useState<ConceptItem[]>([])
   const [itemsInitialized, setItemsInitialized] = useState(false)
 
-  // Sync server data into local state only on first load or when items list changes from outside
-  if (!itemsInitialized && serverItems.length > 0) {
-    setItems([...serverItems].sort((a, b) => a.sort_order - b.sort_order))
-    setItemsInitialized(true)
-  }
-  // If server returns empty after being non-empty (e.g. last item deleted), sync
-  if (itemsInitialized && serverItems.length === 0 && items.length > 0) {
-    setItems([])
-  }
-  // If items were added from another source or new items arrived, merge carefully
-  if (itemsInitialized && serverItems.length !== items.length) {
-    setItems([...serverItems].sort((a, b) => a.sort_order - b.sort_order))
-  }
+  useEffect(() => {
+    if (!itemsInitialized && serverItems.length > 0) {
+      setItems([...serverItems].sort((a, b) => a.sort_order - b.sort_order))
+      setItemsInitialized(true)
+    } else if (itemsInitialized && serverItems.length === 0 && items.length > 0) {
+      setItems([])
+    } else if (itemsInitialized && serverItems.length !== items.length) {
+      setItems([...serverItems].sort((a, b) => a.sort_order - b.sort_order))
+    }
+  }, [serverItems, itemsInitialized, items.length])
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')

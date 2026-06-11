@@ -91,7 +91,9 @@ export default function AccountSettings({ setHeader }: Props) {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => exportAccount()}
+          onClick={() => exportAccount(undefined, {
+            onSuccess: () => toast.success('Your data is downloading'),
+          })}
           disabled={exportingAccount}
         >
           <Download className="h-4 w-4" />
