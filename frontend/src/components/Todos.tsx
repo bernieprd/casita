@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
 import { useIsMobile } from '../hooks/useIsMobile'
+import { toast } from 'sonner'
 import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,6 +41,13 @@ const PRIORITY_SELECTED_CLASSES: Record<string, string> = {
   High:   'bg-destructive text-white border-destructive',
   Medium: 'bg-amber-500 text-white border-amber-500',
   Low:    'bg-secondary text-secondary-foreground border-secondary',
+}
+
+const UNDO_DURATION_MS = 4000
+
+interface PendingDelete {
+  ids: string[]
+  timeoutId: ReturnType<typeof setTimeout>
 }
 
 // ── Date formatting ───────────────────────────────────────────────────────────
@@ -379,12 +387,14 @@ interface SectionProps {
   todos: Todo[]
   onOpen: (todo: Todo) => void
   onClearDone?: () => void
+  pendingDeleteIds: Set<string>
 }
 
-function Section({ status, todos, onOpen, onClearDone }: SectionProps) {
+function Section({ status, todos, onOpen, onClearDone, pendingDeleteIds }: SectionProps) {
   const [expanded, setExpanded] = useState(status !== 'Done')
+  const visible = todos.filter(t => !pendingDeleteIds.has(t.id))
 
-  if (todos.length === 0) return null
+  if (visible.length === 0) return null
 
   return (
     <Collapsible
@@ -403,8 +413,8 @@ function Section({ status, todos, onOpen, onClearDone }: SectionProps) {
           <span className="flex-1 text-left text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">
             {status}
           </span>
-          <span className="text-xs text-muted-foreground mr-2">{todos.length}</span>
-          {onClearDone && todos.length > 0 && (
+          <span className="text-xs text-muted-foreground mr-2">{visible.length}</span>
+          {onClearDone && visible.length > 0 && (
             <button
               type="button"
               onClick={e => { e.stopPropagation(); onClearDone() }}
@@ -423,7 +433,7 @@ function Section({ status, todos, onOpen, onClearDone }: SectionProps) {
       <CollapsibleContent>
         <Separator />
         <ul>
-          {todos.map((todo, idx) => (
+          {visible.map((todo, idx) => (
             <li key={todo.id}>
               {idx > 0 && <Separator className="ml-4" />}
               <TodoRow todo={todo} onOpen={onOpen} />
@@ -472,9 +482,43 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
   const [inputValue, setInputValue] = useState('')
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
+  const pendingDeleteRef = useRef<PendingDelete | null>(null)
+
+  useEffect(() => { pendingDeleteRef.current = pendingDelete }, [pendingDelete])
 
   const inputValueRef = useRef(inputValue)
   useEffect(() => { inputValueRef.current = inputValue })
+
+  const commitDelete = useCallback((ids: string[]) => {
+    ids.forEach(id => deleteTodo.mutate(id))
+    setPendingDelete(null)
+  }, [deleteTodo.mutate])
+
+  function startDelete(ids: string[], message: string) {
+    const existing = pendingDeleteRef.current
+    if (existing) {
+      clearTimeout(existing.timeoutId)
+      commitDelete(existing.ids)
+    }
+    const timeoutId = setTimeout(() => commitDelete(ids), UNDO_DURATION_MS)
+    const next: PendingDelete = { ids, timeoutId }
+    setPendingDelete(next)
+    pendingDeleteRef.current = next
+    toast(message, {
+      duration: UNDO_DURATION_MS,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const cur = pendingDeleteRef.current
+          if (!cur) return
+          clearTimeout(cur.timeoutId)
+          setPendingDelete(null)
+          pendingDeleteRef.current = null
+        },
+      },
+    })
+  }
 
   const handleAdd = useCallback(() => {
     const name = inputValueRef.current.trim()
@@ -506,7 +550,7 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
   }, [inputValue, setHeader])
 
   function handleDelete(todo: Todo) {
-    deleteTodo.mutate(todo.id)
+    startDelete([todo.id], `"${todo.name}" deleted`)
   }
 
   function handleOpen(todo: Todo) {
@@ -526,9 +570,12 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
   }
 
   function commitClearDone() {
-    byStatus('Done').forEach(todo => deleteTodo.mutate(todo.id))
+    const doneIds = byStatus('Done').map(t => t.id)
     setShowClearConfirm(false)
+    startDelete(doneIds, 'Done to-dos cleared')
   }
+
+  const pendingDeleteIds = new Set(pendingDelete?.ids ?? [])
 
   const byStatus = (status: Status) =>
     (todos ?? []).filter(t => (t.status ?? 'Todo') === status)
@@ -558,6 +605,7 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
             todos={byStatus(status)}
             onOpen={handleOpen}
             onClearDone={status === 'Done' ? handleClearDone : undefined}
+            pendingDeleteIds={pendingDeleteIds}
           />
         ))}
       </div>
