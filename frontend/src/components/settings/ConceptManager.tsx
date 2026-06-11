@@ -52,7 +52,6 @@ interface ConceptManagerProps {
 
 interface SortableRowProps {
   item: ConceptItem
-  label: string
   ownerOnly: boolean
   isEditing: boolean
   editName: string
@@ -66,7 +65,6 @@ interface SortableRowProps {
 
 function SortableRow({
   item,
-  label,
   ownerOnly,
   isEditing,
   editName,
@@ -361,7 +359,6 @@ export function ConceptManager({ type, label, addPlaceholder, ownerOnly = false 
                       <SortableRow
                         key={item.id}
                         item={item}
-                        label={label}
                         ownerOnly={ownerOnly}
                         isEditing={editingId === item.id}
                         editName={editName}
