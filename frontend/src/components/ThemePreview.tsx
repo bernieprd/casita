@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger } from '@/components/ui/drawer'
 import { toast } from 'sonner'
 import {
   Home,
@@ -246,6 +246,7 @@ export default function ThemePreview() {
               <DrawerContent>
                 <DrawerHeader>
                   <DrawerTitle>Bottom Sheet</DrawerTitle>
+                  <DrawerDescription className="sr-only">Vaul-based bottom sheet preview.</DrawerDescription>
                 </DrawerHeader>
                 <div className="px-4 pb-8 text-sm text-muted-foreground">
                   Vaul-based bottom sheet — used for mobile forms and actions.

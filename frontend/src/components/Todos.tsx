@@ -6,12 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Drawer, DrawerContent } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from '../api'
 import type { Todo } from '../api'
-import { useKeyboardOffset } from '../useKeyboardOffset'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -86,7 +85,7 @@ function TodoRow({ todo, onOpen }: TodoRowProps) {
   return (
     <button
       type="button"
-      onClick={() => onOpen(todo)}
+      onClick={e => { const btn = e.currentTarget; btn.blur(); requestAnimationFrame(() => onOpen(todo)) }}
       className="w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors"
     >
       <span
@@ -125,7 +124,6 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
   const [draftStatus, setDraftStatus] = useState<Status>('Todo')
   const [draftPriority, setDraftPriority] = useState<string | null>(null)
   const nameRef = useRef<HTMLInputElement>(null)
-  const keyboardOffset = useKeyboardOffset()
   const isMobile = useIsMobile()
 
   useEffect(() => {
@@ -256,9 +254,12 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
         direction="bottom"
       >
         <DrawerContent
-          style={{ bottom: keyboardOffset, transition: 'bottom 150ms ease-out' }}
-          className="rounded-t-2xl flex flex-col max-h-[90vh]"
+          className="rounded-t-2xl flex flex-col max-h-[80dvh]"
         >
+          <DrawerHeader className="sr-only">
+            <DrawerTitle>Edit To-do</DrawerTitle>
+            <DrawerDescription>Update the to-do details.</DrawerDescription>
+          </DrawerHeader>
           {formBody}
         </DrawerContent>
       </Drawer>

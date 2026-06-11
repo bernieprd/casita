@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from '@/components/ui/drawer'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useItems, useDeleteItem, useToggleShoppingList } from '../api'
 import type { Item } from '../api'
@@ -107,9 +107,9 @@ function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>Delete "{item?.name}"?</DrawerTitle>
-            <p className="text-sm text-muted-foreground">
+            <DrawerDescription>
               This will permanently remove the item from your inventory.
-            </p>
+            </DrawerDescription>
           </DrawerHeader>
           <DrawerFooter>
             <Button variant="destructive" onClick={onConfirm}>Delete</Button>
