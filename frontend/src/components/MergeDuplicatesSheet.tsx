@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/drawer'
 import { useMergeItems } from '../api'
 import type { Item } from '../api'
-import { useKeyboardOffset } from '../useKeyboardOffset'
 
 interface Props {
   open: boolean
@@ -27,7 +26,6 @@ export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
   const [keepers, setKeepers] = useState<Record<number, string>>({})
   const [merging, setMerging] = useState(false)
   const mergeItems = useMergeItems()
-  const keyboardOffset = useKeyboardOffset()
 
   useEffect(() => {
     if (open) {
@@ -60,12 +58,7 @@ export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
       disablePreventScroll
     >
       <DrawerContent
-        style={{
-          maxHeight: Math.min(window.innerHeight * 0.80, window.innerHeight - keyboardOffset - 8),
-          bottom: keyboardOffset,
-          transition: 'bottom 150ms ease-out',
-        }}
-        className="flex flex-col"
+        className="flex flex-col max-h-[80dvh]"
       >
         {/* Handle is rendered by DrawerContent automatically */}
 

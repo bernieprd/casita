@@ -1,6 +1,6 @@
 import { type ThemePrefs, COLOR_PRESETS, FONT_OPTIONS, HEADING_FONT_OPTIONS, DEFAULT_THEME, loadGoogleFont } from '@/lib/theme'
 import { useIsMobile } from '../hooks/useIsMobile'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -180,9 +180,10 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly,
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange} direction="bottom">
-        <DrawerContent className="rounded-t-2xl flex flex-col max-h-[90vh]">
+        <DrawerContent className="rounded-t-2xl flex flex-col max-h-[80dvh]">
           <DrawerHeader>
             <DrawerTitle>Customize Theme</DrawerTitle>
+            <DrawerDescription className="sr-only">Customize the app's appearance.</DrawerDescription>
           </DrawerHeader>
           <div className="flex-1 overflow-y-auto px-4 pb-6">
             {innerContent}

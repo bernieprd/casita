@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { X } from 'lucide-react'
 import { useItems, useCreateItem, useUpdateItem, useConceptList } from '../api'
 import type { Item } from '../api'
-import { useKeyboardOffset } from '../useKeyboardOffset'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -18,6 +17,7 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
+  DrawerDescription,
   DrawerFooter,
 } from '@/components/ui/drawer'
 
@@ -35,7 +35,6 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
   const create = useCreateItem()
   const update = useUpdateItem()
   const isMobile = window.innerWidth < 768
-  const keyboardOffset = useKeyboardOffset()
 
   const [name, setName] = useState('')
   const [category, setCategory] = useState<string | null>(null)
@@ -180,16 +179,10 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
   )
 
   if (isMobile) {
-    const maxHeight = Math.min(window.innerHeight * 0.90, window.innerHeight - keyboardOffset - 8)
     return (
       <Drawer open={open} onOpenChange={v => { if (!v) onClose() }} dismissible>
         <DrawerContent
-          className="rounded-t-2xl flex flex-col"
-          style={{
-            maxHeight,
-            bottom: keyboardOffset,
-            transition: 'bottom 150ms ease-out',
-          }}
+          className="rounded-t-2xl flex flex-col max-h-[80dvh]"
         >
           <DrawerHeader className="pb-2 shrink-0">
             <div className="flex items-center justify-between">
@@ -200,6 +193,9 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
                 <X className="size-4" />
               </Button>
             </div>
+            <DrawerDescription className="sr-only">
+              {isEdit ? 'Update the item details.' : 'Fill in the details for the new item.'}
+            </DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-2 overflow-auto flex-1 overscroll-contain">
             {formContent}
