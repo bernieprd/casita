@@ -80,6 +80,8 @@ export function normalizeRecipe(page: NotionPage): Recipe {
     day: select(p['Day']),
     url: url(p['URL']),
     coverPhotoUrl: coverUrl(page.cover),
+    createdAt: 0,
+    updatedAt: 0,
   }
 }
 

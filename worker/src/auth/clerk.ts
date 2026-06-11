@@ -52,10 +52,7 @@ export async function verifyClerkToken(
     // for production. A static CLERK_JWT_KEY secret would only work if it happens to
     // match the kid in the JWT, which breaks when dev/prod instances differ.
     const jwtKey = await getPemForKid(env.CLERK_SECRET_KEY, header.kid)
-    const payload = await verifyToken(token, {
-      jwtKey,
-      issuer: (iss: string) => iss.includes('clerk'),
-    })
+    const payload = await verifyToken(token, { jwtKey })
 
     const userId = payload.sub
 
