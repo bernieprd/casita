@@ -80,3 +80,30 @@ export function useDeleteConcept(type: ConceptType) {
     },
   })
 }
+
+export function useReorderConcepts(type: ConceptType) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (items: ConceptItem[]) => {
+      // TODO: replace with bulk endpoint if lists grow large
+      await Promise.all(
+        items.map((item, idx) =>
+          api.patch(`/concepts/${type}/${item.id}`, { sort_order: idx })
+        )
+      )
+    },
+    onMutate: async (items) => {
+      await qc.cancelQueries({ queryKey: conceptKeys.list(type) })
+      const previous = qc.getQueryData<ConceptItem[]>(conceptKeys.list(type))
+      qc.setQueryData<ConceptItem[]>(
+        conceptKeys.list(type),
+        items.map((c, i) => ({ ...c, sort_order: i }))
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(conceptKeys.list(type), ctx.previous)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: conceptKeys.list(type) }),
+  })
+}

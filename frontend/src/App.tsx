@@ -22,7 +22,7 @@ import { useTheme } from '@/hooks/useTheme'
 
 
 const RecipeFormPage  = lazy(() => import('./components/RecipeFormPage'))
-const SettingsPage    = lazy(() => import('./components/Settings'))
+const SettingsLayout  = lazy(() => import('./components/settings/SettingsLayout'))
 const HouseholdSetup  = lazy(() => import('./components/HouseholdSetup'))
 const ThemePreview    = lazy(() => import('./components/ThemePreview'))
 
@@ -117,7 +117,7 @@ function AppShell() {
   const location = useLocation()
 
   const activeTab = pathnameToTab(location.pathname)
-  const isSettings = location.pathname === '/settings'
+  const isSettings = location.pathname.startsWith('/settings')
   const isRecipeDetail = /^\/recipes\/[^/]+$/.test(location.pathname)
 
   useEffect(() => {
@@ -211,8 +211,18 @@ function AppShell() {
               <Recipes setToolbar={setHeaderContent} />
             </TabErrorBoundary>
           } />
-          <Route path="/settings" element={
-          <TabErrorBoundary key="settings"><Suspense fallback={<SuspenseFallback />}><SettingsPage themePrefs={themePrefs} setThemePrefs={setThemePrefs} themeSaving={themeSaving} /></Suspense></TabErrorBoundary>} />
+          <Route path="/settings/*" element={
+            <TabErrorBoundary key="settings">
+              <Suspense fallback={<SuspenseFallback />}>
+                <SettingsLayout
+                  themePrefs={themePrefs}
+                  setThemePrefs={setThemePrefs}
+                  themeSaving={themeSaving}
+                  setHeader={setHeaderContent}
+                />
+              </Suspense>
+            </TabErrorBoundary>
+          } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
