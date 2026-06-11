@@ -651,7 +651,7 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
                   Casita will read your calendar events. You choose which calendars are visible to
                   your household. View our{' '}
                   <a
-                    href="https://casita.bernardoprd.com/privacy"
+                    href="https://mycasita.app/privacy"
                     target="_blank"
                     rel="noreferrer"
                     className="underline"
