@@ -1,6 +1,6 @@
 import { useRef } from 'react'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 
 interface MarkdownEditorProps {
   value: string
@@ -133,18 +133,13 @@ export function MarkdownEditor({ value, onChange, placeholder, rows = 4 }: Markd
           •
         </Button>
       </div>
-      <textarea
+      <Textarea
         ref={ref}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className={cn(
-          'flex w-full bg-transparent px-3 py-2 text-base outline-none',
-          'placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50',
-          'md:text-sm dark:bg-input/30',
-          'rounded-none border-0 focus-visible:ring-0',
-        )}
+        className="rounded-none border-0 focus-visible:ring-0 outline-none"
       />
     </div>
   )

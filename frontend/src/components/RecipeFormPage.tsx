@@ -220,7 +220,7 @@ function SectionHeader({
     <div className="px-4 py-3 flex items-center gap-1 bg-card rounded-t-lg">
       {editing ? (
         <>
-          <input
+          <Input
             ref={inputRef}
             value={draft}
             onChange={e => setDraft(e.target.value)}
@@ -228,7 +228,7 @@ function SectionHeader({
               if (e.key === 'Enter') commit()
               if (e.key === 'Escape') setEditing(false)
             }}
-            className="flex-1 bg-transparent border-b border-input text-xs font-semibold tracking-widest uppercase outline-none"
+            className="flex-1"
           />
           <Button variant="ghost" size="icon-xs" onClick={commit}>
             <Check className="size-3" />
