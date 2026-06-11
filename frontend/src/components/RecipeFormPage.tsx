@@ -580,7 +580,7 @@ export default function RecipeFormPage() {
           <div className="flex flex-col">
             {rows.filter(r => r.section === NO_SECTION).map((row, idx) => (
               <div key={row.key}>
-                {idx > 0 && <Separator className="ml-4" />}
+                {idx > 0 && <Separator />}
                 <IngredientRowForm
                   row={row}
                   allItems={allItems}
@@ -611,7 +611,7 @@ export default function RecipeFormPage() {
             <div className="flex flex-col">
               {rows.filter(r => r.section === sectionName).map((row, idx) => (
                 <div key={row.key}>
-                  {idx > 0 && <Separator className="ml-4" />}
+                  {idx > 0 && <Separator />}
                   <IngredientRowForm
                     row={row}
                     allItems={allItems}

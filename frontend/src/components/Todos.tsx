@@ -435,7 +435,7 @@ function Section({ status, todos, onOpen, onClearDone, pendingDeleteIds }: Secti
         <ul>
           {visible.map((todo, idx) => (
             <li key={todo.id}>
-              {idx > 0 && <Separator className="ml-4" />}
+              {idx > 0 && <Separator />}
               <TodoRow todo={todo} onOpen={onOpen} />
             </li>
           ))}
@@ -458,7 +458,7 @@ function TodosSkeleton() {
           <Separator />
           {Array.from({ length: rows }).map((_, i) => (
             <div key={i}>
-              {i > 0 && <Separator className="ml-7" />}
+              {i > 0 && <Separator />}
               <div className="px-4 py-2.5 flex items-center gap-3 min-h-12">
                 <Skeleton className="size-[18px] rounded shrink-0" />
                 <Skeleton className="h-4" style={{ width: `${45 + i * 20}%` }} />

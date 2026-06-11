@@ -174,7 +174,7 @@ function GroupSection({ label, items, removingIds, onRemove, onEdit }: GroupSect
           <ul>
             {items.map((item, idx) => (
               <li key={item.id}>
-                {idx > 0 && <hr className="border-border ml-4" />}
+                {idx > 0 && <hr className="border-border" />}
                 <ShoppingRow item={item} removingIds={removingIds} onRemove={onRemove} onEdit={onEdit} />
               </li>
             ))}
