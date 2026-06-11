@@ -8,6 +8,7 @@ import CalendarSettings from './CalendarSettings'
 import ShoppingSettings from './ShoppingSettings'
 import RecipesSettings from './RecipesSettings'
 import ChangelogSettings from './ChangelogSettings'
+import ImportSettings from './ImportSettings'
 
 interface Props {
   themePrefs: ThemePrefs
@@ -26,6 +27,7 @@ export default function SettingsLayout({ themePrefs, setThemePrefs, themeSaving,
       <Route path="shopping"  element={<ShoppingSettings  setHeader={setHeader} />} />
       <Route path="recipes"   element={<RecipesSettings   setHeader={setHeader} />} />
       <Route path="changelog"  element={<ChangelogSettings  setHeader={setHeader} />} />
+      <Route path="import"    element={<ImportSettings     setHeader={setHeader} />} />
       <Route path="*"         element={<Navigate to="/settings" replace />} />
     </Routes>
   )

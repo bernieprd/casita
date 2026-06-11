@@ -7,6 +7,7 @@ import {
   BookOpen,
   Sparkles,
   MessageSquare,
+  Upload,
   ChevronRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -71,6 +72,12 @@ export default function SettingsMenu() {
     {
       heading: 'APP',
       rows: [
+        {
+          icon: <Upload className="size-5 shrink-0 text-muted-foreground" />,
+          label: 'Import data',
+          description: 'Bring in your existing data',
+          path: '/settings/import',
+        },
         {
           icon: <Sparkles className="size-5 shrink-0 text-muted-foreground" />,
           label: "What's New",

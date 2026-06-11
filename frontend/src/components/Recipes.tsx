@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
 import PlanRecipeSheet from './PlanRecipeSheet'
+import GuidedImport from './GuidedImport'
+import { ImportModal } from './ImportModal'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -73,6 +75,7 @@ type SortOption = 'name-asc' | 'name-desc' | 'updated-desc' | 'created-desc' | '
 function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: string) => void; setHeader?: (node: ReactNode | null) => void; initialScroll?: number | null }) {
   const { data: recipes, isLoading, error } = useRecipes()
   const navigate = useNavigate()
+  const [importOpen, setImportOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedType, setSelectedType] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>('updated-desc')
@@ -218,11 +221,23 @@ function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: str
 
   if (!recipes?.length) {
     return (
-      <div className="pt-10 text-center px-4">
-        <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
-        <p className="text-sm font-medium text-muted-foreground mb-1">No recipes yet</p>
-        <p className="text-sm text-muted-foreground/60">Tap + to add your first recipe</p>
-      </div>
+      <>
+        <div className="pt-10 text-center px-4">
+          <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
+          <p className="text-sm font-medium text-muted-foreground mb-1">No recipes yet</p>
+          <p className="text-sm text-muted-foreground/60">Tap + to add your first recipe</p>
+          <button
+            type="button"
+            onClick={() => setImportOpen(true)}
+            className="mt-3 text-sm text-primary hover:underline underline-offset-4 transition-colors"
+          >
+            Or import your recipes →
+          </button>
+        </div>
+        <ImportModal open={importOpen} onOpenChange={setImportOpen} description="Import your recipes.">
+          <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
+        </ImportModal>
+      </>
     )
   }
 

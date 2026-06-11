@@ -14,6 +14,8 @@ import ItemFormDialog from './ItemFormDialog'
 import MergeDuplicatesSheet from './MergeDuplicatesSheet'
 import IncompleteItemsSheet from './IncompleteItemsSheet'
 import { ItemRow } from './ItemRow'
+import GuidedImport from './GuidedImport'
+import { ImportModal } from './ImportModal'
 
 // ── Group section ─────────────────────────────────────────────────────────────
 
@@ -156,6 +158,7 @@ export default function Items() {
   const { data, isLoading, error } = useItems()
   const deleteItem = useDeleteItem()
   const toggleShoppingList = useToggleShoppingList()
+  const [importOpen, setImportOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Item | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Item | null>(null)
   const [mergeSheetOpen, setMergeSheetOpen] = useState(false)
@@ -191,11 +194,23 @@ export default function Items() {
 
   if (allItems.length === 0) {
     return (
-      <div className="pt-10 text-center px-8">
-        <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
-        <p className="text-sm font-medium text-muted-foreground mb-1">No items yet</p>
-        <p className="text-sm text-muted-foreground/60">Use the search above to add your first item</p>
-      </div>
+      <>
+        <div className="pt-10 text-center px-8">
+          <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
+          <p className="text-sm font-medium text-muted-foreground mb-1">No items yet</p>
+          <p className="text-sm text-muted-foreground/60">Use the search above to add your first item</p>
+          <button
+            type="button"
+            onClick={() => setImportOpen(true)}
+            className="mt-3 text-sm text-primary hover:underline underline-offset-4 transition-colors"
+          >
+            Or import your pantry & shopping list →
+          </button>
+        </div>
+        <ImportModal open={importOpen} onOpenChange={setImportOpen} description="Import your pantry and shopping list data.">
+          <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
+        </ImportModal>
+      </>
     )
   }
 

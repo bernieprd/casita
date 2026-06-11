@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from '../api'
 import type { Todo } from '../api'
+import GuidedImport from './GuidedImport'
+import { ImportModal } from './ImportModal'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -483,6 +485,7 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
   const pendingDeleteRef = useRef<PendingDelete | null>(null)
 
   useEffect(() => { pendingDeleteRef.current = pendingDelete }, [pendingDelete])
@@ -595,6 +598,13 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
             <img src="/casita.webp" alt="" className="w-20 mb-4 mx-auto opacity-70" />
             <p className="text-sm font-medium text-muted-foreground mb-1">All caught up</p>
             <p className="text-sm text-muted-foreground/60">Add a to-do above to get started</p>
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              className="mt-3 text-sm text-primary hover:underline underline-offset-4 transition-colors"
+            >
+              Or import your to-dos →
+            </button>
           </div>
         )}
 
@@ -624,6 +634,11 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
         onConfirm={commitClearDone}
         onCancel={() => setShowClearConfirm(false)}
       />
+
+      {/* Import dialog */}
+      <ImportModal open={importOpen} onOpenChange={setImportOpen} description="Import your to-do list.">
+        <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
+      </ImportModal>
     </>
   )
 }
