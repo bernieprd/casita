@@ -227,7 +227,7 @@ function AppShell() {
               [
                 { id: 'home'     as TabId, label: 'Home',     icon: <Home className="size-5" /> },
                 { id: 'calendar' as TabId, label: 'Calendar', icon: <CalendarDays className="size-5" /> },
-                { id: 'todos'    as TabId, label: 'Todos',    icon: <CheckSquare className="size-5" /> },
+                { id: 'todos'    as TabId, label: 'To-Dos',   icon: <CheckSquare className="size-5" /> },
                 { id: 'shopping' as TabId, label: 'Shopping', icon: <ShoppingCart className="size-5" /> },
                 { id: 'recipes'  as TabId, label: 'Recipes',  icon: <BookOpen className="size-5" /> },
               ] satisfies { id: TabId; label: string; icon: ReactNode }[]

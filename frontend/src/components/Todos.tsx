@@ -176,7 +176,7 @@ function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetP
         value={draftName}
         onChange={e => setDraftName(e.target.value)}
         placeholder="To-do name"
-        aria-label="Todo name"
+        aria-label="To-do name"
         enterKeyHint="done"
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); nameRef.current?.blur() } }}
         className="w-full"
@@ -540,7 +540,7 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
         {isLoading && <TodosSkeleton />}
 
         {error && (
-          <p className="text-destructive p-4">Failed to load todos.</p>
+          <p className="text-destructive p-4">Failed to load to-dos.</p>
         )}
 
         {!isLoading && !error && todos?.length === 0 && (

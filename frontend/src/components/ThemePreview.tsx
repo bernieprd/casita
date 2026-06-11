@@ -41,7 +41,7 @@ import { useTheme } from '@/hooks/useTheme'
 const NAV_TABS = [
   { label: 'Home',     Icon: Home },
   { label: 'Calendar', Icon: CalendarDays },
-  { label: 'Todos',    Icon: CheckSquare },
+  { label: 'To-Dos',   Icon: CheckSquare },
   { label: 'Shopping', Icon: ShoppingCart },
   { label: 'Recipes',  Icon: BookOpen },
 ]
@@ -85,7 +85,7 @@ export default function ThemePreview() {
             <h3 className="text-2xl font-semibold">Heading 3</h3>
             <h4 className="text-xl font-semibold">Heading 4</h4>
             <p className="text-base leading-7">
-              Body text. The quick brown fox jumps over the lazy dog. Shopping lists, recipe steps, and household todos.
+              Body text. The quick brown fox jumps over the lazy dog. Shopping lists, recipe steps, and household to-dos.
             </p>
             <p className="text-sm text-muted-foreground">
               Muted text. Used for secondary information, labels, and timestamps.
@@ -323,7 +323,7 @@ export default function ThemePreview() {
                 Recipes
               </TabsTrigger>
               <TabsTrigger value="todos" className="flex-1">
-                Todos
+                To-Dos
               </TabsTrigger>
             </TabsList>
             <TabsContent value="shopping" className="p-3 text-sm text-muted-foreground">
@@ -333,7 +333,7 @@ export default function ThemePreview() {
               Recipe browser — filter by tag, cuisine, or ingredient.
             </TabsContent>
             <TabsContent value="todos" className="p-3 text-sm text-muted-foreground">
-              Household todos — assigned, due dates, recurring chores.
+              Household to-dos — assigned, due dates, recurring chores.
             </TabsContent>
           </Tabs>
         </Section>
