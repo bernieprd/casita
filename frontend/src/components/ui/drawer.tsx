@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useEffect } from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
@@ -29,27 +30,50 @@ function DrawerClose({
   return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />
 }
 
-function DrawerOverlay({
-  className,
-  ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Overlay>) {
-  return (
-    <DrawerPrimitive.Overlay
-      data-slot="drawer-overlay"
-      className={cn(
-        "fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0",
-        className
-      )}
-      {...props}
-    />
-  )
-}
+const DrawerOverlay = React.forwardRef<
+  React.ElementRef<typeof DrawerPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <DrawerPrimitive.Overlay
+    ref={ref}
+    data-slot="drawer-overlay"
+    className={cn(
+      "fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0",
+      className
+    )}
+    {...props}
+  />
+))
+DrawerOverlay.displayName = "DrawerOverlay"
 
 function DrawerContent({
   className,
   children,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content>) {
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+
+    const updateOffset = () => {
+      const offset =
+        window.innerHeight - (vv.height ?? window.innerHeight) - (vv.offsetTop ?? 0)
+      document.documentElement.style.setProperty(
+        "--keyboard-offset",
+        `${Math.max(0, offset)}px`
+      )
+    }
+
+    vv.addEventListener("resize", updateOffset)
+    vv.addEventListener("scroll", updateOffset)
+
+    return () => {
+      vv.removeEventListener("resize", updateOffset)
+      vv.removeEventListener("scroll", updateOffset)
+      document.documentElement.style.setProperty("--keyboard-offset", "0px")
+    }
+  }, [])
+
   return (
     <DrawerPortal data-slot="drawer-portal">
       <DrawerOverlay />
@@ -66,7 +90,9 @@ function DrawerContent({
         {...props}
       >
         <div className="mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full bg-muted group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
-        {children}
+        <div style={{ paddingBottom: "var(--keyboard-offset)" }}>
+          {children}
+        </div>
       </DrawerPrimitive.Content>
     </DrawerPortal>
   )
