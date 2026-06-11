@@ -5,7 +5,8 @@ import {
   CalendarDays,
   ShoppingCart,
   BookOpen,
-  Info,
+  Sparkles,
+  MessageSquare,
   ChevronRight,
 } from 'lucide-react'
 
@@ -13,7 +14,8 @@ interface NavRow {
   icon: React.ReactNode
   label: string
   description: string
-  path: string
+  path?: string
+  href?: string
 }
 
 interface NavGroup {
@@ -60,7 +62,7 @@ export default function SettingsMenu() {
         {
           icon: <BookOpen className="size-5 shrink-0 text-muted-foreground" />,
           label: 'Recipes',
-          description: 'Recipe types',
+          description: 'Types of recipe',
           path: '/settings/recipes',
         },
       ],
@@ -69,10 +71,16 @@ export default function SettingsMenu() {
       heading: 'APP',
       rows: [
         {
-          icon: <Info className="size-5 shrink-0 text-muted-foreground" />,
-          label: 'About',
-          description: 'Privacy, terms',
-          path: '/settings/about',
+          icon: <Sparkles className="size-5 shrink-0 text-muted-foreground" />,
+          label: "What's New",
+          description: 'Recent updates & releases',
+          path: '/settings/changelog',
+        },
+        {
+          icon: <MessageSquare className="size-5 shrink-0 text-muted-foreground" />,
+          label: 'Share feedback or report a bug',
+          description: 'Feature suggestions, issues',
+          href: 'https://form.typeform.com/to/Hb0utMfi',
         },
       ],
     },
@@ -86,23 +94,82 @@ export default function SettingsMenu() {
             {group.heading}
           </p>
           <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border">
-            {group.rows.map((row) => (
-              <button
-                key={row.path}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent transition-colors min-h-[44px]"
-                onClick={() => navigate(row.path)}
-              >
-                {row.icon}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{row.label}</p>
-                  <p className="text-xs text-muted-foreground">{row.description}</p>
-                </div>
-                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-              </button>
-            ))}
+            {group.rows.map((row) =>
+              row.href ? (
+                <a
+                  key={row.href}
+                  href={row.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent transition-colors min-h-[44px] first:rounded-t-lg last:rounded-b-lg"
+                >
+                  {row.icon}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{row.label}</p>
+                    <p className="text-xs text-muted-foreground">{row.description}</p>
+                  </div>
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                </a>
+              ) : (
+                <button
+                  key={row.path}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent transition-colors min-h-[44px] first:rounded-t-lg last:rounded-b-lg"
+                  onClick={() => navigate(row.path!)}
+                >
+                  {row.icon}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{row.label}</p>
+                    <p className="text-xs text-muted-foreground">{row.description}</p>
+                  </div>
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                </button>
+              )
+            )}
           </div>
         </div>
       ))}
+
+{/* Legal */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-1">
+          Legal
+        </p>
+        <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border">
+          <a
+            href="https://casita.bernardoprd.com/privacy"
+            target="_blank"
+            rel="noreferrer"
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent transition-colors min-h-[44px] first:rounded-t-lg last:rounded-b-lg"
+          >
+            <span className="flex-1 text-sm font-medium">Privacy Policy</span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+          </a>
+          <a
+            href="https://casita.bernardoprd.com/terms"
+            target="_blank"
+            rel="noreferrer"
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent transition-colors min-h-[44px] first:rounded-t-lg last:rounded-b-lg"
+          >
+            <span className="flex-1 text-sm font-medium">Terms of Service</span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+          </a>
+        </div>
+      </div>
+
+      {/* Support Casita */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-1">
+          Support Casita
+        </p>
+        <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] flex items-center justify-center px-4 py-4">
+          <stripe-buy-button
+            buy-button-id="buy_btn_1Th8Pr8BgLDJ3OdYO6OgpPUL"
+            publishable-key="pk_live_51Th7qh8BgLDJ3OdY7hVv086NoQW9pc5kluIOTUOqosXtN5dRilbQyMfRdo9zsiFWKMxlHNB4BsFSB0LNGIgs73LA00RPjSEk9G"
+          />
+        </div>
+      </div>
+
+
     </div>
   )
 }
