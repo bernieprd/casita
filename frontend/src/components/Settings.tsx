@@ -111,7 +111,7 @@ function ConceptSection({ type, label, addLabel }: { type: ConceptType; label: s
                 value={editName}
                 onChange={e => setEditName(e.target.value)}
                 autoFocus
-                className="w-28 h-6 text-xs px-2 py-0"
+                className="w-28"
                 onKeyDown={e => {
                   if (e.key === 'Enter') handleConfirmEdit(concept.id)
                   if (e.key === 'Escape') setEditingId(null)
@@ -143,7 +143,7 @@ function ConceptSection({ type, label, addLabel }: { type: ConceptType; label: s
             value={newName}
             onChange={e => setNewName(e.target.value)}
             placeholder={addLabel}
-            className="w-36 h-6 text-xs px-2 py-0"
+            className="w-36"
             onKeyDown={e => {
               if (e.key === 'Enter') handleConfirmAdd()
               if (e.key === 'Escape') setAddingNew(false)

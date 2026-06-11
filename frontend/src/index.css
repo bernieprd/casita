@@ -85,3 +85,11 @@
     --ring: 220 9% 60%;
   }
 }
+
+@media (max-width: 767px) {
+  input:not([type="hidden"]):not([type="file"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
