@@ -10,9 +10,10 @@ const TABLE: Record<ConceptType, string> = {
 
 function rowToConcept(row: Record<string, unknown>): ConceptItem {
   return {
-    id:         row.id as string,
-    name:       row.name as string,
-    sort_order: row.sort_order as number,
+    id:          row.id as string,
+    name:        row.name as string,
+    sort_order:  row.sort_order as number,
+    usage_count: (row.usage_count as number) ?? 0,
   }
 }
 
@@ -20,30 +21,11 @@ function isValidType(type: string): type is ConceptType {
   return type in TABLE
 }
 
-async function checkInUse(env: Env, householdId: string, type: ConceptType, name: string): Promise<number> {
-  if (type === 'recipe-types') {
-    const row = await env.DB
-      .prepare('SELECT COUNT(*) as n FROM recipes WHERE household_id = ? AND type = ?')
-      .bind(householdId, name).first<{ n: number }>()
-    return row?.n ?? 0
-  }
-  if (type === 'categories') {
-    const row = await env.DB
-      .prepare('SELECT COUNT(*) as n FROM items WHERE household_id = ? AND category = ?')
-      .bind(householdId, name).first<{ n: number }>()
-    return row?.n ?? 0
-  }
-  if (type === 'supermarkets') {
-    const row = await env.DB
-      .prepare(
-        `SELECT COUNT(*) as n FROM item_supermarkets
-         WHERE item_id IN (SELECT id FROM items WHERE household_id = ?)
-         AND supermarket = ?`,
-      )
-      .bind(householdId, name).first<{ n: number }>()
-    return row?.n ?? 0
-  }
-  return 0
+
+const USAGE_SUBQUERY: Record<ConceptType, string> = {
+  'recipe-types': `(SELECT COUNT(*) FROM recipes WHERE household_id = c.household_id AND type = c.name)`,
+  'categories':   `(SELECT COUNT(*) FROM items WHERE household_id = c.household_id AND category = c.name)`,
+  'supermarkets': `(SELECT COUNT(*) FROM item_supermarkets WHERE item_id IN (SELECT id FROM items WHERE household_id = c.household_id) AND supermarket = c.name)`,
 }
 
 export async function listConcepts(
@@ -56,8 +38,9 @@ export async function listConcepts(
   if (!isValidType(type)) return Response.json({ error: 'Unknown concept type' }, { status: 400 })
 
   const table = TABLE[type]
+  const usageSub = USAGE_SUBQUERY[type]
   const { results } = await env.DB
-    .prepare(`SELECT * FROM ${table} WHERE household_id = ? ORDER BY sort_order ASC, name ASC`)
+    .prepare(`SELECT c.*, ${usageSub} AS usage_count FROM ${table} c WHERE c.household_id = ? ORDER BY c.sort_order ASC, c.name ASC`)
     .bind(ctx.householdId)
     .all<Record<string, unknown>>()
 
@@ -159,18 +142,17 @@ export async function deleteConcept(
 
   if (!row) return Response.json({ error: 'Not found' }, { status: 404 })
 
-  const inUse = await checkInUse(env, ctx.householdId, type, row.name as string)
-  if (inUse > 0) {
-    return Response.json(
-      { error: `In use by ${inUse} ${inUse === 1 ? 'item' : 'items'}` },
-      { status: 409 },
-    )
-  }
+  const name = row.name as string
+  const clearStmt = type === 'recipe-types'
+    ? env.DB.prepare('UPDATE recipes SET type = NULL WHERE household_id = ? AND type = ?').bind(ctx.householdId, name)
+    : type === 'categories'
+    ? env.DB.prepare('UPDATE items SET category = NULL WHERE household_id = ? AND category = ?').bind(ctx.householdId, name)
+    : env.DB.prepare('DELETE FROM item_supermarkets WHERE item_id IN (SELECT id FROM items WHERE household_id = ?) AND supermarket = ?').bind(ctx.householdId, name)
 
-  await env.DB
-    .prepare(`DELETE FROM ${table} WHERE id = ? AND household_id = ?`)
-    .bind(id, ctx.householdId)
-    .run()
+  await env.DB.batch([
+    clearStmt,
+    env.DB.prepare(`DELETE FROM ${table} WHERE id = ? AND household_id = ?`).bind(id, ctx.householdId),
+  ])
 
   return new Response(null, { status: 204 })
 }

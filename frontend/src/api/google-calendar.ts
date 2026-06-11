@@ -28,6 +28,20 @@ export function useUpdateUserCalendars() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (calendars: UserCalendar[]) => api.put<{ ok: boolean }>('/user-calendars', calendars),
+    onMutate: async (calendars) => {
+      await qc.cancelQueries({ queryKey: googleCalendarKeys.calendars })
+      const previous = qc.getQueryData<{ calendars: UserCalendar[]; connected: boolean }>(googleCalendarKeys.calendars)
+      qc.setQueryData<{ calendars: UserCalendar[]; connected: boolean }>(
+        googleCalendarKeys.calendars,
+        old => old ? { ...old, calendars } : old
+      )
+      return { previous }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) {
+        qc.setQueryData(googleCalendarKeys.calendars, ctx.previous)
+      }
+    },
     onSettled: () => {
       qc.invalidateQueries({ queryKey: googleCalendarKeys.calendars })
       qc.invalidateQueries({ queryKey: calendarKeys.all })

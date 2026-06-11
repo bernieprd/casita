@@ -162,6 +162,7 @@ export interface ConceptItem {
   id: string
   name: string
   sort_order: number
+  usage_count: number
 }
 
 // ── Auth / household context ──────────────────────────────────────────────────
