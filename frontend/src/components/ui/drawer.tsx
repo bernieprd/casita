@@ -1,10 +1,47 @@
 "use client"
 
 import * as React from "react"
-import { useEffect } from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
+
+// Module-level singleton so multiple mounted drawers share one listener
+// and cleanup only resets the CSS variable when the last drawer unmounts.
+let _vvCount = 0
+let _vvCleanup: (() => void) | null = null
+
+function subscribeKeyboardOffset(): () => void {
+  if (typeof window === "undefined" || !window.visualViewport) return () => {}
+
+  const vv = window.visualViewport
+  _vvCount++
+
+  if (_vvCount === 1) {
+    const update = () => {
+      const offset =
+        window.innerHeight - (vv.height ?? window.innerHeight) - (vv.offsetTop ?? 0)
+      document.documentElement.style.setProperty(
+        "--keyboard-offset",
+        `${Math.max(0, offset)}px`
+      )
+    }
+    vv.addEventListener("resize", update)
+    vv.addEventListener("scroll", update)
+    _vvCleanup = () => {
+      vv.removeEventListener("resize", update)
+      vv.removeEventListener("scroll", update)
+    }
+  }
+
+  return () => {
+    _vvCount--
+    if (_vvCount === 0) {
+      _vvCleanup?.()
+      _vvCleanup = null
+      document.documentElement.style.setProperty("--keyboard-offset", "0px")
+    }
+  }
+}
 
 function Drawer({
   ...props
@@ -51,28 +88,7 @@ function DrawerContent({
   children,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Content>) {
-  useEffect(() => {
-    const vv = window.visualViewport
-    if (!vv) return
-
-    const updateOffset = () => {
-      const offset =
-        window.innerHeight - (vv.height ?? window.innerHeight) - (vv.offsetTop ?? 0)
-      document.documentElement.style.setProperty(
-        "--keyboard-offset",
-        `${Math.max(0, offset)}px`
-      )
-    }
-
-    vv.addEventListener("resize", updateOffset)
-    vv.addEventListener("scroll", updateOffset)
-
-    return () => {
-      vv.removeEventListener("resize", updateOffset)
-      vv.removeEventListener("scroll", updateOffset)
-      document.documentElement.style.setProperty("--keyboard-offset", "0px")
-    }
-  }, [])
+  React.useEffect(() => subscribeKeyboardOffset(), [])
 
   return (
     <DrawerPortal data-slot="drawer-portal">
@@ -90,7 +106,10 @@ function DrawerContent({
         {...props}
       >
         <div className="mx-auto mt-4 hidden h-2 w-[100px] shrink-0 rounded-full bg-muted group-data-[vaul-drawer-direction=bottom]/drawer-content:block" />
-        <div style={{ paddingBottom: "var(--keyboard-offset)" }}>
+        <div
+          className="keyboard-offset-padding"
+          style={{ paddingBottom: "var(--keyboard-offset)", transition: "padding-bottom 150ms ease-out" }}
+        >
           {children}
         </div>
       </DrawerPrimitive.Content>

@@ -180,7 +180,7 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly,
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange} direction="bottom">
-        <DrawerContent className="rounded-t-2xl flex flex-col max-h-[90vh]">
+        <DrawerContent className="rounded-t-2xl flex flex-col max-h-[80dvh]">
           <DrawerHeader>
             <DrawerTitle>Customize Theme</DrawerTitle>
             <DrawerDescription className="sr-only">Customize the app's appearance.</DrawerDescription>

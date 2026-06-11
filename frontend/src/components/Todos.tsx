@@ -85,7 +85,7 @@ function TodoRow({ todo, onOpen }: TodoRowProps) {
   return (
     <button
       type="button"
-      onClick={e => { e.currentTarget.blur(); onOpen(todo) }}
+      onClick={e => { const btn = e.currentTarget; btn.blur(); requestAnimationFrame(() => onOpen(todo)) }}
       className="w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors"
     >
       <span
