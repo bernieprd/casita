@@ -110,18 +110,23 @@ function ItemCombobox({
 
 function DroppableGroup({
   sectionKey,
+  header,
   children,
 }: {
   sectionKey: string
+  header?: React.ReactNode
   children: React.ReactNode
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: sectionKey === NO_SECTION ? '__none__' : sectionKey })
   return (
-    <div
-      ref={setNodeRef}
-      className={`min-h-2 rounded transition-colors ${isOver ? 'bg-accent' : 'bg-transparent'}`}
-    >
-      {children}
+    <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
+      {header}
+      <div
+        ref={setNodeRef}
+        className={`min-h-2 rounded-b-lg transition-colors ${isOver ? 'bg-accent' : 'bg-transparent'}`}
+      >
+        {children}
+      </div>
     </div>
   )
 }
@@ -151,12 +156,12 @@ function IngredientRowForm({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex gap-1 items-start ${isDragging && !isDragOverlay ? 'opacity-30' : 'opacity-100'} ${isDragOverlay ? 'bg-background rounded shadow-md' : ''}`}
+      className={`flex gap-2 items-center px-4 py-2 hover:bg-accent transition-colors ${isDragging && !isDragOverlay ? 'opacity-30' : 'opacity-100'} ${isDragOverlay ? 'bg-background rounded shadow-md' : ''}`}
     >
       <div
         {...listeners}
         {...attributes}
-        className="mt-1 cursor-grab text-muted-foreground touch-none flex items-center"
+        className="cursor-grab text-muted-foreground touch-none flex items-center"
         style={{ touchAction: 'none' }}
       >
         <GripVertical className="size-4" />
@@ -176,7 +181,7 @@ function IngredientRowForm({
         variant="ghost"
         size="icon-sm"
         onClick={onRemove}
-        className="mt-0.5 text-muted-foreground"
+        className="text-muted-foreground"
       >
         <Trash2 className="size-4" />
       </Button>
@@ -212,7 +217,7 @@ function SectionHeader({
   }
 
   return (
-    <div className="flex items-center gap-1 mt-6 mb-2">
+    <div className="px-4 py-3 flex items-center bg-card rounded-t-lg">
       {editing ? (
         <>
           <input
@@ -231,7 +236,7 @@ function SectionHeader({
         </>
       ) : (
         <>
-          <h3 className="flex-1 text-xs font-semibold tracking-widest uppercase text-muted-foreground">
+          <h3 className="flex-1 text-xs font-semibold uppercase tracking-[.08em] text-muted-foreground leading-none">
             {name}
           </h3>
           <Button variant="ghost" size="icon-xs" onClick={startEdit} className="text-muted-foreground">
@@ -572,48 +577,55 @@ export default function RecipeFormPage() {
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <DroppableGroup sectionKey={NO_SECTION}>
-          <div className="flex flex-col gap-3">
-            {rows.filter(r => r.section === NO_SECTION).map(row => (
-              <IngredientRowForm
-                key={row.key}
-                row={row}
-                allItems={allItems}
-                onUpdate={changes => updateRow(row.key, changes)}
-                onRemove={() => removeRow(row.key, row.id)}
-              />
+          <div className="flex flex-col">
+            {rows.filter(r => r.section === NO_SECTION).map((row, idx) => (
+              <div key={row.key}>
+                {idx > 0 && <hr className="border-border ml-4" />}
+                <IngredientRowForm
+                  row={row}
+                  allItems={allItems}
+                  onUpdate={changes => updateRow(row.key, changes)}
+                  onRemove={() => removeRow(row.key, row.id)}
+                />
+              </div>
             ))}
           </div>
-          <Button variant="ghost" size="sm" onClick={() => addRow(NO_SECTION)} className="mt-2 gap-1">
+          <Button variant="ghost" size="sm" onClick={() => addRow(NO_SECTION)} className="mt-2 gap-1 px-4 my-2">
             <Plus className="size-4" />
             Add ingredient
           </Button>
         </DroppableGroup>
 
         {sectionOrder.map(sectionName => (
-          <div key={sectionName}>
-            <SectionHeader
-              name={sectionName}
-              onRename={newName => renameSection(sectionName, newName)}
-              onDelete={() => deleteSection(sectionName)}
-            />
-            <DroppableGroup sectionKey={sectionName}>
-              <div className="flex flex-col gap-3">
-                {rows.filter(r => r.section === sectionName).map(row => (
+          <DroppableGroup
+            key={sectionName}
+            sectionKey={sectionName}
+            header={
+              <SectionHeader
+                name={sectionName}
+                onRename={newName => renameSection(sectionName, newName)}
+                onDelete={() => deleteSection(sectionName)}
+              />
+            }
+          >
+            <div className="flex flex-col">
+              {rows.filter(r => r.section === sectionName).map((row, idx) => (
+                <div key={row.key}>
+                  {idx > 0 && <hr className="border-border ml-4" />}
                   <IngredientRowForm
-                    key={row.key}
                     row={row}
                     allItems={allItems}
                     onUpdate={changes => updateRow(row.key, changes)}
                     onRemove={() => removeRow(row.key, row.id)}
                   />
-                ))}
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => addRow(sectionName)} className="mt-2 gap-1">
-                <Plus className="size-4" />
-                Add ingredient
-              </Button>
-            </DroppableGroup>
-          </div>
+                </div>
+              ))}
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => addRow(sectionName)} className="mt-2 gap-1 px-4 my-2">
+              <Plus className="size-4" />
+              Add ingredient
+            </Button>
+          </DroppableGroup>
         ))}
 
         <DragOverlay>

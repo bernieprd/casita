@@ -22,11 +22,9 @@ import {
 } from '@/components/ui/drawer'
 import ItemFormDialog from './ItemFormDialog'
 import IncompleteItemsSheet from './IncompleteItemsSheet'
+import { ItemRow, EXIT_DURATION_MS } from './ItemRow'
 import { useShoppingList, useToggleShoppingList, useDeleteItem } from '../api'
 import type { Item } from '../api'
-
-// How long the collapse exit animation plays before mutate fires.
-const EXIT_DURATION_MS = 220
 
 // ── Long press hook ───────────────────────────────────────────────────────────
 
@@ -115,47 +113,20 @@ function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
   )
 }
 
-// ── Shopping item row ─────────────────────────────────────────────────────────
+// ── Shopping row wrapper (handles per-item hook) ──────────────────────────────
 
-interface ShoppingItemRowProps {
-  item: Item
-  removing: boolean
-  onRemove: (id: string) => void
-  onEdit: (item: Item) => void
-}
-
-function ShoppingItemRow({ item, removing, onRemove, onEdit }: ShoppingItemRowProps) {
+function ShoppingRow({ item, removingIds, onRemove, onEdit }: { item: Item; removingIds: Set<string>; onRemove: (id: string) => void; onEdit: (item: Item) => void }) {
   const { handlers, didFire } = useLongPress(() => onEdit(item))
-
   return (
-    <div
-      style={{
-        overflow: 'hidden',
-        transition: `opacity ${EXIT_DURATION_MS}ms ease, max-height ${EXIT_DURATION_MS}ms ease`,
-        maxHeight: removing ? 0 : '80px',
-        opacity: removing ? 0 : 1,
-      }}
-    >
-      <button
-        {...handlers}
-        onClick={() => { if (!didFire()) onRemove(item.id) }}
-        className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-accent transition-colors select-none"
-        aria-label={`Mark ${item.name} as bought`}
-      >
-        <span
-          aria-hidden
-          className="shrink-0 size-4 rounded-[4px] border border-input bg-input/30 shadow-xs"
-        />
-        <div className="flex-1 min-w-0">
-          <span className="block text-sm truncate">{item.name}</span>
-          {item.supermarkets.length > 0 && (
-            <span className="block text-xs text-muted-foreground truncate">
-              {item.supermarkets.join(', ')}
-            </span>
-          )}
-        </div>
-      </button>
-    </div>
+    <ItemRow
+      variant="shopping"
+      name={item.name}
+      subtitle={item.supermarkets.length > 0 ? item.supermarkets.join(', ') : undefined}
+      removing={removingIds.has(item.id)}
+      handlers={handlers}
+      didFire={didFire}
+      onRemove={() => onRemove(item.id)}
+    />
   )
 }
 
@@ -203,13 +174,8 @@ function GroupSection({ label, items, removingIds, onRemove, onEdit }: GroupSect
           <ul>
             {items.map((item, idx) => (
               <li key={item.id}>
-                {idx > 0 && <hr className="border-border ml-14" />}
-                <ShoppingItemRow
-                  item={item}
-                  removing={removingIds.has(item.id)}
-                  onRemove={onRemove}
-                  onEdit={onEdit}
-                />
+                {idx > 0 && <hr className="border-border ml-4" />}
+                <ShoppingRow item={item} removingIds={removingIds} onRemove={onRemove} onEdit={onEdit} />
               </li>
             ))}
           </ul>

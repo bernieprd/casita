@@ -11,6 +11,7 @@ import { Plus, Pencil, Search, Share, ArrowLeft, CalendarPlus, ExternalLink, Che
 import { toast } from 'sonner'
 import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping, useItems, useShareRecipe } from '../api'
 import type { Block, RecipeIngredient, Item } from '../api'
+import { ItemRow } from './ItemRow'
 
 // ── Inline markdown renderer ──────────────────────────────────────────────────
 
@@ -328,25 +329,13 @@ function CollapsibleIngredientGroup({
             {items.map((ing, idx) => (
               <li key={ing.id}>
                 {idx > 0 && <hr className="border-border" />}
-                <div className="flex items-center justify-between px-4 py-2.5 gap-4 hover:bg-accent transition-colors">
-                  <div className="min-w-0">
-                    <p className="text-sm">{ing.itemName}</p>
-                    {ing.quantity && <p className="text-xs text-muted-foreground">{ing.quantity}</p>}
-                  </div>
-                  <Button
-                    size="sm"
-                    variant={inList(ing) ? 'outline' : 'default'}
-                    className="shrink-0 min-w-[68px]"
-                    onClick={() => toggle.mutate({
-                      id: ing.id,
-                      needsShopping: !inList(ing),
-                      itemId: ing.itemId,
-                      itemName: ing.itemName,
-                    })}
-                  >
-                    {inList(ing) ? 'Remove' : 'Add'}
-                  </Button>
-                </div>
+                <ItemRow
+                  variant="recipe"
+                  name={ing.itemName}
+                  subtitle={ing.quantity ?? undefined}
+                  inList={inList(ing)}
+                  onToggle={() => toggle.mutate({ id: ing.id, needsShopping: !inList(ing), itemId: ing.itemId, itemName: ing.itemName })}
+                />
               </li>
             ))}
           </ul>
@@ -400,25 +389,13 @@ function IngredientGroups({
                 {items.map((ing, idx) => (
                   <li key={ing.id}>
                     {idx > 0 && <hr className="border-border" />}
-                    <div className="flex items-center justify-between px-4 py-2.5 gap-4 hover:bg-accent transition-colors">
-                      <div className="min-w-0">
-                        <p className="text-sm">{ing.itemName}</p>
-                        {ing.quantity && <p className="text-xs text-muted-foreground">{ing.quantity}</p>}
-                      </div>
-                      <Button
-                        size="sm"
-                        variant={inList(ing) ? 'outline' : 'default'}
-                        className="shrink-0 min-w-[68px]"
-                        onClick={() => toggle.mutate({
-                          id: ing.id,
-                          needsShopping: !inList(ing),
-                          itemId: ing.itemId,
-                          itemName: ing.itemName,
-                        })}
-                      >
-                        {inList(ing) ? 'Remove' : 'Add'}
-                      </Button>
-                    </div>
+                    <ItemRow
+                      variant="recipe"
+                      name={ing.itemName}
+                      subtitle={ing.quantity ?? undefined}
+                      inList={inList(ing)}
+                      onToggle={() => toggle.mutate({ id: ing.id, needsShopping: !inList(ing), itemId: ing.itemId, itemName: ing.itemName })}
+                    />
                   </li>
                 ))}
               </ul>

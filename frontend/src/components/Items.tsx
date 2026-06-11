@@ -13,34 +13,7 @@ import type { Item } from '../api'
 import ItemFormDialog from './ItemFormDialog'
 import MergeDuplicatesSheet from './MergeDuplicatesSheet'
 import IncompleteItemsSheet from './IncompleteItemsSheet'
-
-// ── Item row ──────────────────────────────────────────────────────────────────
-
-function ItemRow({ item, onEdit, onToggle }: { item: Item; onEdit: (i: Item) => void; onToggle: (i: Item) => void }) {
-  return (
-    <li className="flex items-center">
-      <button
-        className="flex-1 px-4 py-2 pr-24 text-left hover:bg-muted/50 transition-colors"
-        onClick={() => onEdit(item)}
-      >
-        <div className="text-sm">{item.name}</div>
-        {item.supermarkets.length > 0 && (
-          <div className="text-xs text-muted-foreground">{item.supermarkets.join(', ')}</div>
-        )}
-      </button>
-      <div className="absolute right-3">
-        <Button
-          size="sm"
-          variant={item.onShoppingList ? 'outline' : 'default'}
-          onClick={e => { e.stopPropagation(); onToggle(item) }}
-          className="min-w-[68px]"
-        >
-          {item.onShoppingList ? 'Remove' : 'Add'}
-        </Button>
-      </div>
-    </li>
-  )
-}
+import { ItemRow } from './ItemRow'
 
 // ── Group section ─────────────────────────────────────────────────────────────
 
@@ -75,12 +48,19 @@ function GroupSection({ label, items, onEdit, onToggle }: GroupSectionProps) {
         <CollapsibleContent>
           <div className="rounded-b-lg overflow-hidden">
             <Separator />
-            <ul className="relative">
+            <ul>
               {items.map((item, idx) => (
-                <span key={item.id}>
+                <li key={item.id}>
                   {idx > 0 && <Separator className="ml-4" />}
-                  <ItemRow item={item} onEdit={onEdit} onToggle={onToggle} />
-                </span>
+                  <ItemRow
+                    variant="inventory"
+                    name={item.name}
+                    subtitle={item.supermarkets.length > 0 ? item.supermarkets.join(', ') : undefined}
+                    onShoppingList={item.onShoppingList}
+                    onRowClick={() => onEdit(item)}
+                    onToggle={() => onToggle(item)}
+                  />
+                </li>
               ))}
             </ul>
           </div>
