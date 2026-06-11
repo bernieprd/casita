@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -15,7 +15,8 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Pencil, Trash2, X } from 'lucide-react'
+import { toast } from 'sonner'
+import { GripVertical, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -55,14 +56,11 @@ interface SortableRowProps {
   ownerOnly: boolean
   isEditing: boolean
   editName: string
-  deleteErrorId: string | null
-  deleteErrorMsg: string | null
   onEditStart: (id: string, name: string) => void
   onEditChange: (val: string) => void
   onEditConfirm: (id: string) => void
   onEditCancel: () => void
   onDeleteRequest: (item: ConceptItem) => void
-  onDismissError: () => void
   rowRef?: (el: HTMLDivElement | null) => void
 }
 
@@ -72,14 +70,11 @@ function SortableRow({
   ownerOnly,
   isEditing,
   editName,
-  deleteErrorId,
-  deleteErrorMsg,
   onEditStart,
   onEditChange,
   onEditConfirm,
   onEditCancel,
   onDeleteRequest,
-  onDismissError,
   rowRef,
 }: SortableRowProps) {
   const {
@@ -96,8 +91,6 @@ function SortableRow({
     transition,
     opacity: isDragging ? 0.5 : 1,
   }
-
-  const hasError = deleteErrorId === item.id && deleteErrorMsg
 
   return (
     <div
@@ -163,18 +156,6 @@ function SortableRow({
         )}
       </div>
 
-      {hasError && (
-        <div className="flex items-center gap-2 mt-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          <span className="flex-1">{deleteErrorMsg}</span>
-          <button
-            onClick={onDismissError}
-            className="text-amber-600 hover:text-amber-800 flex-shrink-0"
-            aria-label="Dismiss error"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
     </div>
   )
 }
@@ -208,11 +189,14 @@ export function ConceptManager({ type, label, addPlaceholder, ownerOnly = false 
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
-  const [deletePending, setDeletePending] = useState<ConceptItem | null>(null)
-  const [deleteErrorId, setDeleteErrorId] = useState<string | null>(null)
-  const [deleteErrorMsg, setDeleteErrorMsg] = useState<string | null>(null)
+  const [confirmItem, setConfirmItem] = useState<ConceptItem | null>(null)
   const [addingNew, setAddingNew] = useState(false)
   const [newName, setNewName] = useState('')
+
+  interface PendingDelete { item: ConceptItem; timeoutId: ReturnType<typeof setTimeout> }
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
+  const pendingDeleteRef = useRef<PendingDelete | null>(null)
+  useEffect(() => { pendingDeleteRef.current = pendingDelete }, [pendingDelete])
 
   // Refs for focus management
   const addButtonRef = useRef<HTMLButtonElement>(null)
@@ -265,45 +249,50 @@ export function ConceptManager({ type, label, addPlaceholder, ownerOnly = false 
 
   // ── Delete handlers ──────────────────────────────────────────────────────────
 
+  function commitDelete(item: ConceptItem) {
+    remove(item.id, {
+      onError: () => toast.error(`Could not delete "${item.name}"`),
+    })
+    setPendingDelete(null)
+    pendingDeleteRef.current = null
+  }
+
   function handleDeleteRequest(item: ConceptItem) {
-    setDeleteErrorId(null)
-    setDeleteErrorMsg(null)
-    setDeletePending(item)
+    setConfirmItem(item)
   }
 
   function handleDeleteConfirm() {
-    if (!deletePending) return
-    const targetId = deletePending.id
-    const currentIndex = items.findIndex((i) => i.id === targetId)
+    if (!confirmItem) return
+    const item = confirmItem
+    setConfirmItem(null)
 
-    remove(targetId, {
-      onSuccess: () => {
-        setDeletePending(null)
-        // Focus previous item or add button
-        setTimeout(() => {
-          if (currentIndex > 0) {
-            const prevId = items[currentIndex - 1]?.id
-            if (prevId) {
-              const el = rowRefs.current.get(prevId)
-              const btn = el?.querySelector('button')
-              btn?.focus()
-            }
-          } else {
-            addButtonRef.current?.focus()
-          }
-        }, 0)
-      },
-      onError: (err: unknown) => {
-        const msg = (err as { message?: string })?.message ?? 'Could not delete'
-        setDeletePending(null)
-        setDeleteErrorId(targetId)
-        setDeleteErrorMsg(msg)
+    // Commit any previous pending delete immediately before starting this one
+    const existing = pendingDeleteRef.current
+    if (existing) {
+      clearTimeout(existing.timeoutId)
+      commitDelete(existing.item)
+    }
+
+    const timeoutId = setTimeout(() => commitDelete(item), 4000)
+    setPendingDelete({ item, timeoutId })
+
+    toast(`"${item.name}" deleted`, {
+      duration: 4000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const cur = pendingDeleteRef.current
+          if (!cur || cur.item.id !== item.id) return
+          clearTimeout(cur.timeoutId)
+          setPendingDelete(null)
+          pendingDeleteRef.current = null
+        },
       },
     })
   }
 
   function handleDeleteCancel() {
-    setDeletePending(null)
+    setConfirmItem(null)
   }
 
   // ── Add handlers ─────────────────────────────────────────────────────────────
@@ -363,35 +352,34 @@ export function ConceptManager({ type, label, addPlaceholder, ownerOnly = false 
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-            <SortableContext
-              items={items.map((i) => i.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div role="list">
-                {items.map((item) => (
-                  <SortableRow
-                    key={item.id}
-                    item={item}
-                    label={label}
-                    ownerOnly={ownerOnly}
-                    isEditing={editingId === item.id}
-                    editName={editName}
-                    deleteErrorId={deleteErrorId}
-                    deleteErrorMsg={deleteErrorMsg}
-                    onEditStart={handleEditStart}
-                    onEditChange={setEditName}
-                    onEditConfirm={handleEditConfirm}
-                    onEditCancel={handleEditCancel}
-                    onDeleteRequest={handleDeleteRequest}
-                    onDismissError={() => {
-                      setDeleteErrorId(null)
-                      setDeleteErrorMsg(null)
-                    }}
-                    rowRef={setRowRef(item.id)}
-                  />
-                ))}
-              </div>
-            </SortableContext>
+            {(() => {
+              const visibleItems = items.filter(i => i.id !== pendingDelete?.item.id)
+              return (
+                <SortableContext
+                  items={visibleItems.map((i) => i.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div role="list">
+                    {visibleItems.map((item) => (
+                      <SortableRow
+                        key={item.id}
+                        item={item}
+                        label={label}
+                        ownerOnly={ownerOnly}
+                        isEditing={editingId === item.id}
+                        editName={editName}
+                        onEditStart={handleEditStart}
+                        onEditChange={setEditName}
+                        onEditConfirm={handleEditConfirm}
+                        onEditCancel={handleEditCancel}
+                        onDeleteRequest={handleDeleteRequest}
+                        rowRef={setRowRef(item.id)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              )
+            })()}
           </DndContext>
 
           {/* Add row — only shown for owners */}
@@ -426,12 +414,14 @@ export function ConceptManager({ type, label, addPlaceholder, ownerOnly = false 
       )}
 
       {/* Delete confirmation dialog */}
-      <AlertDialog open={!!deletePending} onOpenChange={(open) => { if (!open) handleDeleteCancel() }}>
+      <AlertDialog open={!!confirmItem} onOpenChange={(open) => { if (!open) handleDeleteCancel() }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {deletePending?.name}?</AlertDialogTitle>
+            <AlertDialogTitle>Delete {confirmItem?.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Items using this {label.toLowerCase()} will have it cleared. This cannot be undone.
+              {confirmItem?.usage_count
+                ? `This will clear it from ${confirmItem.usage_count} ${confirmItem.usage_count === 1 ? 'item' : 'items'}.`
+                : `This ${label.toLowerCase()} is not used by any items.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
