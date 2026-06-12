@@ -16,6 +16,18 @@ interface ChangelogEntry {
 const CHANGELOG: ChangelogEntry[] = [
   {
     date: 'June 2026',
+    title: 'Shopping home widget',
+    description:
+      'The home screen shopping card now gives smart trip guidance — recommending your best store, handling tied stores, and surfacing items clearly whether or not you use supermarkets.',
+  },
+  {
+    date: 'June 2026',
+    title: 'Guided import & onboarding',
+    description:
+      'A new import wizard lets you paste a grocery list, recipes, or to-dos and have them automatically structured and brought into Casita. New households are also walked through an optional import step right after setup.',
+  },
+  {
+    date: 'June 2026',
     title: 'Support & Changelog',
     description: "You can now support Casita and see what's new directly from Settings.",
   },

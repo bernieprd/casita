@@ -1,11 +1,14 @@
-import { useState, useMemo } from 'react'
-import { RotateCcw, ExternalLink } from 'lucide-react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { RotateCcw, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus } from '../api'
+import { toast } from 'sonner'
+import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus, useToggleShoppingList, useUpdateTodo } from '../api'
+import type { Item } from '../api/types'
 import { useNavigate } from 'react-router-dom'
+import { ItemRow } from './ItemRow'
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
@@ -42,6 +45,139 @@ function EmptyState({ text }: { text: string }) {
   )
 }
 
+const COLLAPSE_DURATION_MS = 220
+// How long the toast stays up; mutation fires 100ms after this.
+const TOAST_DURATION_MS = 4000
+
+const formatShoppingRemoved = (name: string) => `Removed "${name}" from list`
+const formatTodoDone = (name: string) => `Marked "${name}" as done`
+
+function useCollapsible() {
+  const [collapsed, setCollapsed] = useState(false)
+  const [contentVisible, setContentVisible] = useState(true)
+  const handleToggle = () => {
+    if (collapsed) { setContentVisible(true); setCollapsed(false) }
+    else setCollapsed(true)
+  }
+  return { collapsed, contentVisible, handleToggle, onCollapsed: () => setContentVisible(false) }
+}
+
+function CollapsibleBody({ collapsed, onCollapsed, children }: {
+  collapsed: boolean
+  onCollapsed: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateRows: collapsed ? '0fr' : '1fr',
+        transition: `grid-template-rows ${COLLAPSE_DURATION_MS}ms ease, opacity ${COLLAPSE_DURATION_MS}ms ease`,
+        opacity: collapsed ? 0 : 1,
+      }}
+      onTransitionEnd={e => { if (e.target === e.currentTarget && collapsed) onCollapsed() }}
+    >
+      <div style={{ overflow: 'hidden' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function useDeferredAction(
+  mutate: (id: string) => void,
+  formatMessage: (name: string) => string,
+) {
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
+  const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const toastIds = useRef<Map<string, string | number>>(new Map())
+  const mutateRef = useRef(mutate)
+  useEffect(() => { mutateRef.current = mutate })
+
+  useEffect(() => {
+    const t = timers.current
+    const tid = toastIds.current
+    return () => {
+      t.forEach((timer, id) => {
+        clearTimeout(timer)
+        mutateRef.current(id)
+        const toastId = tid.get(id)
+        if (toastId !== undefined) toast.dismiss(toastId)
+      })
+    }
+  }, [])
+
+  const trigger = useCallback((id: string, name: string) => {
+    if (timers.current.has(id)) return
+    setRemovingIds(prev => new Set(prev).add(id))
+    const timer = setTimeout(() => {
+      mutateRef.current(id)
+      setRemovingIds(prev => { const s = new Set(prev); s.delete(id); return s })
+      timers.current.delete(id)
+      toastIds.current.delete(id)
+    }, TOAST_DURATION_MS + 100)
+    timers.current.set(id, timer)
+    const toastId = toast(formatMessage(name), {
+      duration: TOAST_DURATION_MS,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const t = timers.current.get(id)
+          if (t !== undefined) { clearTimeout(t); timers.current.delete(id) }
+          toastIds.current.delete(id)
+          setRemovingIds(prev => { const s = new Set(prev); s.delete(id); return s })
+        },
+      },
+    })
+    toastIds.current.set(id, toastId)
+  }, [formatMessage])
+
+  return { removingIds, trigger }
+}
+
+function CardHeader({
+  label,
+  showBorder,
+  collapsed,
+  onToggle,
+  seeAllLabel,
+  onSeeAll,
+}: {
+  label: string
+  showBorder: boolean
+  collapsed: boolean
+  onToggle: () => void
+  seeAllLabel?: string
+  onSeeAll?: () => void
+}) {
+  return (
+    <div className={cn('flex items-center px-4 py-3', showBorder && 'border-b border-border')}>
+      <span className="flex-1 text-xs font-medium tracking-widest uppercase text-muted-foreground leading-none">
+        {label}
+      </span>
+      {onSeeAll && (
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); onSeeAll() }}
+          className="text-xs font-semibold text-primary cursor-pointer mr-3"
+        >
+          {seeAllLabel ?? 'See all'}
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={e => { e.stopPropagation(); onToggle() }}
+        className="text-muted-foreground/60 -mr-1"
+        aria-label={collapsed ? 'Expand section' : 'Collapse section'}
+      >
+        {collapsed
+          ? <ChevronDown className="size-4" />
+          : <ChevronUp className="size-4" />}
+      </button>
+    </div>
+  )
+}
+
 // ── Calendar preview ──────────────────────────────────────────────────────────
 
 function dayLabel(dateStr: string, includeDatePart = false): string {
@@ -61,6 +197,7 @@ function timeLabel(dateStr: string): string | null {
 }
 
 function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
+  const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
   const { data: googleStatus } = useGoogleStatus()
   const timeMin = useMemo(() => new Date().toISOString(), [])
   const timeMax = useMemo(() => {
@@ -84,51 +221,52 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
 
   return (
     <div className="mb-6">
-      <SectionHeader
-        label="Coming up"
-        action={
-          <button
-            onClick={onNavigate}
-            className="text-xs font-semibold text-primary cursor-pointer"
-          >
-            See all
-          </button>
-        }
-      />
       <SectionCard>
-        {isLoading ? (
-          <div className="px-4">
-            {[0, 1, 2].map(i => (
-              <div key={i} className={cn('flex gap-3 items-center py-3', i > 0 && 'border-t border-border')}>
-                <Skeleton className="h-3.5 w-[55%]" />
-                <Skeleton className="h-3.5 w-8 ml-auto" />
-                <Skeleton className="h-3.5 w-10" />
-              </div>
-            ))}
-          </div>
-        ) : upcoming.length === 0 ? (
-          <EmptyState text="No upcoming events" />
-        ) : (
-          upcoming.map((event, i) => (
-            <div
-              key={event.id}
-              className={cn(
-                'px-4 py-3 flex items-center gap-3',
-                i > 0 && 'border-t border-border'
-              )}
-            >
-              <p className="text-sm flex-1 truncate">{event.title}</p>
-              <span className="text-xs font-semibold text-primary whitespace-nowrap">
-                {dayLabel(event.start)}
-              </span>
-              {timeLabel(event.start) && (
-                <span className="text-xs text-muted-foreground/60 whitespace-nowrap">
-                  {timeLabel(event.start)}
-                </span>
-              )}
+        <CardHeader
+          label="Coming up"
+          showBorder={contentVisible}
+          collapsed={collapsed}
+          onToggle={handleToggle}
+          onSeeAll={onNavigate}
+        />
+        <CollapsibleBody collapsed={collapsed} onCollapsed={onCollapsed}>
+          {isLoading ? (
+            <div className="px-4">
+              {[0, 1, 2].map(i => (
+                <div key={i} className={cn('flex gap-3 items-center py-3', i > 0 && 'border-t border-border')}>
+                  <Skeleton className="h-3.5 w-[55%]" />
+                  <Skeleton className="h-3.5 w-8 ml-auto" />
+                  <Skeleton className="h-3.5 w-10" />
+                </div>
+              ))}
             </div>
-          ))
-        )}
+          ) : upcoming.length === 0 ? (
+            <EmptyState text="No upcoming events" />
+          ) : (
+            upcoming.map((event, i) => {
+              const time = timeLabel(event.start)
+              return (
+                <div
+                  key={event.id}
+                  className={cn(
+                    'px-4 py-3 flex items-center gap-3',
+                    i > 0 && 'border-t border-border'
+                  )}
+                >
+                  <p className="text-sm flex-1 truncate">{event.title}</p>
+                  <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full whitespace-nowrap">
+                    {dayLabel(event.start)}
+                  </span>
+                  {time && (
+                    <span className="text-xs text-muted-foreground/60 whitespace-nowrap">
+                      {time}
+                    </span>
+                  )}
+                </div>
+              )
+            })
+          )}
+        </CollapsibleBody>
       </SectionCard>
     </div>
   )
@@ -139,12 +277,18 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
 const PRIORITY_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 }
 
 function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
+  const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
   const { data: todos, isLoading } = useTodos()
+  const updateTodo = useUpdateTodo()
+  const { removingIds: removingTodoIds, trigger: handleDone } = useDeferredAction(
+    (id) => updateTodo.mutate({ id, status: 'Done' }),
+    formatTodoDone,
+  )
 
   const { topTodos, remaining } = useMemo(() => {
     if (!todos) return { topTodos: [], remaining: 0 }
     const incomplete = todos
-      .filter(t => t.status !== 'Done')
+      .filter(t => t.status !== 'Done' && !removingTodoIds.has(t.id))
       .sort((a, b) => {
         const hasDueA = !!a.due, hasDueB = !!b.due
         if (hasDueA !== hasDueB) return hasDueA ? -1 : 1
@@ -162,69 +306,70 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
         return pa - pb
       })
     return { topTodos: incomplete.slice(0, 3), remaining: Math.max(0, incomplete.length - 3) }
-  }, [todos])
+  }, [todos, removingTodoIds])
 
   return (
     <div className="mb-6">
-      <SectionHeader
-        label="To-Dos"
-        action={
-          <button
-            onClick={onSeeAll}
-            className="text-xs font-semibold text-primary cursor-pointer"
-          >
-            See all
-          </button>
-        }
-      />
       <SectionCard>
-        {isLoading ? (
-          <div className="px-4">
-            {[0, 1, 2].map(i => (
-              <div key={i} className={cn('flex items-center gap-3 py-3', i > 0 && 'border-t border-border')}>
-                <Skeleton className="h-4 w-[55%]" />
-                <Skeleton className="h-4 w-10 ml-auto" />
-              </div>
-            ))}
-          </div>
-        ) : topTodos.length === 0 ? (
-          <EmptyState text="All caught up" />
-        ) : (
-          <>
-            {topTodos.map((todo, i) => (
-              <div
-                key={todo.id}
-                className={cn(
-                  'px-4 py-3 flex items-center gap-3',
-                  i > 0 && 'border-t border-border'
-                )}
-              >
-                <p className="text-sm truncate flex-1">{todo.name}</p>
-                {todo.priority && (
-                  <Badge
-                    variant={todo.priority === 'High' ? 'destructive' : todo.priority === 'Medium' ? 'secondary' : 'outline'}
-                    className="text-[10px] h-[18px] shrink-0"
-                  >
-                    {todo.priority}
-                  </Badge>
-                )}
-                {todo.due && (
-                  <span className="text-xs font-semibold text-primary whitespace-nowrap shrink-0">
-                    {dayLabel(todo.due, true)}
-                  </span>
-                )}
-              </div>
-            ))}
-            {remaining > 0 && (
-              <div
-                onClick={onSeeAll}
-                className="px-4 py-2.5 border-t border-border cursor-pointer"
-              >
-                <span className="text-xs text-muted-foreground">+{remaining} more</span>
-              </div>
-            )}
-          </>
-        )}
+        <CardHeader
+          label="To-Dos"
+          showBorder={contentVisible}
+          collapsed={collapsed}
+          onToggle={handleToggle}
+          onSeeAll={onSeeAll}
+        />
+        <CollapsibleBody collapsed={collapsed} onCollapsed={onCollapsed}>
+          {isLoading ? (
+            <div className="px-4">
+              {[0, 1, 2].map(i => (
+                <div key={i} className={cn('flex items-center gap-3 py-3', i > 0 && 'border-t border-border')}>
+                  <Skeleton className="h-4 w-[55%]" />
+                  <Skeleton className="h-4 w-10 ml-auto" />
+                </div>
+              ))}
+            </div>
+          ) : topTodos.length === 0 ? (
+            <EmptyState text="All caught up" />
+          ) : (
+            <>
+              {topTodos.map((todo, i) => (
+                <div key={todo.id} className={cn(i > 0 && 'border-t border-border')}>
+                  <ItemRow
+                    variant="todo"
+                    name={todo.name}
+                    removing={removingTodoIds.has(todo.id)}
+                    onDone={() => handleDone(todo.id, todo.name)}
+                    meta={
+                      <>
+                        {todo.priority && (
+                          <Badge
+                            variant={todo.priority === 'High' ? 'destructive' : todo.priority === 'Medium' ? 'secondary' : 'outline'}
+                            className="text-[10px] h-[18px]"
+                          >
+                            {todo.priority}
+                          </Badge>
+                        )}
+                        {todo.due && (
+                          <span className="text-xs font-semibold text-primary whitespace-nowrap">
+                            {dayLabel(todo.due, true)}
+                          </span>
+                        )}
+                      </>
+                    }
+                  />
+                </div>
+              ))}
+              {remaining > 0 && (
+                <div
+                  onClick={onSeeAll}
+                  className="px-4 py-2.5 border-t border-border cursor-pointer"
+                >
+                  <span className="text-xs text-muted-foreground">+{remaining} more</span>
+                </div>
+              )}
+            </>
+          )}
+        </CollapsibleBody>
       </SectionCard>
     </div>
   )
@@ -232,92 +377,191 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
 
 // ── Shopping summary ──────────────────────────────────────────────────────────
 
-function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
-  const { data: items, isLoading } = useShoppingList()
+interface ShoppingPlan {
+  topItems: Item[]
+  remaining: number
+}
 
-  const storeBreakdown = useMemo(() => {
-    if (!items?.length) return { count: 0, stores: [], unassigned: 0 }
-    const countMap: Record<string, number> = {}
-    let unassigned = 0
+function useShoppingPlan(items: Item[] | undefined): ShoppingPlan {
+  return useMemo(() => {
+    const empty: ShoppingPlan = { topItems: [], remaining: 0 }
+    if (!items?.length) return empty
+
+    // Build store → items map
+    const storeMap = new Map<string, Item[]>()
     for (const item of items) {
+      for (const s of item.supermarkets) {
+        if (!storeMap.has(s)) storeMap.set(s, [])
+        storeMap.get(s)!.push(item)
+      }
+    }
+
+    const byName = (a: Item, b: Item) => a.name.localeCompare(b.name)
+
+    // No stores assigned to any item — sort all alphabetically
+    if (storeMap.size === 0) {
+      const sorted = [...items].sort(byName)
+      return { topItems: sorted.slice(0, 3), remaining: Math.max(0, sorted.length - 3) }
+    }
+
+    const storeRanked = [...storeMap.entries()].sort((a, b) => b[1].length - a[1].length)
+    const [firstName, firstItems] = storeRanked[0]
+
+    // Only one store, or one strictly dominant store
+    if (storeRanked.length === 1 || firstItems.length > storeRanked[1][1].length) {
+      const storeFirst = [...firstItems].sort(byName)
+      const rest = [...items]
+        .filter(i => !i.supermarkets.includes(firstName))
+        .sort(byName)
+      const ordered = [...storeFirst, ...rest]
+      return { topItems: ordered.slice(0, 3), remaining: Math.max(0, items.length - 3) }
+    }
+
+    // Two or more stores tied for first place
+    const [secondName, secondItems] = storeRanked[1]
+
+    // Check if the two top stores share exactly the same items
+    const firstSet = new Set(firstItems.map(i => i.id))
+    const secondSet = new Set(secondItems.map(i => i.id))
+    const sameItems =
+      firstSet.size === secondSet.size &&
+      [...firstSet].every(id => secondSet.has(id))
+
+    let ordered: Item[]
+    if (sameItems) {
+      // Shared items first alphabetically, then remaining alphabetically
+      const sharedSorted = [...firstItems].sort(byName)
+      const rest = [...items]
+        .filter(i => !firstSet.has(i.id))
+        .sort(byName)
+      ordered = [...sharedSorted, ...rest]
+    } else {
+      // Different items — sort by store name order; the alphabetically earlier store's
+      // exclusive items come first, then the other store's exclusive items, then the rest
+      const [storeA, storeB] =
+        firstName.localeCompare(secondName) <= 0
+          ? [firstName, secondName]
+          : [secondName, firstName]
+      const storeAItems = (storeMap.get(storeA) ?? [])
+        .filter(i => !i.supermarkets.includes(storeB))
+        .sort(byName)
+      const storeBItems = (storeMap.get(storeB) ?? [])
+        .filter(i => !i.supermarkets.includes(storeA))
+        .sort(byName)
+      const shared = items
+        .filter(i => i.supermarkets.includes(storeA) && i.supermarkets.includes(storeB))
+        .sort(byName)
+      const rest = items
+        .filter(i => !i.supermarkets.includes(storeA) && !i.supermarkets.includes(storeB))
+        .sort(byName)
+      ordered = [...storeAItems, ...storeBItems, ...shared, ...rest]
+    }
+
+    return { topItems: ordered.slice(0, 3), remaining: Math.max(0, items.length - 3) }
+  }, [items])
+}
+
+function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
+  const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
+  const { data: items, isLoading } = useShoppingList()
+  const toggle = useToggleShoppingList()
+  const { removingIds, trigger: handleRemove } = useDeferredAction(
+    (id) => toggle.mutate({ id, onShoppingList: false }),
+    formatShoppingRemoved,
+  )
+  const filteredItems = useMemo(
+    () => items?.filter(i => !removingIds.has(i.id)),
+    [items, removingIds],
+  )
+  const plan = useShoppingPlan(filteredItems)
+
+  const remainderLabel = useMemo(() => {
+    if (!items) return null
+    if (plan.remaining === 0) return null
+    const topIds = new Set(plan.topItems.map(i => i.id))
+    const remainderItems = items.filter(i => !topIds.has(i.id) && !removingIds.has(i.id))
+
+    // Count per store; items with no supermarkets go to the "no store" bucket
+    const storeCounts = new Map<string, number>()
+    let noStoreCount = 0
+    for (const item of remainderItems) {
       if (item.supermarkets.length === 0) {
-        unassigned++
+        noStoreCount++
       } else {
-        for (const s of item.supermarkets) {
-          countMap[s] = (countMap[s] ?? 0) + 1
+        for (const store of item.supermarkets) {
+          storeCounts.set(store, (storeCounts.get(store) ?? 0) + 1)
         }
       }
     }
-    const stores = Object.entries(countMap)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 3)
-    return { count: items.length, stores, unassigned }
-  }, [items])
 
-  const allUnassigned = storeBreakdown.count > 0 && storeBreakdown.stores.length === 0
+    // If no item has a store, fall back to the plain "+N more" format
+    if (storeCounts.size === 0) {
+      return `+${plan.remaining} more`
+    }
+
+    // Sort stores by their total count across the full list, not just the remainder
+    const globalStoreTotals = new Map<string, number>()
+    for (const item of items.filter(i => !removingIds.has(i.id))) {
+      for (const store of item.supermarkets) {
+        globalStoreTotals.set(store, (globalStoreTotals.get(store) ?? 0) + 1)
+      }
+    }
+    const sortedStores = [...storeCounts.entries()].sort(
+      (a, b) => (globalStoreTotals.get(b[0]) ?? 0) - (globalStoreTotals.get(a[0]) ?? 0)
+    )
+    const parts = sortedStores.map(([store, count]) => `+${count} in ${store}`)
+    if (noStoreCount > 0) {
+      parts.push(`+${noStoreCount} more`)
+    }
+    return parts.join(', ')
+  }, [items, plan.topItems, removingIds, plan.remaining])
 
   return (
     <div className="mb-6">
-      <SectionHeader
-        label="Shopping list"
-        action={
-          <button
-            onClick={onNavigate}
-            className="text-xs font-semibold text-primary cursor-pointer"
-          >
-            See all
-          </button>
-        }
-      />
       <SectionCard>
-        {isLoading ? (
-          <div className="px-4 py-3.5">
-            <Skeleton className="h-[18px] w-[110px] mb-2" />
-            <Skeleton className="h-3.5 w-4/5 mb-1.5" />
-            <Skeleton className="h-3.5 w-3/5" />
-          </div>
-        ) : storeBreakdown.count === 0 ? (
-          <EmptyState text="Nothing on the list" />
-        ) : (
-          <div className="px-4 py-3.5">
-            <p className="text-sm font-semibold mb-2">
-              {`${storeBreakdown.count} item${storeBreakdown.count !== 1 ? 's' : ''} to buy`}
-            </p>
-            {allUnassigned && (
-              <p className="text-xs text-muted-foreground">
-                Add stores to your items for guidance
-              </p>
-            )}
-            {storeBreakdown.stores.map((store, i) => (
-              <div key={store.name} className="flex items-center mb-1">
-                <span
-                  className={cn(
-                    'text-xs flex-1',
-                    i === 0 ? 'font-bold text-primary' : 'font-normal text-foreground'
-                  )}
-                >
-                  {i === 0 ? '★ ' : ''}
-                  {store.name}
-                </span>
-                <span
-                  className={cn(
-                    'text-xs',
-                    i === 0 ? 'font-bold text-primary' : 'font-normal text-muted-foreground'
-                  )}
-                >
-                  {store.count}
-                </span>
-              </div>
-            ))}
-            {storeBreakdown.unassigned > 0 && storeBreakdown.stores.length > 0 && (
-              <div className="flex items-center">
-                <span className="text-xs text-muted-foreground/60 flex-1">Not assigned</span>
-                <span className="text-xs text-muted-foreground/60">{storeBreakdown.unassigned}</span>
-              </div>
-            )}
-          </div>
-        )}
+        <CardHeader
+          label="Shopping list"
+          showBorder={contentVisible}
+          collapsed={collapsed}
+          onToggle={handleToggle}
+          onSeeAll={onNavigate}
+        />
+        <CollapsibleBody collapsed={collapsed} onCollapsed={onCollapsed}>
+          {isLoading ? (
+            <div className="px-4">
+              {[0, 1, 2].map(i => (
+                <div key={i} className={cn('py-2.5 flex items-center gap-3', i > 0 && 'border-t border-border')}>
+                  <div className="flex-1">
+                    <Skeleton className="h-3.5 w-[55%]" />
+                    <Skeleton className="h-3 w-[28%] mt-1" />
+                  </div>
+                  <Skeleton className="h-4 w-4 rounded-full shrink-0" />
+                </div>
+              ))}
+            </div>
+          ) : plan.topItems.length === 0 ? (
+            <EmptyState text="Nothing on the list" />
+          ) : (
+            <>
+              {plan.topItems.map((item, i) => (
+                <div key={item.id} className={cn(i > 0 && 'border-t border-border')}>
+                  <ItemRow
+                    variant="shopping"
+                    name={item.name}
+                    subtitle={item.supermarkets.length > 0 ? item.supermarkets.join(', ') : undefined}
+                    removing={removingIds.has(item.id)}
+                    onRemove={() => handleRemove(item.id, item.name)}
+                  />
+                </div>
+              ))}
+              {remainderLabel && (
+                <div onClick={onNavigate} className="px-4 py-2.5 border-t border-border cursor-pointer">
+                  <span className="text-xs text-muted-foreground">{remainderLabel}</span>
+                </div>
+              )}
+            </>
+          )}
+        </CollapsibleBody>
       </SectionCard>
     </div>
   )
