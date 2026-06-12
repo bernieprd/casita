@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 
-export type ConceptType = 'recipe-types' | 'categories' | 'supermarkets'
+export type ConceptType = 'recipe-types' | 'categories' | 'supermarkets' | 'todo-categories'
 
 export interface ConceptItem {
   id: string

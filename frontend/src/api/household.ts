@@ -123,3 +123,32 @@ export function useUpdateHouseholdTheme() {
     },
   })
 }
+
+export type TodoWorkflow = 'simple' | 'board'
+
+export interface TodoWorkflowSettings {
+  workflow: TodoWorkflow
+}
+
+export const todoWorkflowKeys = {
+  settings: ['household', 'todo-settings'] as const,
+}
+
+export function useTodoWorkflow() {
+  return useQuery({
+    queryKey: todoWorkflowKeys.settings,
+    queryFn: () => api.get<TodoWorkflowSettings>('/household/todo-settings'),
+    staleTime: 30_000,
+  })
+}
+
+export function useUpdateTodoWorkflow() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (workflow: TodoWorkflow) =>
+      api.patch<TodoWorkflowSettings>('/household/todo-settings', { workflow }),
+    onSuccess: (data) => {
+      qc.setQueryData(todoWorkflowKeys.settings, data)
+    },
+  })
+}
