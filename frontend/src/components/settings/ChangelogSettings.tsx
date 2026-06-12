@@ -16,6 +16,12 @@ interface ChangelogEntry {
 const CHANGELOG: ChangelogEntry[] = [
   {
     date: 'June 2026',
+    title: 'Android & iOS app',
+    description:
+      'Casita can now be packaged as a native Android and iOS app via Capacitor. The PWA also got improvements: consistent theme color, better icons (maskable, 64px), home-screen shortcuts for Shopping, To-Dos, and Recipes, and edge-to-edge status bar on iOS.',
+  },
+  {
+    date: 'June 2026',
     title: 'To-Do reliability fixes',
     description:
       'Drag-and-drop reordering is now atomic (no more partial failures). Dropping a card onto a collapsed Done column now auto-expands it. Switching workflow from Board to Simple cleanly resets statuses in one step.',

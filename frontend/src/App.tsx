@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react'
 import { Settings, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { Capacitor } from '@capacitor/core'
 import { useQueryClient } from '@tanstack/react-query'
 import { itemKeys, itemsApi, todoKeys, todosApi } from './api'
 import { useOnlineStatus } from './useOnlineStatus'
@@ -124,6 +125,32 @@ function AppShell() {
   useEffect(() => {
     qc.prefetchQuery({ queryKey: itemKeys.shopping, queryFn: itemsApi.listShopping })
     qc.prefetchQuery({ queryKey: todoKeys.all,      queryFn: todosApi.list })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+
+    let backHandler: { remove: () => void } | null = null
+
+    async function initNative() {
+      const [{ StatusBar, Style }, { SplashScreen }, { App: CapApp }] = await Promise.all([
+        import('@capacitor/status-bar'),
+        import('@capacitor/splash-screen'),
+        import('@capacitor/app'),
+      ])
+      await StatusBar.setStyle({ style: Style.Default })
+      if (Capacitor.getPlatform() === 'android') {
+        await StatusBar.setBackgroundColor({ color: '#fef9c3' })
+      }
+      await SplashScreen.hide()
+      backHandler = await CapApp.addListener('backButton', ({ canGoBack }) => {
+        if (canGoBack) window.history.back()
+        else CapApp.exitApp()
+      })
+    }
+
+    initNative().catch(console.error)
+    return () => { backHandler?.remove() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

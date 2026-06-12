@@ -8,9 +8,19 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "deploy": "pnpm build && wrangler pages deploy dist --project-name=casita-frontend"
+    "deploy": "pnpm build && wrangler pages deploy dist --project-name=casita-frontend",
+    "generate-pwa-assets": "pwa-assets-generator",
+    "generate-native-assets": "node scripts/generate-resources.mjs && capacitor-assets generate --iconBackgroundColor '#fef9c3' --iconBackgroundColorDark '#1a1a1a' --splashBackgroundColor '#fef9c3' --splashBackgroundColorDark '#1a1a1a'",
+    "sync": "cap sync",
+    "android": "cap open android",
+    "ios": "cap open ios",
+    "cap:build": "pnpm build && cap sync"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@clerk/clerk-react": "^5.61.8",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
@@ -37,11 +47,16 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/ios": "^8.4.0",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-query-devtools": "^5.101.0",
     "@types/node": "^25.9.2",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
+    "@vite-pwa/assets-generator": "^1.0.2",
     "@vitejs/plugin-react": "^4.7.0",
     "sharp": "^0.34.5",
     "typescript": "^5.9.3",
