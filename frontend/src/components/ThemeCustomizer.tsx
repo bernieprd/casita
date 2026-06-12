@@ -74,7 +74,7 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly,
                     ? 'ring-2 ring-offset-2 ring-foreground scale-110'
                     : 'hover:scale-105',
                 )}
-                style={{ backgroundColor: `hsl(${preset.hsl})` }}
+                style={{ backgroundColor: `hsl(${preset.lightPrimary})` }}
               />
             ))}
           </div>
