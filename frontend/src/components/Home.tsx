@@ -1,11 +1,12 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { RotateCcw, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react'
+import { RotateCcw, ExternalLink, ChevronUp, ChevronDown, Link2, FileText, Repeat2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { cn, memberInitials, safeUrl } from '@/lib/utils'
 import { toast } from 'sonner'
-import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus, useToggleShoppingList, useUpdateTodo } from '../api'
+import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus, useToggleShoppingList, useUpdateTodo, useHouseholdSettings, useConceptList } from '../api'
 import type { Item } from '../api/types'
 import { useNavigate } from 'react-router-dom'
 import { ItemRow } from './ItemRow'
@@ -279,6 +280,9 @@ const PRIORITY_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 }
 function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
   const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
   const { data: todos, isLoading } = useTodos()
+  const { data: settings } = useHouseholdSettings()
+  const members = settings?.members ?? []
+  const { data: categories = [] } = useConceptList('todo-categories')
   const updateTodo = useUpdateTodo()
   const { removingIds: removingTodoIds, trigger: handleDone } = useDeferredAction(
     (id) => updateTodo.mutate({ id, status: 'Done' }),
@@ -332,33 +336,63 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
             <EmptyState text="All caught up" />
           ) : (
             <>
-              {topTodos.map((todo, i) => (
-                <div key={todo.id} className={cn(i > 0 && 'border-t border-border')}>
-                  <ItemRow
-                    variant="todo"
-                    name={todo.name}
-                    removing={removingTodoIds.has(todo.id)}
-                    onDone={() => handleDone(todo.id, todo.name)}
-                    meta={
-                      <>
-                        {todo.priority && (
-                          <Badge
-                            variant={todo.priority === 'High' ? 'destructive' : todo.priority === 'Medium' ? 'secondary' : 'outline'}
-                            className="text-[10px] h-[18px]"
-                          >
-                            {todo.priority}
-                          </Badge>
-                        )}
-                        {todo.due && (
-                          <span className="text-xs font-semibold text-primary whitespace-nowrap">
-                            {dayLabel(todo.due, true)}
-                          </span>
-                        )}
-                      </>
-                    }
-                  />
-                </div>
-              ))}
+              {topTodos.map((todo, i) => {
+                const cat = categories.find(c => c.id === todo.categoryId) ?? null
+                const assignee = members.find(m => m.clerkUserId === todo.assignedTo) ?? null
+                return (
+                  <div key={todo.id} className={cn(i > 0 && 'border-t border-border')}>
+                    <ItemRow
+                      variant="todo"
+                      name={todo.name}
+                      removing={removingTodoIds.has(todo.id)}
+                      onDone={() => handleDone(todo.id, todo.name)}
+                      meta={
+                        <>
+                          {todo.priority && (
+                            <Badge
+                              variant={todo.priority === 'High' ? 'destructive' : todo.priority === 'Medium' ? 'secondary' : 'outline'}
+                              className="text-[10px] h-[18px]"
+                            >
+                              {todo.priority}
+                            </Badge>
+                          )}
+                          {todo.due && (
+                            <span className="text-xs font-semibold text-primary whitespace-nowrap">
+                              {dayLabel(todo.due, true)}
+                            </span>
+                          )}
+                          {cat && (
+                            <Badge variant="outline" className="text-[0.6rem] h-4 px-1 py-0 font-normal">
+                              {cat.name}
+                            </Badge>
+                          )}
+                          {assignee && (
+                            <Avatar className="size-4 shrink-0">
+                              {assignee.imageUrl && (
+                                <AvatarImage src={assignee.imageUrl} alt={assignee.displayName ?? ''} />
+                              )}
+                              <AvatarFallback className="text-[0.5rem]">{memberInitials(assignee)}</AvatarFallback>
+                            </Avatar>
+                          )}
+                          {safeUrl(todo.url) && (
+                            <a
+                              href={safeUrl(todo.url)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              aria-label="Open link"
+                            >
+                              <Link2 className="size-3 text-muted-foreground shrink-0" />
+                            </a>
+                          )}
+                          {todo.notes && <FileText className="size-3 text-muted-foreground shrink-0" />}
+                          {todo.frequency && <Repeat2 className="size-3 text-muted-foreground shrink-0" />}
+                        </>
+                      }
+                    />
+                  </div>
+                )
+              })}
               {remaining > 0 && (
                 <div
                   onClick={onSeeAll}

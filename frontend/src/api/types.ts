@@ -33,6 +33,12 @@ export interface Todo {
   status: string | null
   priority: string | null
   due: string | null
+  categoryId: string | null
+  assignedTo: string | null
+  url: string | null
+  notes: string | null
+  frequency: string | null
+  sortOrder: number
 }
 
 export interface CalendarEvent {

@@ -1,49 +1,65 @@
 import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { toast } from 'sonner'
-import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
+import { ChevronUp, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from '@/components/ui/drawer'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from '@/components/ui/drawer'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from '../api'
-import type { Todo } from '../api'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  rectIntersection,
+  pointerWithin,
+  type DragStartEvent,
+  type DragOverEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo, useHouseholdSettings, useConceptList } from '../api'
+import { useReorderTodos } from '../api/todos'
+import type { Todo, ConceptItem, HouseholdSettings } from '../api'
+import { useTodoWorkflow } from '../api/household'
+import { memberInitials } from '@/lib/utils'
 import GuidedImport from './GuidedImport'
 import { ImportModal } from './ImportModal'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const STATUSES = ['Todo', 'In progress', 'On hold', 'Done'] as const
-type Status = (typeof STATUSES)[number]
-
-const STATUS_SELECTED_CLASSES: Record<Status, string> = {
-  'Todo':        'bg-secondary text-secondary-foreground border-secondary',
-  'In progress': 'bg-primary text-primary-foreground border-primary',
-  'On hold':     'bg-amber-500 text-white border-amber-500',
-  'Done':        'bg-green-600 text-white border-green-600',
-}
-
-const PRIORITY_OPTIONS: Array<{ label: string; value: string | null }> = [
-  { label: 'None',   value: null },
-  { label: 'Low',    value: 'Low' },
-  { label: 'Medium', value: 'Medium' },
-  { label: 'High',   value: 'High' },
-]
+const SIMPLE_STATUSES = ['Todo', 'Done'] as const
+const BOARD_STATUSES  = ['Todo', 'In progress', 'Blocked', 'Done'] as const
 
 const PRIORITY_CHIP_CLASSES: Record<string, string> = {
-  High:   'bg-destructive/10 text-destructive border-destructive',
+  High:   'bg-destructive/10 text-destructive border-destructive/30',
   Medium: 'bg-yellow-50 dark:bg-yellow-950/30 text-orange-700 dark:text-orange-400',
   Low:    'bg-secondary text-secondary-foreground',
 }
 
-const PRIORITY_SELECTED_CLASSES: Record<string, string> = {
-  High:   'bg-destructive text-white border-destructive',
-  Medium: 'bg-amber-500 text-white border-amber-500',
-  Low:    'bg-secondary text-secondary-foreground border-secondary',
-}
+const BLOCKED_HEADER_CLASS = 'text-amber-600 dark:text-amber-400'
 
 const UNDO_DURATION_MS = 4000
 
@@ -52,7 +68,9 @@ interface PendingDelete {
   timeoutId: ReturnType<typeof setTimeout>
 }
 
-// ── Date formatting ───────────────────────────────────────────────────────────
+type Member = HouseholdSettings['members'][number]
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDue(due: string | null): string | null {
   if (!due) return null
@@ -69,268 +87,98 @@ function formatDue(due: string | null): string | null {
 
 function PriorityChip({ priority }: { priority: string | null }) {
   if (!priority) return null
-  const chipClass = PRIORITY_CHIP_CLASSES[priority] ?? 'bg-secondary text-secondary-foreground'
+  const cls = PRIORITY_CHIP_CLASSES[priority] ?? 'bg-secondary text-secondary-foreground'
   return (
-    <span
-      className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[0.65rem] font-semibold leading-none ${chipClass}`}
-    >
+    <span className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[0.65rem] font-semibold leading-none border ${cls}`}>
       {priority}
     </span>
   )
 }
 
-// ── Todo row ──────────────────────────────────────────────────────────────────
+// ── Todo card ─────────────────────────────────────────────────────────────────
 
-interface TodoRowProps {
+interface TodoCardProps {
   todo: Todo
+  members: Member[]
+  categories: ConceptItem[]
   onOpen: (todo: Todo) => void
+  isOverlay?: boolean
+  style?: React.CSSProperties
+  dragHandleProps?: Record<string, unknown>
 }
 
-function TodoRow({ todo, onOpen }: TodoRowProps) {
+function TodoCard({
+  todo,
+  members,
+  categories,
+  onOpen,
+  isOverlay,
+  style,
+  dragHandleProps,
+}: TodoCardProps) {
   const dueLabel = formatDue(todo.due)
   const isDone = todo.status === 'Done'
-  const hasSecondary = !!(todo.priority || dueLabel)
+  const category = todo.categoryId ? categories.find(c => c.id === todo.categoryId) : null
+  const assignee = todo.assignedTo ? members.find(m => m.clerkUserId === todo.assignedTo) : null
 
   return (
-    <button
-      type="button"
-      onClick={e => { const btn = e.currentTarget; btn.blur(); requestAnimationFrame(() => onOpen(todo)) }}
-      className="w-full text-left px-4 py-3 hover:bg-accent/50 transition-colors"
+    <div
+      style={style}
+      className={`group bg-card border border-border rounded-lg p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all select-none ${isOverlay ? 'shadow-lg rotate-1 opacity-95' : ''}`}
+      onClick={() => onOpen(todo)}
+      {...(dragHandleProps ?? {})}
     >
-      <span
-        className={`block text-sm ${isDone ? 'line-through text-muted-foreground' : 'text-foreground'}`}
-      >
+      <p className={`text-sm font-medium leading-snug ${isDone ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
         {todo.name}
-      </span>
-      {hasSecondary && (
-        <span className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+      </p>
+
+      {(todo.priority || dueLabel || category || assignee) && (
+        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
           <PriorityChip priority={todo.priority} />
           {dueLabel && (
-            <span
-              className={`text-xs shrink-0 ${dueLabel === 'Today' ? 'text-destructive' : 'text-muted-foreground'}`}
-            >
+            <span className={`text-xs shrink-0 font-medium ${dueLabel === 'Today' ? 'text-destructive' : 'text-muted-foreground'}`}>
               {dueLabel}
             </span>
           )}
-        </span>
-      )}
-    </button>
-  )
-}
-
-// ── Todo detail sheet ─────────────────────────────────────────────────────────
-
-interface TodoDetailSheetProps {
-  todo: Todo | null
-  onClose: () => void
-  onUpdate: (id: string, fields: Partial<Omit<Todo, 'id'>>) => void
-  onDelete: (todo: Todo) => void
-}
-
-function TodoDetailSheet({ todo, onClose, onUpdate, onDelete }: TodoDetailSheetProps) {
-  const [draftName, setDraftName] = useState('')
-  const [draftDue, setDraftDue] = useState('')
-  const [draftStatus, setDraftStatus] = useState<Status>('Todo')
-  const [draftPriority, setDraftPriority] = useState<string | null>(null)
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
-  const nameRef = useRef<HTMLInputElement>(null)
-  const isMobile = useIsMobile()
-
-  useEffect(() => {
-    if (!todo) return
-    setDraftName(todo.name)
-    setDraftDue(todo.due ?? '')
-    setDraftStatus((todo.status ?? 'Todo') as Status)
-    setDraftPriority(todo.priority)
-    setConfirmingDelete(false)
-    const t = setTimeout(() => nameRef.current?.focus(), 150)
-    return () => clearTimeout(t)
-  }, [todo])
-
-  function handleSave() {
-    if (!todo) return
-    const fields: Partial<Omit<Todo, 'id'>> = {}
-    const trimmedName = draftName.trim()
-    if (trimmedName && trimmedName !== todo.name) fields.name = trimmedName
-    const due = draftDue || null
-    if (due !== todo.due) fields.due = due
-    if (draftStatus !== (todo.status ?? 'Todo')) fields.status = draftStatus
-    if (draftPriority !== todo.priority) fields.priority = draftPriority
-    if (Object.keys(fields).length > 0) onUpdate(todo.id, fields)
-    onClose()
-  }
-
-  const confirmBody = (
-    <div className="space-y-3">
-      <DialogTitle className="text-sm font-medium">Delete "{todo?.name}"?</DialogTitle>
-      <DialogDescription className="text-sm text-muted-foreground">
-        This will permanently remove this to-do.
-      </DialogDescription>
-      <div className="flex justify-end gap-2 pt-1">
-        <Button variant="outline" onClick={() => setConfirmingDelete(false)}>Cancel</Button>
-        <Button
-          variant="destructive"
-          onClick={() => { if (todo) { onDelete(todo); onClose() } }}
-        >
-          Delete
-        </Button>
-      </div>
-    </div>
-  )
-
-  const formBody = (
-    <div className={`overflow-y-auto overscroll-contain${isMobile ? ' px-5 pt-2 pb-6' : ' py-1 px-0.5'}`}>
-      {/* Name */}
-      <Input
-        ref={nameRef}
-        value={draftName}
-        onChange={e => setDraftName(e.target.value)}
-        placeholder="To-do name"
-        aria-label="To-do name"
-        enterKeyHint="done"
-        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); nameRef.current?.blur() } }}
-        className="w-full"
-      />
-
-      <Separator className="my-4" />
-
-      {/* Status */}
-      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">
-        Status
-      </p>
-      <div className="flex gap-2 flex-wrap mt-2">
-        {STATUSES.map(s => {
-          const selected = draftStatus === s
-          return (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setDraftStatus(s)}
-              className={`inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-medium transition-colors ${
-                selected
-                  ? STATUS_SELECTED_CLASSES[s]
-                  : 'border-border bg-background text-foreground hover:bg-accent'
-              }`}
-            >
-              {s}
-            </button>
-          )
-        })}
-      </div>
-
-      <Separator className="my-4" />
-
-      {/* Priority */}
-      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">
-        Priority
-      </p>
-      <div className="flex gap-2 flex-wrap mt-2">
-        {PRIORITY_OPTIONS.map(({ label, value }) => {
-          const selected = draftPriority === value
-          const selectedClass = value ? PRIORITY_SELECTED_CLASSES[value] : 'bg-secondary text-secondary-foreground border-secondary'
-          return (
-            <button
-              key={label}
-              type="button"
-              onClick={() => setDraftPriority(value)}
-              className={`inline-flex items-center rounded-full border px-3 py-0.5 text-sm font-medium transition-colors ${
-                selected
-                  ? selectedClass
-                  : 'border-border bg-background text-foreground hover:bg-accent'
-              }`}
-            >
-              {label}
-            </button>
-          )
-        })}
-      </div>
-
-      <Separator className="my-4" />
-
-      {/* Due date */}
-      <Input
-        type="date"
-        aria-label="Due date"
-        value={draftDue}
-        onChange={e => setDraftDue(e.target.value)}
-        className="text-sm"
-      />
-
-      <Separator className="my-4" />
-
-      {/* Actions */}
-      <div className="flex justify-between items-center">
-        <Button
-          variant="ghost"
-          className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5"
-          onClick={() => setConfirmingDelete(true)}
-        >
-          <Trash2 className="size-4" />
-          Delete
-        </Button>
-        <Button onClick={handleSave}>
-          Save
-        </Button>
-      </div>
-    </div>
-  )
-
-  const content = confirmingDelete ? confirmBody : formBody
-
-  if (isMobile) {
-    return (
-      <Drawer
-        open={!!todo}
-        onOpenChange={open => { if (!open) onClose() }}
-        direction="bottom"
-      >
-        <DrawerContent
-          className="rounded-t-2xl flex flex-col max-h-[80dvh]"
-        >
-          {confirmingDelete ? (
-            <>
-              <DrawerHeader className="px-5 pt-4">
-                <DrawerTitle className="text-sm font-medium text-left">Delete "{todo?.name}"?</DrawerTitle>
-                <DrawerDescription className="text-sm text-muted-foreground">
-                  This will permanently remove this to-do.
-                </DrawerDescription>
-              </DrawerHeader>
-              <div className="flex justify-end gap-2 px-5 pb-6 pt-1">
-                <Button variant="outline" onClick={() => setConfirmingDelete(false)}>Cancel</Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => { if (todo) { onDelete(todo); onClose() } }}
-                >
-                  Delete
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <DrawerHeader className="sr-only">
-                <DrawerTitle>Edit To-do</DrawerTitle>
-                <DrawerDescription>Update the to-do details.</DrawerDescription>
-              </DrawerHeader>
-              {formBody}
-            </>
+          {category && (
+            <Badge variant="outline" className="text-[0.6rem] h-4 px-1 py-0 font-normal">
+              {category.name}
+            </Badge>
           )}
-        </DrawerContent>
-      </Drawer>
-    )
+          {assignee && (
+            <Avatar className="size-4 shrink-0">
+              {assignee.imageUrl && <AvatarImage src={assignee.imageUrl} alt={assignee.displayName ?? ''} />}
+              <AvatarFallback className="text-[0.5rem]">{memberInitials(assignee)}</AvatarFallback>
+            </Avatar>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Sortable card wrapper ─────────────────────────────────────────────────────
+
+interface SortableCardProps {
+  todo: Todo
+  members: Member[]
+  categories: ConceptItem[]
+  onOpen: (todo: Todo) => void
+}
+
+function SortableCard({ todo, members, categories, onOpen }: SortableCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: todo.id })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.35 : 1,
   }
 
   return (
-    <Dialog open={!!todo} onOpenChange={open => { if (!open) onClose() }}>
-      <DialogContent className="sm:max-w-md">
-        {!confirmingDelete && (
-          <DialogHeader>
-            <DialogTitle>Edit To-do</DialogTitle>
-            <DialogDescription className="sr-only">Update the to-do details.</DialogDescription>
-          </DialogHeader>
-        )}
-        {content}
-      </DialogContent>
-    </Dialog>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="touch-none">
+      <TodoCard todo={todo} members={members} categories={categories} onOpen={onOpen} />
+    </div>
   )
 }
 
@@ -382,91 +230,147 @@ function ClearDoneConfirm({ open, onConfirm, onCancel }: ClearDoneConfirmProps) 
   )
 }
 
-// ── Section ───────────────────────────────────────────────────────────────────
+// ── Kanban column ─────────────────────────────────────────────────────────────
 
-interface SectionProps {
-  status: Status
+interface KanbanColumnProps {
+  status: string
   todos: Todo[]
+  members: Member[]
+  categories: ConceptItem[]
   onOpen: (todo: Todo) => void
   onClearDone?: () => void
-  pendingDeleteIds: Set<string>
+  isOver?: boolean
 }
 
-function Section({ status, todos, onOpen, onClearDone, pendingDeleteIds }: SectionProps) {
-  const [expanded, setExpanded] = useState(status !== 'Done')
-  const visible = todos.filter(t => !pendingDeleteIds.has(t.id))
+function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone, isOver }: KanbanColumnProps) {
+  // Primary droppable — lives on the card-list div inside CollapsibleContent.
+  // This is the main drop target when the column is expanded.
+  const { setNodeRef } = useDroppable({ id: status })
+  // Secondary droppable — lives on the header trigger so that drops can target
+  // this column even when it is collapsed (CollapsibleContent has no rect then).
+  const { setNodeRef: setHeaderDropRef } = useDroppable({ id: `${status}--header` })
+  const isBlocked = status === 'Blocked'
+  const isDone = status === 'Done'
+  const [expanded, setExpanded] = useState(!isDone)
 
-  if (visible.length === 0) return null
+  const headerContent = (
+    <>
+      <span className={`flex-1 text-left text-xs font-semibold uppercase tracking-widest leading-none ${isBlocked ? BLOCKED_HEADER_CLASS : 'text-muted-foreground'}`}>
+        {status}
+      </span>
+      <span className="text-xs text-muted-foreground mr-2">{todos.length}</span>
+      {onClearDone && todos.length > 0 && (
+        <button
+          type="button"
+          onClick={e => { e.stopPropagation(); onClearDone() }}
+          className="mr-1.5 text-xs text-destructive hover:text-destructive/80 px-2 py-0.5 rounded"
+        >
+          Clear all
+        </button>
+      )}
+    </>
+  )
+
+  const cardList = (
+    <SortableContext items={todos.map(t => t.id)} strategy={verticalListSortingStrategy}>
+      {/* setNodeRef is placed on the card-list div so the droppable rect matches
+          the actual card area rather than the outer wrapper, which fixes pointer
+          detection for the middle columns ("In progress", "Blocked") where the
+          Collapsible's overflow:hidden would otherwise clip hit-testing. */}
+      <div ref={setNodeRef} className="flex flex-col gap-2 min-h-[4rem]">
+        {todos.map(todo => (
+          <SortableCard key={todo.id} todo={todo} members={members} categories={categories} onOpen={onOpen} />
+        ))}
+        {todos.length === 0 && (
+          <div className="rounded-lg border-2 border-dashed border-border/50 h-16 flex items-center justify-center">
+            <span className="text-xs text-muted-foreground/40">Drop here</span>
+          </div>
+        )}
+      </div>
+    </SortableContext>
+  )
 
   return (
-    <Collapsible
-      open={expanded}
-      onOpenChange={setExpanded}
-      className="bg-card rounded-lg overflow-hidden border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2"
-    >
-      <CollapsibleTrigger asChild>
-        <div
-          role="button"
-          tabIndex={0}
-          aria-label={`${expanded ? 'Collapse' : 'Expand'} ${status}`}
-          aria-expanded={expanded}
-          className="w-full flex items-center px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer"
-        >
-          <span className="flex-1 text-left text-xs font-semibold uppercase tracking-widest text-muted-foreground leading-none">
-            {status}
-          </span>
-          <span className="text-xs text-muted-foreground mr-2">{visible.length}</span>
-          {onClearDone && visible.length > 0 && (
-            <button
-              type="button"
-              onClick={e => { e.stopPropagation(); onClearDone() }}
-              className="mr-1.5 text-xs text-destructive hover:text-destructive/80 px-2 py-0.5 rounded"
-            >
-              Clear all
-            </button>
-          )}
-          {expanded
-            ? <ChevronUp className="size-4 text-muted-foreground" />
-            : <ChevronDown className="size-4 text-muted-foreground" />
-          }
-        </div>
-      </CollapsibleTrigger>
-
-      <CollapsibleContent>
-        <Separator />
-        <ul>
-          {visible.map((todo, idx) => (
-            <li key={todo.id}>
-              {idx > 0 && <Separator />}
-              <TodoRow todo={todo} onOpen={onOpen} />
-            </li>
-          ))}
-        </ul>
-      </CollapsibleContent>
-    </Collapsible>
+    <div className="mb-2">
+      <Collapsible
+        open={expanded}
+        onOpenChange={setExpanded}
+        className={`bg-card rounded-lg overflow-hidden border shadow-[0_1px_2px_rgba(0,0,0,.06)] transition-colors ${isOver ? 'border-primary/40' : 'border-border'}`}
+      >
+        <CollapsibleTrigger asChild>
+          {/* setHeaderDropRef makes the header a valid drop target so that a
+              collapsed column (whose card-list has no rect) can still receive
+              drops — the handleDragOver/handleDragEnd logic maps the `--header`
+              suffix back to the real status string. */}
+          <div
+            ref={setHeaderDropRef}
+            role="button"
+            tabIndex={0}
+            aria-label={`${expanded ? 'Collapse' : 'Expand'} ${status}`}
+            aria-expanded={expanded}
+            className="w-full flex items-center px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer"
+            // Prevent the trigger from consuming pointer events during a drag so
+            // dnd-kit can still detect the column droppable beneath it.
+            data-no-dnd="true"
+          >
+            {headerContent}
+            {expanded
+              ? <ChevronUp className="size-4 text-muted-foreground" />
+              : <ChevronDown className="size-4 text-muted-foreground" />
+            }
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <Separator />
+          <div className="p-3">
+            {cardList}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   )
 }
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
-function TodosSkeleton() {
+function TodosSkeleton({ isMobile }: { isMobile: boolean }) {
+  if (isMobile) {
+    return (
+      <div>
+        {[3, 2].map((rows, gi) => (
+          <div key={gi} className="bg-card rounded-lg overflow-hidden border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
+            <div className="px-4 py-3">
+              <Skeleton className="w-20 h-3.5" />
+            </div>
+            <Separator />
+            <div className="p-3 flex flex-col gap-2">
+              {Array.from({ length: rows }).map((_, i) => (
+                <div key={i} className="rounded-lg border border-border p-3">
+                  <Skeleton className="h-4" style={{ width: `${45 + i * 20}%` }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div>
-      {[3, 2].map((rows, gi) => (
-        <div key={gi} className="bg-background rounded-lg overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
+      {[3, 2, 1, 1].map((rows, gi) => (
+        <div key={gi} className="bg-card rounded-lg overflow-hidden border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
           <div className="px-4 py-3">
             <Skeleton className="w-20 h-3.5" />
           </div>
           <Separator />
-          {Array.from({ length: rows }).map((_, i) => (
-            <div key={i}>
-              {i > 0 && <Separator />}
-              <div className="px-4 py-2.5 flex items-center gap-3 min-h-12">
-                <Skeleton className="size-[18px] rounded shrink-0" />
+          <div className="p-3 flex flex-col gap-2">
+            {Array.from({ length: rows }).map((_, i) => (
+              <div key={i} className="rounded-lg border border-border p-3">
                 <Skeleton className="h-4" style={{ width: `${45 + i * 20}%` }} />
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ))}
     </div>
@@ -476,22 +380,43 @@ function TodosSkeleton() {
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function Todos({ setHeader }: { setHeader: (node: ReactNode | null) => void }) {
+  const navigate = useNavigate()
+  const isMobile = useIsMobile()
+
   const { data: todos, isLoading, error } = useTodos()
+  const { data: workflowSettings } = useTodoWorkflow()
+  const { data: householdSettings } = useHouseholdSettings()
+  const { data: categoriesData } = useConceptList('todo-categories')
+
   const createTodo = useCreateTodo()
   const updateTodo = useUpdateTodo()
   const deleteTodo = useDeleteTodo()
+  const reorderTodos = useReorderTodos()
+
+  const workflow = workflowSettings?.workflow ?? 'simple'
+  const statuses: readonly string[] = workflow === 'board' ? BOARD_STATUSES : SIMPLE_STATUSES
+  const members: Member[] = householdSettings?.members ?? []
+  const categories: ConceptItem[] = categoriesData ?? []
 
   const [inputValue, setInputValue] = useState('')
-  const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
   const [importOpen, setImportOpen] = useState(false)
-  const pendingDeleteRef = useRef<PendingDelete | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [overColumnStatus, setOverColumnStatus] = useState<string | null>(null)
 
+  const pendingDeleteRef = useRef<PendingDelete | null>(null)
   useEffect(() => { pendingDeleteRef.current = pendingDelete }, [pendingDelete])
 
   const inputValueRef = useRef(inputValue)
   useEffect(() => { inputValueRef.current = inputValue })
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  )
+
+  // ── Delete helpers ──────────────────────────────────────────────────────────
 
   const commitDelete = useCallback((ids: string[]) => {
     ids.forEach(id => deleteTodo.mutate(id))
@@ -523,6 +448,8 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
     })
   }
 
+  // ── Add handler ─────────────────────────────────────────────────────────────
+
   const handleAdd = useCallback(() => {
     const name = inputValueRef.current.trim()
     if (!name) return
@@ -552,21 +479,115 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
     return () => setHeader(null)
   }, [inputValue, setHeader])
 
-  function handleDelete(todo: Todo) {
-    startDelete([todo.id], `"${todo.name}" deleted`)
+  // ── Derived data ────────────────────────────────────────────────────────────
+
+  const pendingDeleteIds = new Set(pendingDelete?.ids ?? [])
+
+  function byStatus(status: string): Todo[] {
+    return (todos ?? []).filter(t => (t.status ?? 'Todo') === status && !pendingDeleteIds.has(t.id))
   }
 
-  function handleOpen(todo: Todo) {
-    setSelectedTodo(todo)
+  function getColumnTodos(status: string): Todo[] {
+    if (!activeId || !overColumnStatus) return byStatus(status)
+
+    const activeTodo = (todos ?? []).find(t => t.id === activeId)
+    if (!activeTodo) return byStatus(status)
+
+    const activeStatus = activeTodo.status ?? 'Todo'
+    if (activeStatus === overColumnStatus) return byStatus(status)
+
+    if (status === activeStatus) {
+      return byStatus(status).filter(t => t.id !== activeId)
+    }
+    if (status === overColumnStatus) {
+      return [...byStatus(status), activeTodo]
+    }
+    return byStatus(status)
   }
 
-  function handleCloseSheet() {
-    setSelectedTodo(null)
+  const activeTodo = activeId ? (todos ?? []).find(t => t.id === activeId) ?? null : null
+
+  // ── DnD handlers ────────────────────────────────────────────────────────────
+
+  function handleDragStart(event: DragStartEvent) {
+    const id = event.active.id as string
+    setActiveId(id)
+    const todo = (todos ?? []).find(t => t.id === id)
+    setOverColumnStatus(todo?.status ?? 'Todo')
   }
 
-  function handleUpdate(id: string, fields: Partial<Omit<Todo, 'id'>>) {
-    updateTodo.mutate({ id, ...fields })
+  // `--header` droppable IDs (e.g. "Done--header") map to their real status so
+  // that drops onto a collapsed column header resolve correctly.
+  function resolveColumnStatus(overId: string): string | null {
+    if (statuses.includes(overId)) return overId
+    const headerSuffix = '--header'
+    if (overId.endsWith(headerSuffix)) {
+      const base = overId.slice(0, -headerSuffix.length)
+      if (statuses.includes(base)) return base
+    }
+    return null
   }
+
+  function handleDragOver(event: DragOverEvent) {
+    const { over } = event
+    if (!over) return
+    const overId = over.id as string
+    // Check if hovering over a column droppable (or its header variant)
+    const colStatus = resolveColumnStatus(overId)
+    if (colStatus) {
+      setOverColumnStatus(colStatus)
+      return
+    }
+    // Hovering over a card — find its column
+    const overTodo = (todos ?? []).find(t => t.id === overId)
+    if (overTodo) {
+      setOverColumnStatus(overTodo.status ?? 'Todo')
+    }
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+
+    setActiveId(null)
+    setOverColumnStatus(null)
+
+    if (!over || !todos) return
+
+    const draggedTodo = todos.find(t => t.id === active.id)
+    if (!draggedTodo) return
+
+    const activeStatus = draggedTodo.status ?? 'Todo'
+    const overId = over.id as string
+
+    // Determine target status — handle header droppables for collapsed columns
+    let targetStatus = activeStatus
+    const colStatus = resolveColumnStatus(overId)
+    if (colStatus) {
+      targetStatus = colStatus
+    } else {
+      const overTodo = todos.find(t => t.id === overId)
+      if (overTodo) targetStatus = overTodo.status ?? 'Todo'
+    }
+
+    if (targetStatus !== activeStatus) {
+      // Cross-column drop — change status
+      updateTodo.mutate({ id: draggedTodo.id, status: targetStatus })
+    } else {
+      // Within-column — reorder
+      const columnTodos = byStatus(activeStatus)
+      const activeIndex = columnTodos.findIndex(t => t.id === active.id)
+      const overIndex = statuses.includes(overId)
+        ? columnTodos.length - 1
+        : columnTodos.findIndex(t => t.id === overId)
+
+      if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+        const reordered = arrayMove(columnTodos, activeIndex, overIndex)
+        reorderTodos.mutate(reordered.map(t => t.id))
+      }
+    }
+  }
+
+  // ── Clear done ──────────────────────────────────────────────────────────────
 
   function handleClearDone() {
     setShowClearConfirm(true)
@@ -578,22 +599,20 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
     startDelete(doneIds, 'Done to-dos cleared')
   }
 
-  const pendingDeleteIds = new Set(pendingDelete?.ids ?? [])
+  // ── Render ──────────────────────────────────────────────────────────────────
 
-  const byStatus = (status: Status) =>
-    (todos ?? []).filter(t => (t.status ?? 'Todo') === status)
+  const isEmpty = !isLoading && !error && (todos?.length ?? 0) === 0
 
   return (
     <>
-      {/* List */}
-      <div className="pb-8">
-        {isLoading && <TodosSkeleton />}
+      <div className="pb-0">
+        {isLoading && <TodosSkeleton isMobile={isMobile} />}
 
         {error && (
           <p className="text-destructive p-4">Failed to load to-dos.</p>
         )}
 
-        {!isLoading && !error && todos?.length === 0 && (
+        {isEmpty && (
           <div className="pt-10 text-center px-8">
             <img src="/casita.webp" alt="" className="w-20 mb-4 mx-auto opacity-70" />
             <p className="text-sm font-medium text-muted-foreground mb-1">All caught up</p>
@@ -608,34 +627,63 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
           </div>
         )}
 
-        {!isLoading && !error && !!todos?.length && STATUSES.map(status => (
-          <Section
-            key={status}
-            status={status}
-            todos={byStatus(status)}
-            onOpen={handleOpen}
-            onClearDone={status === 'Done' ? handleClearDone : undefined}
-            pendingDeleteIds={pendingDeleteIds}
-          />
-        ))}
+        {!isLoading && !error && !isEmpty && (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={(args) => {
+              const withinHits = pointerWithin(args)
+              if (withinHits.length > 0) {
+                // Prefer card hits over column hits so within-column reorder
+                // positions correctly. Fall back to column hit if only the
+                // droppable (card-list div) is hit but no individual card.
+                const cardHits = withinHits.filter(c => !statuses.includes(c.id as string))
+                return cardHits.length > 0 ? cardHits : withinHits
+              }
+              // rectIntersection is better than closestCorners for stacked
+              // vertical columns — it picks the column whose rect overlaps the
+              // most with the dragged item's bounding box.
+              return rectIntersection(args)
+            }}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <div>
+              {statuses.map(status => (
+                <KanbanColumn
+                  key={status}
+                  status={status}
+                  todos={getColumnTodos(status)}
+                  members={members}
+                  categories={categories}
+                  onOpen={todo => navigate(`/todos/${todo.id}/edit`)}
+                  onClearDone={status === 'Done' ? handleClearDone : undefined}
+                  isOver={overColumnStatus === status && activeId !== null}
+                />
+              ))}
+            </div>
+
+            <DragOverlay>
+              {activeTodo && (
+                <TodoCard
+                  todo={activeTodo}
+                  members={members}
+                  categories={categories}
+                  onOpen={() => {}}
+                  isOverlay
+                />
+              )}
+            </DragOverlay>
+          </DndContext>
+        )}
       </div>
 
-      {/* Detail sheet */}
-      <TodoDetailSheet
-        todo={selectedTodo}
-        onClose={handleCloseSheet}
-        onUpdate={handleUpdate}
-        onDelete={handleDelete}
-      />
-
-      {/* Clear done confirmation */}
       <ClearDoneConfirm
         open={showClearConfirm}
         onConfirm={commitClearDone}
         onCancel={() => setShowClearConfirm(false)}
       />
 
-      {/* Import dialog */}
       <ImportModal open={importOpen} onOpenChange={setImportOpen} description="Import your to-do list.">
         <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
       </ImportModal>

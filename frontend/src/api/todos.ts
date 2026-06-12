@@ -1,10 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import type { Todo } from './types'
+import { todoKeys } from './queryKeys'
 
-export const todoKeys = {
-  all: ['todos'] as const,
-}
+export { todoKeys }
 
 export const todosApi = {
   list: () => api.get<Todo[]>('/todos'),
@@ -17,11 +16,33 @@ export function useTodos() {
 export function useCreateTodo() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { name: string; due?: string | null }) => api.post<Todo>('/todos', data),
-    onMutate: async ({ name, due }) => {
+    mutationFn: (data: {
+      name: string
+      status?: string | null
+      due?: string | null
+      priority?: string | null
+      categoryId?: string | null
+      assignedTo?: string | null
+      url?: string | null
+      notes?: string | null
+      frequency?: string | null
+    }) => api.post<Todo>('/todos', data),
+    onMutate: async (data) => {
       await qc.cancelQueries({ queryKey: todoKeys.all })
       const previous = qc.getQueryData<Todo[]>(todoKeys.all)
-      const optimistic: Todo = { id: `optimistic-${Date.now()}`, name, status: 'Todo', priority: null, due: due ?? null }
+      const optimistic: Todo = {
+        id: `optimistic-${Date.now()}`,
+        name: data.name,
+        status: data.status ?? 'Todo',
+        priority: data.priority ?? null,
+        due: data.due ?? null,
+        categoryId: data.categoryId ?? null,
+        assignedTo: data.assignedTo ?? null,
+        url: data.url ?? null,
+        notes: data.notes ?? null,
+        frequency: data.frequency ?? null,
+        sortOrder: (previous?.reduce((max: number, t: Todo) => Math.max(max, t.sortOrder), -1) ?? -1) + 1,
+      }
       qc.setQueryData<Todo[]>(todoKeys.all, old => [optimistic, ...(old ?? [])])
       return { previous }
     },
@@ -53,6 +74,27 @@ export function useUpdateTodo() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: todoKeys.all })
     },
+  })
+}
+
+export function useReorderTodos() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (ids: string[]) => api.patch('/todos/reorder', { ids }),
+    onMutate: async (ids) => {
+      await qc.cancelQueries({ queryKey: todoKeys.all })
+      const previous = qc.getQueryData<Todo[]>(todoKeys.all)
+      qc.setQueryData<Todo[]>(todoKeys.all, old => {
+        if (!old) return old
+        const newOrders = new Map(ids.map((id, i) => [id, i]))
+        return old.map(t => newOrders.has(t.id) ? { ...t, sortOrder: newOrders.get(t.id)! } : t)
+      })
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) qc.setQueryData(todoKeys.all, context.previous)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: todoKeys.all }),
   })
 }
 

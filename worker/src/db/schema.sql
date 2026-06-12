@@ -1,8 +1,9 @@
 CREATE TABLE IF NOT EXISTS households (
   id          TEXT PRIMARY KEY,    -- crypto.randomUUID()
   name        TEXT NOT NULL,
-  invite_code TEXT UNIQUE,         -- nullable = invites disabled
-  created_at  INTEGER NOT NULL     -- Unix ms
+  invite_code   TEXT UNIQUE,         -- nullable = invites disabled
+  created_at    INTEGER NOT NULL,    -- Unix ms
+  todo_workflow TEXT NOT NULL DEFAULT 'simple'
 );
 
 CREATE TABLE IF NOT EXISTS household_members (
@@ -132,7 +133,22 @@ CREATE TABLE IF NOT EXISTS todos (
   priority     TEXT,
   due          TEXT,
   created_at   INTEGER NOT NULL,
-  updated_at   INTEGER NOT NULL
+  updated_at   INTEGER NOT NULL,
+  category_id  TEXT,
+  assigned_to  TEXT,
+  url          TEXT,
+  notes        TEXT,
+  frequency    TEXT,
+  sort_order   INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS todos_household ON todos(household_id);
 CREATE INDEX IF NOT EXISTS todos_due       ON todos(household_id, due);
+
+CREATE TABLE IF NOT EXISTS household_todo_categories (
+  id           TEXT NOT NULL,
+  household_id TEXT NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+  name         TEXT NOT NULL,
+  sort_order   INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (household_id, id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS htc_name ON household_todo_categories(household_id, name);

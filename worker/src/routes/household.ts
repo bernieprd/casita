@@ -415,3 +415,42 @@ export async function deleteHousehold(
 
   return Response.json({ ok: true })
 }
+
+export async function getTodoSettings(
+  _req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return err(403, 'Forbidden')
+  const row = await env.DB
+    .prepare('SELECT todo_workflow FROM households WHERE id = ?')
+    .bind(ctx.householdId)
+    .first<{ todo_workflow: string }>()
+  return Response.json({ workflow: row?.todo_workflow ?? 'simple' })
+}
+
+export async function updateTodoSettings(
+  req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return err(403, 'Forbidden')
+  if (ctx.role !== 'owner') return err(403, 'Only the owner can change todo settings')
+  const body = await req.json<{ workflow?: string }>()
+  const allowed = ['simple', 'board']
+  if (!body.workflow || !allowed.includes(body.workflow))
+    return new Response('Invalid workflow', { status: 400 })
+  const householdStmt = env.DB
+    .prepare('UPDATE households SET todo_workflow = ? WHERE id = ?')
+    .bind(body.workflow, ctx.householdId)
+
+  if (body.workflow === 'simple') {
+    const todoStmt = env.DB
+      .prepare("UPDATE todos SET status = 'Todo', updated_at = ? WHERE household_id = ? AND status IN ('In progress', 'Blocked')")
+      .bind(Date.now(), ctx.householdId)
+    await env.DB.batch([householdStmt, todoStmt])
+  } else {
+    await householdStmt.run()
+  }
+  return Response.json({ workflow: body.workflow })
+}

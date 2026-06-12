@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useBlocker } from 'react-router-dom'
 import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Check, ImagePlus, X } from 'lucide-react'
 import {
   DndContext,
@@ -28,6 +28,16 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Command, CommandList, CommandItem, CommandEmpty } from '@/components/ui/command'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -334,6 +344,13 @@ export default function RecipeFormPage() {
   // ── Form state ──────────────────────────────────────────────────────────────
 
   const [initialized, setInitialized] = useState(false)
+
+  type RecipeSnapshot = {
+    name: string; type: string | null; url: string
+    coverUrl: string | null; instructions: string; rowsKey: string
+  }
+  const snapshot = useRef<RecipeSnapshot | null>(null)
+
   const [name, setName] = useState('')
   const [nameError, setNameError] = useState(false)
   const [type, setType] = useState<string | null>(null)
@@ -354,6 +371,7 @@ export default function RecipeFormPage() {
     if (initialized) return
 
     if (!isEdit) {
+      snapshot.current = { name: '', type: null, url: '', coverUrl: '', instructions: '', rowsKey: JSON.stringify([]) }
       setInitialized(true)
       return
     }
@@ -369,20 +387,19 @@ export default function RecipeFormPage() {
     setCoverUrl(recipe.coverPhotoUrl ?? '')
     setPreviewUrl(recipe.coverPhotoUrl ?? '')
     setPhotoError(false)
-    setInstructions(
-      (recipe.blocks ?? [])
-        .map(b => {
-          switch (b.type) {
-            case 'divider':            return '---'
-            case 'heading_1':          return `# ${b.text}`
-            case 'heading_2':          return `## ${b.text}`
-            case 'heading_3':          return `### ${b.text}`
-            case 'bulleted_list_item': return `- ${b.text}`
-            default:                   return b.text
-          }
-        })
-        .join('\n'),
-    )
+    const instructionsText = (recipe.blocks ?? [])
+      .map(b => {
+        switch (b.type) {
+          case 'divider':            return '---'
+          case 'heading_1':          return `# ${b.text}`
+          case 'heading_2':          return `## ${b.text}`
+          case 'heading_3':          return `### ${b.text}`
+          case 'bulleted_list_item': return `- ${b.text}`
+          default:                   return b.text
+        }
+      })
+      .join('\n')
+    setInstructions(instructionsText)
     const ingRows: IngRow[] = ingredients.map(ing => ({
       key: ing.id,
       id: ing.id,
@@ -406,8 +423,33 @@ export default function RecipeFormPage() {
     }
     setSectionOrder(order)
     setNameError(false)
+    snapshot.current = {
+      name: recipe.name,
+      type: recipe.type,
+      url: recipe.url ?? '',
+      coverUrl: recipe.coverPhotoUrl ?? '',
+      instructions: instructionsText,
+      rowsKey: JSON.stringify(ingRows.map(r => ({ itemId: r.itemId, quantity: r.quantity, section: r.section }))),
+    }
     setInitialized(true)
   }, [isEdit, recipeData, ingredientsData, ingredientsLoading, recipeLoading, initialized])
+
+  const currentRowsKey = useMemo(
+    () => JSON.stringify(rows.map(r => ({ itemId: r.itemId, quantity: r.quantity, section: r.section }))),
+    [rows],
+  )
+
+  const isDirty = useMemo(() => {
+    if (!snapshot.current) return false
+    const s = snapshot.current
+    return (
+      name !== s.name || type !== s.type || url !== s.url ||
+      coverUrl !== s.coverUrl || instructions !== s.instructions ||
+      currentRowsKey !== s.rowsKey
+    )
+  }, [name, type, url, coverUrl, instructions, currentRowsKey])
+
+  const blocker = useBlocker(isDirty && !isPending)
 
   // ── DnD sensors ─────────────────────────────────────────────────────────────
 
@@ -534,7 +576,7 @@ export default function RecipeFormPage() {
 
       editRecipe.mutate(
         { recipe: recipeBody, removedIngredientIds: removedIds, newIngredients, updatedIngredients },
-        { onSuccess: () => navigate(-1) },
+        { onSuccess: () => { snapshot.current = null; navigate(-1) } },
       )
     } else {
       const ingredients = rows
@@ -544,7 +586,7 @@ export default function RecipeFormPage() {
       createRecipe.mutate(
         { recipe: recipeBody, ingredients },
         {
-          onSuccess: newRecipe => navigate(`/recipes/${newRecipe.id}`, { replace: true }),
+          onSuccess: newRecipe => { snapshot.current = null; navigate(`/recipes/${newRecipe.id}`, { replace: true }) },
         },
       )
     }
@@ -552,7 +594,7 @@ export default function RecipeFormPage() {
 
   function handleDelete() {
     deleteRecipe.mutate(undefined, {
-      onSuccess: () => navigate('/recipes', { replace: true }),
+      onSuccess: () => { snapshot.current = null; navigate('/recipes', { replace: true }) },
     })
   }
 
@@ -834,6 +876,21 @@ export default function RecipeFormPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={blocker.state === 'blocked'}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+              <AlertDialogDescription>
+                You have unsaved changes. Are you sure you want to leave?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => blocker.reset?.()}>Keep Editing</AlertDialogCancel>
+              <AlertDialogAction onClick={() => blocker.proceed?.()}>Leave</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )

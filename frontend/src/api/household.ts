@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
+import { todoKeys } from './queryKeys'
 
 export interface HouseholdSettings {
   householdId: string | null
@@ -120,6 +121,36 @@ export function useUpdateHouseholdTheme() {
       // This hook-level handler is intentionally left as a no-op so callers
       // (e.g. useTheme) can supply their own per-invocation onError without
       // it being swallowed.
+    },
+  })
+}
+
+export type TodoWorkflow = 'simple' | 'board'
+
+export interface TodoWorkflowSettings {
+  workflow: TodoWorkflow
+}
+
+export const todoWorkflowKeys = {
+  settings: ['household', 'todo-settings'] as const,
+}
+
+export function useTodoWorkflow() {
+  return useQuery({
+    queryKey: todoWorkflowKeys.settings,
+    queryFn: () => api.get<TodoWorkflowSettings>('/household/todo-settings'),
+    staleTime: 30_000,
+  })
+}
+
+export function useUpdateTodoWorkflow() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (workflow: TodoWorkflow) =>
+      api.patch<TodoWorkflowSettings>('/household/todo-settings', { workflow }),
+    onSuccess: (data) => {
+      qc.setQueryData(todoWorkflowKeys.settings, data)
+      qc.invalidateQueries({ queryKey: todoKeys.all })
     },
   })
 }

@@ -7,6 +7,7 @@ import HouseholdSettings from './HouseholdSettings'
 import CalendarSettings from './CalendarSettings'
 import ShoppingSettings from './ShoppingSettings'
 import RecipesSettings from './RecipesSettings'
+import TodosSettings from './TodosSettings'
 import ChangelogSettings from './ChangelogSettings'
 import ImportSettings from './ImportSettings'
 
@@ -26,6 +27,7 @@ export default function SettingsLayout({ themePrefs, setThemePrefs, themeSaving,
       <Route path="calendar"  element={<CalendarSettings  setHeader={setHeader} />} />
       <Route path="shopping"  element={<ShoppingSettings  setHeader={setHeader} />} />
       <Route path="recipes"   element={<RecipesSettings   setHeader={setHeader} />} />
+      <Route path="todos"     element={<TodosSettings     setHeader={setHeader} />} />
       <Route path="changelog"  element={<ChangelogSettings  setHeader={setHeader} />} />
       <Route path="import"    element={<ImportSettings     setHeader={setHeader} />} />
       <Route path="*"         element={<Navigate to="/settings" replace />} />
