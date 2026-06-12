@@ -469,7 +469,11 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
     (id) => toggle.mutate({ id, onShoppingList: false }),
     formatShoppingRemoved,
   )
-  const plan = useShoppingPlan(items?.filter(i => !removingIds.has(i.id)))
+  const filteredItems = useMemo(
+    () => items?.filter(i => !removingIds.has(i.id)),
+    [items, removingIds],
+  )
+  const plan = useShoppingPlan(filteredItems)
 
   const remainderLabel = useMemo(() => {
     if (!items) return null
@@ -497,7 +501,7 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
 
     // Sort stores by their total count across the full list, not just the remainder
     const globalStoreTotals = new Map<string, number>()
-    for (const item of items) {
+    for (const item of items.filter(i => !removingIds.has(i.id))) {
       for (const store of item.supermarkets) {
         globalStoreTotals.set(store, (globalStoreTotals.get(store) ?? 0) + 1)
       }
