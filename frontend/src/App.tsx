@@ -22,6 +22,7 @@ import { useTheme } from '@/hooks/useTheme'
 
 
 const RecipeFormPage  = lazy(() => import('./components/RecipeFormPage'))
+const TodoFormPage    = lazy(() => import('./components/TodoFormPage'))
 const SettingsLayout  = lazy(() => import('./components/settings/SettingsLayout'))
 const HouseholdSetup  = lazy(() => import('./components/HouseholdSetup'))
 const ThemePreview    = lazy(() => import('./components/ThemePreview'))
@@ -285,6 +286,16 @@ export default function App() {
         <Route path="/recipes/:id/edit" element={
           <ProtectedRoute>
             <Suspense fallback={<SuspenseFallback />}><RecipeFormPage /></Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/todos/new" element={
+          <ProtectedRoute>
+            <Suspense fallback={<SuspenseFallback />}><TodoFormPage /></Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/todos/:id/edit" element={
+          <ProtectedRoute>
+            <Suspense fallback={<SuspenseFallback />}><TodoFormPage /></Suspense>
           </ProtectedRoute>
         } />
         <Route path="/*" element={

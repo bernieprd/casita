@@ -19,6 +19,7 @@ export function useCreateTodo() {
   return useMutation({
     mutationFn: (data: {
       name: string
+      status?: string | null
       due?: string | null
       priority?: string | null
       categoryId?: string | null
