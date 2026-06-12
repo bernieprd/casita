@@ -1,4 +1,5 @@
 import type { Env, GoogleTokens, RequestContext } from '../types'
+import { getAppBaseUrl } from '../types'
 import { rebuildSharedIndex } from './shared-calendar-index'
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -71,7 +72,7 @@ export async function handleGoogleOAuthCallback(req: Request, env: Env): Promise
     { expirationTtl: 7_776_000 },
   )
 
-  const baseUrl = env.APP_BASE_URL ?? 'https://app.casita.bernardoprd.com'
+  const baseUrl = getAppBaseUrl(env)
   return Response.redirect(`${baseUrl}/settings/calendar?google=connected`, 302)
 }
 

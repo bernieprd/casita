@@ -147,7 +147,6 @@ export interface Env {
   GOOGLE_CLIENT_SECRET?: string
   GOOGLE_REDIRECT_URI?: string
   // Set in wrangler.toml [vars] or .dev.vars to override the default.
-  // Defaults to the GitHub Pages origin in production.
   ALLOWED_ORIGIN?: string
   APP_BASE_URL?: string
   RECIPE_PHOTOS: R2Bucket
@@ -158,6 +157,11 @@ export interface Env {
   CLERK_SECRET_KEY: string
   CLERK_JWT_KEY?: string // PEM public key — enables local JWT verification (no network call)
   ADMIN_MIGRATE_SECRET?: string
+}
+
+export const DEFAULT_APP_URL = 'https://dashboard.mycasita.app'
+export function getAppBaseUrl(env: Env): string {
+  return env.APP_BASE_URL ?? DEFAULT_APP_URL
 }
 
 export interface ConceptItem {
