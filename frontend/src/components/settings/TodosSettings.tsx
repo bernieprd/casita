@@ -9,7 +9,6 @@ import {
   useUpdateTodoWorkflow,
   type TodoWorkflow,
 } from '../../api/household'
-import { useTodos, useUpdateTodo } from '../../api/todos'
 import ConceptManager from './ConceptManager'
 
 interface TodosSettingsProps {
@@ -24,8 +23,6 @@ export default function TodosSettings({ setHeader }: TodosSettingsProps) {
 
   const { data: todoSettings } = useTodoWorkflow()
   const { mutate: updateWorkflow } = useUpdateTodoWorkflow()
-  const { data: todos } = useTodos()
-  const updateTodo = useUpdateTodo()
 
   useEffect(() => {
     setHeader(
@@ -50,11 +47,6 @@ export default function TodosSettings({ setHeader }: TodosSettingsProps) {
   function handleWorkflowChange(val: string) {
     if (!val) return
     updateWorkflow(val as TodoWorkflow)
-    if (val === 'simple') {
-      todos
-        ?.filter(t => t.status === 'In progress' || t.status === 'Blocked')
-        .forEach(t => updateTodo.mutate({ id: t.id, status: 'Todo' }))
-    }
   }
 
   return (

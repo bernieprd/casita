@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
+import { todoKeys } from './todos'
 
 export interface HouseholdSettings {
   householdId: string | null
@@ -149,6 +150,7 @@ export function useUpdateTodoWorkflow() {
       api.patch<TodoWorkflowSettings>('/household/todo-settings', { workflow }),
     onSuccess: (data) => {
       qc.setQueryData(todoWorkflowKeys.settings, data)
+      qc.invalidateQueries({ queryKey: todoKeys.all })
     },
   })
 }

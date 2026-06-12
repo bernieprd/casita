@@ -440,9 +440,17 @@ export async function updateTodoSettings(
   const allowed = ['simple', 'board']
   if (!body.workflow || !allowed.includes(body.workflow))
     return new Response('Invalid workflow', { status: 400 })
-  await env.DB
+  const householdStmt = env.DB
     .prepare('UPDATE households SET todo_workflow = ? WHERE id = ?')
     .bind(body.workflow, ctx.householdId)
-    .run()
+
+  if (body.workflow === 'simple') {
+    const todoStmt = env.DB
+      .prepare("UPDATE todos SET status = 'Todo', updated_at = ? WHERE household_id = ? AND status IN ('In progress', 'Blocked')")
+      .bind(Date.now(), ctx.householdId)
+    await env.DB.batch([householdStmt, todoStmt])
+  } else {
+    await householdStmt.run()
+  }
   return Response.json({ workflow: body.workflow })
 }

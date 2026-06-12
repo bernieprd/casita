@@ -16,6 +16,12 @@ interface ChangelogEntry {
 const CHANGELOG: ChangelogEntry[] = [
   {
     date: 'June 2026',
+    title: 'To-Do reliability fixes',
+    description:
+      'Drag-and-drop reordering is now atomic (no more partial failures). Dropping a card onto a collapsed Done column now auto-expands it. Switching workflow from Board to Simple cleanly resets statuses in one step.',
+  },
+  {
+    date: 'June 2026',
     title: 'To-Dos overhaul',
     description:
       'To-dos now support categories, assignees, due dates, priority, frequency, URLs, and notes. A new Kanban board view with drag-and-drop replaces the old list, and a full-page form replaces the sheet. Configure workflow style and categories from Settings → To-Dos.',

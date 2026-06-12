@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { cn } from '@/lib/utils'
+import { cn, memberInitials } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus, useToggleShoppingList, useUpdateTodo, useHouseholdSettings, useConceptList } from '../api'
 import type { Item } from '../api/types'
@@ -277,11 +277,6 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
 // ── Todo summary ──────────────────────────────────────────────────────────────
 
 type Member = HouseholdSettings['members'][number]
-
-function memberInitials(member: Member): string {
-  const name = member.displayName ?? member.email ?? ''
-  return name.split(' ').filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase()
-}
 
 const PRIORITY_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 }
 

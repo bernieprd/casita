@@ -44,6 +44,7 @@ import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo, useHouseholdSett
 import { useReorderTodos } from '../api/todos'
 import type { Todo, ConceptItem, HouseholdSettings } from '../api'
 import { useTodoWorkflow } from '../api/household'
+import { memberInitials } from '@/lib/utils'
 import GuidedImport from './GuidedImport'
 import { ImportModal } from './ImportModal'
 
@@ -82,17 +83,6 @@ function formatDue(due: string | null): string | null {
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-function memberInitials(member: Member): string {
-  const name = member.displayName ?? member.email ?? ''
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(s => s[0])
-    .join('')
-    .toUpperCase()
-}
-
 // ── Priority chip ─────────────────────────────────────────────────────────────
 
 function PriorityChip({ priority }: { priority: string | null }) {
@@ -115,7 +105,6 @@ interface TodoCardProps {
   isOverlay?: boolean
   style?: React.CSSProperties
   dragHandleProps?: Record<string, unknown>
-  ref?: React.Ref<HTMLDivElement>
 }
 
 function TodoCard({
@@ -254,7 +243,12 @@ interface KanbanColumnProps {
 }
 
 function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone, isOver }: KanbanColumnProps) {
+  // Primary droppable — lives on the card-list div inside CollapsibleContent.
+  // This is the main drop target when the column is expanded.
   const { setNodeRef } = useDroppable({ id: status })
+  // Secondary droppable — lives on the header trigger so that drops can target
+  // this column even when it is collapsed (CollapsibleContent has no rect then).
+  const { setNodeRef: setHeaderDropRef } = useDroppable({ id: `${status}--header` })
   const isBlocked = status === 'Blocked'
   const isDone = status === 'Done'
   const [expanded, setExpanded] = useState(!isDone)
@@ -304,7 +298,12 @@ function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone,
         className={`bg-card rounded-lg overflow-hidden border shadow-[0_1px_2px_rgba(0,0,0,.06)] transition-colors ${isOver ? 'border-primary/40' : 'border-border'}`}
       >
         <CollapsibleTrigger asChild>
+          {/* setHeaderDropRef makes the header a valid drop target so that a
+              collapsed column (whose card-list has no rect) can still receive
+              drops — the handleDragOver/handleDragEnd logic maps the `--header`
+              suffix back to the real status string. */}
           <div
+            ref={setHeaderDropRef}
             role="button"
             tabIndex={0}
             aria-label={`${expanded ? 'Collapse' : 'Expand'} ${status}`}
@@ -358,15 +357,16 @@ function TodosSkeleton({ isMobile }: { isMobile: boolean }) {
   }
 
   return (
-    <div className="flex gap-3 overflow-x-hidden">
-      {[3, 2, 1].map((rows, gi) => (
-        <div key={gi} className="w-72 flex-shrink-0 rounded-lg border border-border bg-muted/30">
-          <div className="px-3 py-2.5 border-b border-border">
+    <div>
+      {[3, 2, 1, 1].map((rows, gi) => (
+        <div key={gi} className="bg-card rounded-lg overflow-hidden border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
+          <div className="px-4 py-3">
             <Skeleton className="w-20 h-3.5" />
           </div>
-          <div className="p-2 flex flex-col gap-2">
+          <Separator />
+          <div className="p-3 flex flex-col gap-2">
             {Array.from({ length: rows }).map((_, i) => (
-              <div key={i} className="rounded-lg border border-border bg-card p-3">
+              <div key={i} className="rounded-lg border border-border p-3">
                 <Skeleton className="h-4" style={{ width: `${45 + i * 20}%` }} />
               </div>
             ))}
@@ -516,13 +516,26 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
     setOverColumnStatus(todo?.status ?? 'Todo')
   }
 
+  // `--header` droppable IDs (e.g. "Done--header") map to their real status so
+  // that drops onto a collapsed column header resolve correctly.
+  function resolveColumnStatus(overId: string): string | null {
+    if (statuses.includes(overId)) return overId
+    const headerSuffix = '--header'
+    if (overId.endsWith(headerSuffix)) {
+      const base = overId.slice(0, -headerSuffix.length)
+      if (statuses.includes(base)) return base
+    }
+    return null
+  }
+
   function handleDragOver(event: DragOverEvent) {
     const { over } = event
     if (!over) return
     const overId = over.id as string
-    // Check if hovering over a column droppable
-    if (statuses.includes(overId)) {
-      setOverColumnStatus(overId)
+    // Check if hovering over a column droppable (or its header variant)
+    const colStatus = resolveColumnStatus(overId)
+    if (colStatus) {
+      setOverColumnStatus(colStatus)
       return
     }
     // Hovering over a card — find its column
@@ -546,10 +559,11 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
     const activeStatus = draggedTodo.status ?? 'Todo'
     const overId = over.id as string
 
-    // Determine target status
+    // Determine target status — handle header droppables for collapsed columns
     let targetStatus = activeStatus
-    if (statuses.includes(overId)) {
-      targetStatus = overId
+    const colStatus = resolveColumnStatus(overId)
+    if (colStatus) {
+      targetStatus = colStatus
     } else {
       const overTodo = todos.find(t => t.id === overId)
       if (overTodo) targetStatus = overTodo.status ?? 'Todo'
