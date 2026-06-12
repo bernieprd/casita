@@ -26,7 +26,13 @@ function rowToTodo(row: Record<string, unknown>): Todo {
     frequency:   (row.frequency    as string | null) ?? null,
     frequencyInterval: (row.frequency_interval as number | null) ?? null,
     frequencyDays: row.frequency_days
-      ? (JSON.parse(row.frequency_days as string) as string[])
+      ? (() => {
+          try {
+            return JSON.parse(row.frequency_days as string) as string[]
+          } catch {
+            return null
+          }
+        })()
       : null,
     sortOrder:   (row.sort_order   as number) ?? 0,
   }

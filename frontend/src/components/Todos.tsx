@@ -44,7 +44,7 @@ import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo, useHouseholdSett
 import { useReorderTodos } from '../api/todos'
 import type { Todo, ConceptItem, HouseholdSettings } from '../api'
 import { useTodoWorkflow } from '../api/household'
-import { memberInitials, safeUrl } from '@/lib/utils'
+import { memberInitials, safeUrl, formatFrequency } from '@/lib/utils'
 import GuidedImport from './GuidedImport'
 import { ImportModal } from './ImportModal'
 
@@ -83,22 +83,6 @@ function formatDue(due: string | null): string | null {
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-function formatFrequency(frequency: string | null, interval: number | null, days: string[] | null): string | null {
-  if (!frequency) return null
-  const n = interval ?? 1
-  const dayShort = (d: string) => d.slice(0, 3)
-  if (frequency === 'daily') return 'Daily'
-  if (frequency === 'weekly') {
-    const daysStr = days && days.length > 0 ? ` · ${days.map(dayShort).join(', ')}` : ''
-    return n === 1 ? `Weekly${daysStr}` : `Every ${n}w${daysStr}`
-  }
-  if (frequency === 'biweekly') return 'Biweekly'
-  if (frequency === 'monthly') return n === 1 ? 'Monthly' : `Every ${n}mo`
-  if (frequency === 'quarterly') return 'Quarterly'
-  if (frequency === 'yearly') return 'Yearly'
-  return frequency
-}
-
 // ── Priority chip ─────────────────────────────────────────────────────────────
 
 function PriorityChip({ priority }: { priority: string | null }) {
@@ -135,7 +119,7 @@ function TodoCard({
   const dueLabel = formatDue(todo.due)
   const isDone = todo.status === 'Done'
   const category = todo.categoryId ? categories.find(c => c.id === todo.categoryId) : null
-  const assignees = (todo.assignedTo ?? []).length > 0 ? (todo.assignedTo ?? []) : []
+  const assignees = todo.assignedTo ?? []
   const freqLabel = formatFrequency(todo.frequency, todo.frequencyInterval, todo.frequencyDays)
   const todoUrl = safeUrl(todo.url)
 
@@ -532,7 +516,7 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
     if (!categories.length) return []
     return [...new Set(
       (todos ?? [])
-        .filter(t => t.status !== 'Done' && t.categoryId)
+        .filter(t => t.categoryId)
         .map(t => categories.find(c => c.id === t.categoryId)?.name)
         .filter((n): n is string => !!n)
     )].sort()
