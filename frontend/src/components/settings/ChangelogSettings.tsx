@@ -16,9 +16,9 @@ interface ChangelogEntry {
 const CHANGELOG: ChangelogEntry[] = [
   {
     date: 'June 2026',
-    title: 'To-Do settings',
+    title: 'To-Dos overhaul',
     description:
-      'Configure your workflow style (Simple or Board) and manage to-do categories from Settings → To-Dos.',
+      'To-dos now support categories, assignees, due dates, priority, frequency, URLs, and notes. A new Kanban board view with drag-and-drop replaces the old list, and a full-page form replaces the sheet. Configure workflow style and categories from Settings → To-Dos.',
   },
   {
     date: 'June 2026',
