@@ -49,6 +49,9 @@ const COLLAPSE_DURATION_MS = 220
 // How long the toast stays up; mutation fires 100ms after this.
 const TOAST_DURATION_MS = 4000
 
+const formatShoppingRemoved = (name: string) => `Removed "${name}" from list`
+const formatTodoDone = (name: string) => `Marked "${name}" as done`
+
 function useCollapsible() {
   const [collapsed, setCollapsed] = useState(false)
   const [contentVisible, setContentVisible] = useState(true)
@@ -67,14 +70,16 @@ function CollapsibleBody({ collapsed, onCollapsed, children }: {
   return (
     <div
       style={{
-        overflow: 'hidden',
-        transition: `max-height ${COLLAPSE_DURATION_MS}ms ease, opacity ${COLLAPSE_DURATION_MS}ms ease`,
-        maxHeight: collapsed ? 0 : '2000px',
+        display: 'grid',
+        gridTemplateRows: collapsed ? '0fr' : '1fr',
+        transition: `grid-template-rows ${COLLAPSE_DURATION_MS}ms ease, opacity ${COLLAPSE_DURATION_MS}ms ease`,
         opacity: collapsed ? 0 : 1,
       }}
       onTransitionEnd={e => { if (e.target === e.currentTarget && collapsed) onCollapsed() }}
     >
-      {children}
+      <div style={{ overflow: 'hidden' }}>
+        {children}
+      </div>
     </div>
   )
 }
@@ -152,6 +157,7 @@ function CardHeader({
       </span>
       {onSeeAll && (
         <button
+          type="button"
           onClick={e => { e.stopPropagation(); onSeeAll() }}
           className="text-xs font-semibold text-primary cursor-pointer mr-3"
         >
@@ -159,6 +165,7 @@ function CardHeader({
         </button>
       )}
       <button
+        type="button"
         onClick={e => { e.stopPropagation(); onToggle() }}
         className="text-muted-foreground/60 -mr-1"
         aria-label={collapsed ? 'Expand section' : 'Collapse section'}
@@ -275,13 +282,13 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
   const updateTodo = useUpdateTodo()
   const { removingIds: removingTodoIds, trigger: handleDone } = useDeferredAction(
     (id) => updateTodo.mutate({ id, status: 'Done' }),
-    (name) => `Marked "${name}" as done`,
+    formatTodoDone,
   )
 
   const { topTodos, remaining } = useMemo(() => {
     if (!todos) return { topTodos: [], remaining: 0 }
     const incomplete = todos
-      .filter(t => t.status !== 'Done')
+      .filter(t => t.status !== 'Done' && !removingTodoIds.has(t.id))
       .sort((a, b) => {
         const hasDueA = !!a.due, hasDueB = !!b.due
         if (hasDueA !== hasDueB) return hasDueA ? -1 : 1
@@ -299,12 +306,7 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
         return pa - pb
       })
     return { topTodos: incomplete.slice(0, 3), remaining: Math.max(0, incomplete.length - 3) }
-  }, [todos])
-
-  // Subtract items currently animating out from the "+N more" count so the
-  // badge doesn't update mid-animation when the cache is still stale.
-  const removingInTop = topTodos.filter(t => removingTodoIds.has(t.id)).length
-  const adjustedRemaining = Math.max(0, remaining - removingInTop)
+  }, [todos, removingTodoIds])
 
   return (
     <div className="mb-6">
@@ -357,12 +359,12 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
                   />
                 </div>
               ))}
-              {adjustedRemaining > 0 && (
+              {remaining > 0 && (
                 <div
                   onClick={onSeeAll}
                   className="px-4 py-2.5 border-t border-border cursor-pointer"
                 >
-                  <span className="text-xs text-muted-foreground">+{adjustedRemaining} more</span>
+                  <span className="text-xs text-muted-foreground">+{remaining} more</span>
                 </div>
               )}
             </>
@@ -462,19 +464,16 @@ function useShoppingPlan(items: Item[] | undefined): ShoppingPlan {
 function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
   const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
   const { data: items, isLoading } = useShoppingList()
-  const plan = useShoppingPlan(items)
   const toggle = useToggleShoppingList()
   const { removingIds, trigger: handleRemove } = useDeferredAction(
     (id) => toggle.mutate({ id, onShoppingList: false }),
-    (name) => `Removed "${name}" from list`,
+    formatShoppingRemoved,
   )
-
-  const removingInTop = plan.topItems.filter(i => removingIds.has(i.id)).length
-  const adjustedRemaining = Math.max(0, plan.remaining - removingInTop)
+  const plan = useShoppingPlan(items?.filter(i => !removingIds.has(i.id)))
 
   const remainderLabel = useMemo(() => {
     if (!items) return null
-    if (adjustedRemaining === 0) return null
+    if (plan.remaining === 0) return null
     const topIds = new Set(plan.topItems.map(i => i.id))
     const remainderItems = items.filter(i => !topIds.has(i.id) && !removingIds.has(i.id))
 
@@ -493,7 +492,7 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
 
     // If no item has a store, fall back to the plain "+N more" format
     if (storeCounts.size === 0) {
-      return `+${adjustedRemaining} more`
+      return `+${plan.remaining} more`
     }
 
     // Sort stores by their total count across the full list, not just the remainder
@@ -511,7 +510,7 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
       parts.push(`+${noStoreCount} more`)
     }
     return parts.join(', ')
-  }, [items, plan.topItems, removingIds, adjustedRemaining])
+  }, [items, plan.topItems, removingIds, plan.remaining])
 
   return (
     <div className="mb-6">
