@@ -14,13 +14,80 @@ export const DEFAULT_THEME: ThemePrefs = {
   colorScheme: 'system',
 }
 
-export const COLOR_PRESETS = [
-  { label: 'Forest',      hsl: '152 41% 30%' },
-  { label: 'Sage',        hsl: '145 25% 36%' },
-  { label: 'Terracotta',  hsl: '16 55% 45%' },
-  { label: 'Stone',       hsl: '30 12% 40%' },
-  { label: 'Dusk',        hsl: '245 30% 45%' },
-] as const
+export interface ColorPreset {
+  label: string
+  hsl: string        // DB identifier — never changes
+  lightPrimary: string
+  darkPrimary: string
+  lightBase: string
+  darkBase: string
+  lightBackground: string
+  darkBackground: string
+}
+
+const DEFAULT_COLOR_PRESET: ColorPreset = {
+  label: 'Default',
+  hsl: '220 9% 30%',
+  lightPrimary: '220 9% 30%',
+  darkPrimary:  '220 9% 60%',
+  lightBase:    '220 8% 95%',
+  darkBase:     '220 8% 12%',
+  lightBackground: '220 6% 98%',
+  darkBackground:  '220 6% 10%',
+}
+
+export const COLOR_PRESETS: ColorPreset[] = [
+  {
+    label: 'Forest',
+    hsl:          '152 41% 30%',
+    lightPrimary: '152 45% 27%',
+    darkPrimary:  '152 50% 60%',
+    lightBase:    '152 15% 95%',
+    darkBase:     '152 7% 12%',
+    lightBackground: '152 8% 98%',
+    darkBackground:  '152 5% 10%',
+  },
+  {
+    label: 'Sage',
+    hsl:          '145 25% 36%',
+    lightPrimary: '145 28% 32%',
+    darkPrimary:  '145 35% 62%',
+    lightBase:    '145 10% 95%',
+    darkBase:     '145 5% 12%',
+    lightBackground: '145 5% 98%',
+    darkBackground:  '145 3% 10%',
+  },
+  {
+    label: 'Terracotta',
+    hsl:          '16 55% 45%',
+    lightPrimary: '16 58% 38%',
+    darkPrimary:  '16 70% 67%',
+    lightBase:    '16 20% 95%',
+    darkBase:     '16 7% 12%',
+    lightBackground: '16 10% 98%',
+    darkBackground:  '16 5% 10%',
+  },
+  {
+    label: 'Stone',
+    hsl:          '30 12% 40%',
+    lightPrimary: '30 14% 36%',
+    darkPrimary:  '30 18% 63%',
+    lightBase:    '30 8% 95%',
+    darkBase:     '30 6% 12%',
+    lightBackground: '30 4% 98%',
+    darkBackground:  '30 4% 10%',
+  },
+  {
+    label: 'Dusk',
+    hsl:          '245 30% 45%',
+    lightPrimary: '245 35% 36%',
+    darkPrimary:  '245 50% 70%',
+    lightBase:    '245 15% 95%',
+    darkBase:     '245 15% 12%',
+    lightBackground: '245 8% 98%',
+    darkBackground:  '245 8% 10%',
+  },
+]
 
 export const FONT_OPTIONS = [
   { label: 'System UI',         value: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', googleFamily: null },
@@ -67,8 +134,13 @@ function applyColorScheme(scheme: ThemePrefs['colorScheme']): void {
 
 export function applyTheme(prefs: ThemePrefs): void {
   const root = document.documentElement
-  root.style.setProperty('--primary', prefs.primaryHsl)
-  root.style.setProperty('--ring', prefs.primaryHsl)
+  const preset = COLOR_PRESETS.find(p => p.hsl === prefs.primaryHsl) ?? DEFAULT_COLOR_PRESET
+  root.style.setProperty('--primary-light', preset.lightPrimary)
+  root.style.setProperty('--primary-dark',  preset.darkPrimary)
+  root.style.setProperty('--base-light',    preset.lightBase)
+  root.style.setProperty('--base-dark',     preset.darkBase)
+  root.style.setProperty('--bg-light', preset.lightBackground)
+  root.style.setProperty('--bg-dark',  preset.darkBackground)
   root.style.setProperty('--radius', prefs.radius)
   root.style.setProperty('--font-sans', prefs.bodyFont)
   root.style.setProperty('--font-heading', prefs.headingFont)

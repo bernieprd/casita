@@ -23,6 +23,7 @@ interface ThemeCustomizerProps {
 export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly, isPending }: ThemeCustomizerProps) {
   const isMobile = useIsMobile()
   const radiusValue = Math.round(parseFloat(prefs.radius) / 0.0625)
+  const isDark = prefs.colorScheme === 'dark' || (prefs.colorScheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
 
   const innerContent = (
     <div className="flex flex-col gap-5">
@@ -74,7 +75,7 @@ export function ThemeCustomizer({ prefs, setPrefs, open, onOpenChange, readOnly,
                     ? 'ring-2 ring-offset-2 ring-foreground scale-110'
                     : 'hover:scale-105',
                 )}
-                style={{ backgroundColor: `hsl(${preset.hsl})` }}
+                style={{ backgroundColor: `hsl(${isDark ? preset.darkPrimary : preset.lightPrimary})` }}
               />
             ))}
           </div>
