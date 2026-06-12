@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
-import { todoKeys } from './todos'
+import { todoKeys } from './queryKeys'
 
 export interface HouseholdSettings {
   householdId: string | null

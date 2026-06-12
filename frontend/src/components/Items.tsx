@@ -53,7 +53,7 @@ function GroupSection({ label, items, onEdit, onToggle }: GroupSectionProps) {
             <ul>
               {items.map((item, idx) => (
                 <li key={item.id}>
-                  {idx > 0 && <Separator className="ml-4" />}
+                  {idx > 0 && <Separator />}
                   <ItemRow
                     variant="inventory"
                     name={item.name}
@@ -136,7 +136,7 @@ function ItemsSkeleton() {
           <Separator />
           {Array.from({ length: rows }).map((_, i) => (
             <div key={i}>
-              {i > 0 && <Separator className="ml-4" />}
+              {i > 0 && <Separator />}
               <div className="px-4 py-3">
                 <Skeleton className="w-1/2 h-4" />
                 <div className="flex gap-1.5 mt-1.5">

@@ -1,5 +1,7 @@
 import type { Env, RequestContext, Todo } from '../types'
 
+const VALID_FREQUENCIES = new Set(['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly'])
+
 function rowToTodo(row: Record<string, unknown>): Todo {
   return {
     id: row.id as string,
@@ -45,6 +47,10 @@ export async function createTodo(req: Request, env: Env, ctx: RequestContext): P
     frequency?: string | null
   }>()
 
+  if (body.frequency != null && !VALID_FREQUENCIES.has(body.frequency)) {
+    return Response.json({ error: `Invalid frequency. Must be one of: ${[...VALID_FREQUENCIES].join(', ')}` }, { status: 400 })
+  }
+
   const id = crypto.randomUUID()
   const now = Date.now()
 
@@ -72,6 +78,10 @@ export async function updateTodo(req: Request, env: Env, ctx: RequestContext, id
     frequency?: string | null
     sortOrder?: number
   }>()
+
+  if (body.frequency != null && !VALID_FREQUENCIES.has(body.frequency)) {
+    return Response.json({ error: `Invalid frequency. Must be one of: ${[...VALID_FREQUENCIES].join(', ')}` }, { status: 400 })
+  }
 
   const fields: string[] = ['updated_at = ?']
   const values: unknown[] = [Date.now()]

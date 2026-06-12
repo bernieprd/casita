@@ -1,10 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import type { Todo } from './types'
+import { todoKeys } from './queryKeys'
 
-export const todoKeys = {
-  all: ['todos'] as const,
-}
+export { todoKeys }
 
 export const todosApi = {
   list: () => api.get<Todo[]>('/todos'),
@@ -42,7 +41,7 @@ export function useCreateTodo() {
         url: data.url ?? null,
         notes: data.notes ?? null,
         frequency: data.frequency ?? null,
-        sortOrder: 0,
+        sortOrder: (old?.reduce((max, t) => Math.max(max, t.sortOrder), -1) ?? -1) + 1,
       }
       qc.setQueryData<Todo[]>(todoKeys.all, old => [optimistic, ...(old ?? [])])
       return { previous }
