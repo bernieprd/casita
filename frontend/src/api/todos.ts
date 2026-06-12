@@ -87,8 +87,8 @@ export function useReorderTodos() {
       const previous = qc.getQueryData<Todo[]>(todoKeys.all)
       qc.setQueryData<Todo[]>(todoKeys.all, old => {
         if (!old) return old
-        const indexed = new Map(old.map(t => [t.id, t]))
-        return ids.map((id, i) => ({ ...indexed.get(id)!, sortOrder: i }))
+        const newOrders = new Map(ids.map((id, i) => [id, i]))
+        return old.map(t => newOrders.has(t.id) ? { ...t, sortOrder: newOrders.get(t.id)! } : t)
       })
       return { previous }
     },
