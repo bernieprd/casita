@@ -8,7 +8,7 @@ import { toast } from 'sonner'
 import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus, useToggleShoppingList, useUpdateTodo } from '../api'
 import type { Item } from '../api/types'
 import { useNavigate } from 'react-router-dom'
-import { ItemRow, EXIT_DURATION_MS } from './ItemRow'
+import { ItemRow } from './ItemRow'
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
