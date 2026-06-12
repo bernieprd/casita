@@ -2,7 +2,7 @@
 
 A household management app for organizing recipes, shopping lists, todos, and shared calendars — built as an installable PWA.
 
-**Live at [casita.bernardoprd.com](https://casita.bernardoprd.com)**
+**Live at [mycasita.app](https://mycasita.app) / [dashboard.mycasita.app](https://dashboard.mycasita.app)**
 
 ## Features
 
