@@ -51,7 +51,7 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
           size="icon"
           onClick={() => location.key === 'default' ? navigate('/settings') : navigate(-1)}
           className="-ml-2"
-          aria-label="Back"
+          aria-label={location.key === 'default' ? 'Back to Settings' : 'Go back'}
         >
           <ArrowLeft />
         </Button>

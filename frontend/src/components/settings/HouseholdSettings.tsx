@@ -49,6 +49,7 @@ interface Props {
 export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSaving, setHeader }: Props) {
   const navigate = useNavigate()
   const { user } = useUser()
+  const isDark = themePrefs.colorScheme === 'dark' || (themePrefs.colorScheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
   const { refreshHousehold } = useHousehold()
   const queryClient = useQueryClient()
 
@@ -328,7 +329,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
                       ? 'ring-2 ring-offset-2 ring-foreground scale-110'
                       : 'hover:scale-105',
                   )}
-                  style={{ backgroundColor: `hsl(${preset.lightPrimary})` }}
+                  style={{ backgroundColor: `hsl(${isDark ? preset.darkPrimary : preset.lightPrimary})` }}
                 />
               ))}
             </div>

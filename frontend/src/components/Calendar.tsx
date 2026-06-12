@@ -129,9 +129,9 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
   const timeMax = useMemo(() => endOfMonth(viewYear, viewMonth).toISOString(), [viewYear, viewMonth])
 
   const { data: googleStatus, isLoading: statusLoading } = useGoogleStatus()
-  const { data: userCalendars } = useUserCalendars()
+  const { data: userCalendars, isLoading: calendarsLoading } = useUserCalendars()
   const { data: events, isLoading: eventsLoading } = useCalendarEvents(timeMin, timeMax)
-  const isLoading = statusLoading || eventsLoading
+  const isLoading = statusLoading || eventsLoading || calendarsLoading
 
   const noneEnabled = googleStatus?.connected &&
     userCalendars?.calendars !== undefined &&
