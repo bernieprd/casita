@@ -115,12 +115,15 @@ export async function reorderTodos(req: Request, env: Env, ctx: RequestContext):
   if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
 
   const { ids } = await req.json<{ ids: string[] }>()
-  const now = Date.now()
-  for (let i = 0; i < ids.length; i++) {
-    await env.DB
-      .prepare('UPDATE todos SET sort_order = ?, updated_at = ? WHERE id = ? AND household_id = ?')
-      .bind(i, now, ids[i], ctx.householdId)
-      .run()
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return Response.json({ error: 'Invalid ids' }, { status: 400 })
   }
+  const now = Date.now()
+  const stmts = ids.map((id, i) =>
+    env.DB
+      .prepare('UPDATE todos SET sort_order = ?, updated_at = ? WHERE id = ? AND household_id = ?')
+      .bind(i, now, id, ctx.householdId)
+  )
+  await env.DB.batch(stmts)
   return Response.json({ ok: true })
 }

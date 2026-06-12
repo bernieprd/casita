@@ -435,6 +435,7 @@ export async function updateTodoSettings(
   ctx: RequestContext,
 ): Promise<Response> {
   if (!ctx.householdId) return err(403, 'Forbidden')
+  if (ctx.role !== 'owner') return err(403, 'Only the owner can change todo settings')
   const body = await req.json<{ workflow?: string }>()
   const allowed = ['simple', 'board']
   if (!body.workflow || !allowed.includes(body.workflow))

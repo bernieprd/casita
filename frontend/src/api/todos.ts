@@ -34,7 +34,7 @@ export function useCreateTodo() {
       const optimistic: Todo = {
         id: `optimistic-${Date.now()}`,
         name: data.name,
-        status: 'Todo',
+        status: data.status ?? 'Todo',
         priority: data.priority ?? null,
         due: data.due ?? null,
         categoryId: data.categoryId ?? null,
