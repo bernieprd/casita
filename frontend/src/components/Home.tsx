@@ -1,12 +1,14 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { RotateCcw, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react'
+import { RotateCcw, ExternalLink, ChevronUp, ChevronDown, Link2, FileText, Repeat2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus, useToggleShoppingList, useUpdateTodo } from '../api'
+import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus, useToggleShoppingList, useUpdateTodo, useHouseholdSettings, useConceptList } from '../api'
 import type { Item } from '../api/types'
+import type { HouseholdSettings } from '../api'
 import { useNavigate } from 'react-router-dom'
 import { ItemRow } from './ItemRow'
 
@@ -274,11 +276,21 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
 
 // ── Todo summary ──────────────────────────────────────────────────────────────
 
+type Member = HouseholdSettings['members'][number]
+
+function memberInitials(member: Member): string {
+  const name = member.displayName ?? member.email ?? ''
+  return name.split(' ').filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase()
+}
+
 const PRIORITY_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 }
 
 function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
   const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
   const { data: todos, isLoading } = useTodos()
+  const { data: settings } = useHouseholdSettings()
+  const members = settings?.members ?? []
+  const { data: categories = [] } = useConceptList('todo-categories')
   const updateTodo = useUpdateTodo()
   const { removingIds: removingTodoIds, trigger: handleDone } = useDeferredAction(
     (id) => updateTodo.mutate({ id, status: 'Done' }),
@@ -354,6 +366,26 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
                             {dayLabel(todo.due, true)}
                           </span>
                         )}
+                        {todo.categoryId && (() => {
+                          const cat = categories.find(c => c.id === todo.categoryId)
+                          return cat ? (
+                            <Badge variant="outline" className="text-[0.6rem] h-4 px-1 py-0 font-normal">
+                              {cat.name}
+                            </Badge>
+                          ) : null
+                        })()}
+                        {todo.assignedTo && (() => {
+                          const assignee = members.find(m => m.clerkUserId === todo.assignedTo)
+                          return assignee ? (
+                            <Avatar className="size-4 shrink-0">
+                              {assignee.imageUrl && <AvatarImage src={assignee.imageUrl} alt={assignee.displayName ?? ''} />}
+                              <AvatarFallback className="text-[0.5rem]">{memberInitials(assignee)}</AvatarFallback>
+                            </Avatar>
+                          ) : null
+                        })()}
+                        {todo.url && <Link2 className="size-3 text-muted-foreground shrink-0" />}
+                        {todo.notes && <FileText className="size-3 text-muted-foreground shrink-0" />}
+                        {todo.frequency && <Repeat2 className="size-3 text-muted-foreground shrink-0" />}
                       </>
                     }
                   />
