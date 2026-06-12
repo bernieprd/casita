@@ -41,7 +41,7 @@ export function useCreateTodo() {
         url: data.url ?? null,
         notes: data.notes ?? null,
         frequency: data.frequency ?? null,
-        sortOrder: (old?.reduce((max, t) => Math.max(max, t.sortOrder), -1) ?? -1) + 1,
+        sortOrder: (previous?.reduce((max: number, t: Todo) => Math.max(max, t.sortOrder), -1) ?? -1) + 1,
       }
       qc.setQueryData<Todo[]>(todoKeys.all, old => [optimistic, ...(old ?? [])])
       return { previous }

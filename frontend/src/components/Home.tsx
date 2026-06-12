@@ -8,7 +8,6 @@ import { cn, memberInitials, safeUrl } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus, useToggleShoppingList, useUpdateTodo, useHouseholdSettings, useConceptList } from '../api'
 import type { Item } from '../api/types'
-import type { HouseholdSettings } from '../api'
 import { useNavigate } from 'react-router-dom'
 import { ItemRow } from './ItemRow'
 
