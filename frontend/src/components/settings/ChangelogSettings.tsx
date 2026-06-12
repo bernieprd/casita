@@ -16,6 +16,12 @@ interface ChangelogEntry {
 const CHANGELOG: ChangelogEntry[] = [
   {
     date: 'June 2026',
+    title: 'To-Do settings',
+    description:
+      'Configure your workflow style (Simple or Board) and manage to-do categories from Settings → To-Dos.',
+  },
+  {
+    date: 'June 2026',
     title: 'Shopping home widget',
     description:
       'The home screen shopping card now gives smart trip guidance — recommending your best store, handling tied stores, and surfacing items clearly whether or not you use supermarkets.',

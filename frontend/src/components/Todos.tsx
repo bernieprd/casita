@@ -27,7 +27,8 @@ import {
   useSensor,
   useSensors,
   useDroppable,
-  closestCorners,
+  rectIntersection,
+  pointerWithin,
   type DragStartEvent,
   type DragOverEvent,
   type DragEndEvent,
@@ -249,11 +250,10 @@ interface KanbanColumnProps {
   categories: ConceptItem[]
   onOpen: (todo: Todo) => void
   onClearDone?: () => void
-  isMobile: boolean
   isOver?: boolean
 }
 
-function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone, isMobile, isOver }: KanbanColumnProps) {
+function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone, isOver }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: status })
   const isBlocked = status === 'Blocked'
   const isDone = status === 'Done'
@@ -279,7 +279,11 @@ function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone,
 
   const cardList = (
     <SortableContext items={todos.map(t => t.id)} strategy={verticalListSortingStrategy}>
-      <div className="flex flex-col gap-2">
+      {/* setNodeRef is placed on the card-list div so the droppable rect matches
+          the actual card area rather than the outer wrapper, which fixes pointer
+          detection for the middle columns ("In progress", "Blocked") where the
+          Collapsible's overflow:hidden would otherwise clip hit-testing. */}
+      <div ref={setNodeRef} className="flex flex-col gap-2 min-h-[4rem]">
         {todos.map(todo => (
           <SortableCard key={todo.id} todo={todo} members={members} categories={categories} onOpen={onOpen} />
         ))}
@@ -292,9 +296,8 @@ function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone,
     </SortableContext>
   )
 
-  if (isMobile) {
-    return (
-      <div ref={setNodeRef} className="mb-2">
+  return (
+    <div className="mb-2">
       <Collapsible
         open={expanded}
         onOpenChange={setExpanded}
@@ -307,6 +310,9 @@ function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone,
             aria-label={`${expanded ? 'Collapse' : 'Expand'} ${status}`}
             aria-expanded={expanded}
             className="w-full flex items-center px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer"
+            // Prevent the trigger from consuming pointer events during a drag so
+            // dnd-kit can still detect the column droppable beneath it.
+            data-no-dnd="true"
           >
             {headerContent}
             {expanded
@@ -322,18 +328,6 @@ function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone,
           </div>
         </CollapsibleContent>
       </Collapsible>
-      </div>
-    )
-  }
-
-  return (
-    <div ref={setNodeRef} className={`w-72 flex-shrink-0 flex flex-col rounded-lg border bg-muted/30 transition-colors ${isOver ? 'border-primary/50 bg-primary/5' : 'border-border'}`}>
-      <div className="flex items-center px-3 py-2.5 border-b border-border">
-        {headerContent}
-      </div>
-      <div className="flex-1 p-2 overflow-y-auto max-h-[calc(100vh-200px)]">
-        {cardList}
-      </div>
     </div>
   )
 }
@@ -622,44 +616,38 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
         {!isLoading && !error && !isEmpty && (
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCorners}
+            collisionDetection={(args) => {
+              const withinHits = pointerWithin(args)
+              if (withinHits.length > 0) {
+                // Prefer card hits over column hits so within-column reorder
+                // positions correctly. Fall back to column hit if only the
+                // droppable (card-list div) is hit but no individual card.
+                const cardHits = withinHits.filter(c => !statuses.includes(c.id as string))
+                return cardHits.length > 0 ? cardHits : withinHits
+              }
+              // rectIntersection is better than closestCorners for stacked
+              // vertical columns — it picks the column whose rect overlaps the
+              // most with the dragged item's bounding box.
+              return rectIntersection(args)
+            }}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
           >
-            {isMobile ? (
-              <div>
-                {statuses.map(status => (
-                  <KanbanColumn
-                    key={status}
-                    status={status}
-                    todos={getColumnTodos(status)}
-                    members={members}
-                    categories={categories}
-                    onOpen={todo => navigate(`/todos/${todo.id}/edit`)}
-                    onClearDone={status === 'Done' ? handleClearDone : undefined}
-                    isMobile
-                    isOver={overColumnStatus === status && activeId !== null}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {statuses.map(status => (
-                  <KanbanColumn
-                    key={status}
-                    status={status}
-                    todos={getColumnTodos(status)}
-                    members={members}
-                    categories={categories}
-                    onOpen={todo => navigate(`/todos/${todo.id}/edit`)}
-                    onClearDone={status === 'Done' ? handleClearDone : undefined}
-                    isMobile={false}
-                    isOver={overColumnStatus === status && activeId !== null}
-                  />
-                ))}
-              </div>
-            )}
+            <div>
+              {statuses.map(status => (
+                <KanbanColumn
+                  key={status}
+                  status={status}
+                  todos={getColumnTodos(status)}
+                  members={members}
+                  categories={categories}
+                  onOpen={todo => navigate(`/todos/${todo.id}/edit`)}
+                  onClearDone={status === 'Done' ? handleClearDone : undefined}
+                  isOver={overColumnStatus === status && activeId !== null}
+                />
+              ))}
+            </div>
 
             <DragOverlay>
               {activeTodo && (

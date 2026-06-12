@@ -120,7 +120,6 @@ function AppShell() {
   const activeTab = pathnameToTab(location.pathname)
   const isSettings = location.pathname.startsWith('/settings')
   const isRecipeDetail = /^\/recipes\/[^/]+$/.test(location.pathname)
-  const isTodos = location.pathname === '/todos'
 
   useEffect(() => {
     qc.prefetchQuery({ queryKey: itemKeys.shopping, queryFn: itemsApi.listShopping })
@@ -178,7 +177,7 @@ function AppShell() {
 
       <div
         className={cn(
-          isTodos ? 'px-4 pt-4' : 'max-w-xl mx-auto px-4 pt-4',
+          'max-w-xl mx-auto px-4 pt-4',
           isSettings || isRecipeDetail ? 'pb-2' : 'pb-[calc(80px+env(safe-area-inset-bottom))]'
         )}
       >

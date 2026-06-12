@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ShoppingCart,
   BookOpen,
+  CheckSquare,
   Sparkles,
   MessageSquare,
   Upload,
@@ -54,6 +55,12 @@ export default function SettingsMenu() {
           label: 'Calendar',
           description: 'Google Calendar sync',
           path: '/settings/calendar',
+        },
+        {
+          icon: <CheckSquare className="size-5 shrink-0 text-muted-foreground" />,
+          label: 'To-Dos',
+          description: 'Workflow style and categories',
+          path: '/settings/todos',
         },
         {
           icon: <ShoppingCart className="size-5 shrink-0 text-muted-foreground" />,
