@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useParams, useNavigate, useBlocker } from 'react-router-dom'
 import { ArrowLeft, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,6 +20,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from '../api'
 import type { Todo } from '../api'
 import { useHouseholdSettings, useTodoWorkflow } from '../api/household'
@@ -88,6 +98,13 @@ export default function TodoFormPage() {
   const [notes, setNotes] = useState('')
   const [frequency, setFrequency] = useState<string | null>(null)
 
+  type TodoSnapshot = {
+    name: string; status: string | null; priority: string | null; due: string
+    categoryId: string | null; assignedTo: string | null; url: string
+    notes: string; frequency: string | null
+  }
+  const snapshot = useRef<TodoSnapshot | null>(null)
+
   // UI state
   const [initialized, setInitialized] = useState(false)
   const [nameError, setNameError] = useState(false)
@@ -99,6 +116,7 @@ export default function TodoFormPage() {
   useEffect(() => {
     if (initialized) return
     if (!isEdit) {
+      snapshot.current = { name: '', status: 'Todo', priority: null, due: '', categoryId: null, assignedTo: null, url: '', notes: '', frequency: null }
       setInitialized(true)
       return
     }
@@ -112,12 +130,35 @@ export default function TodoFormPage() {
     setUrl(todo.url ?? '')
     setNotes(todo.notes ?? '')
     setFrequency(todo.frequency)
+    snapshot.current = {
+      name: todo.name,
+      status: todo.status ?? 'Todo',
+      priority: todo.priority,
+      due: todo.due ?? '',
+      categoryId: todo.categoryId,
+      assignedTo: todo.assignedTo,
+      url: todo.url ?? '',
+      notes: todo.notes ?? '',
+      frequency: todo.frequency,
+    }
     setInitialized(true)
   }, [initialized, isEdit, todo])
 
   const statusOptions = workflowData?.workflow === 'board' ? BOARD_STATUSES : SIMPLE_STATUSES
 
   const isPending = isEdit ? updateTodo.isPending : createTodo.isPending
+
+  const isDirty = useMemo(() => {
+    if (!snapshot.current) return false
+    const s = snapshot.current
+    return (
+      name !== s.name || status !== s.status || priority !== s.priority ||
+      due !== s.due || categoryId !== s.categoryId || assignedTo !== s.assignedTo ||
+      url !== s.url || notes !== s.notes || frequency !== s.frequency
+    )
+  }, [name, status, priority, due, categoryId, assignedTo, url, notes, frequency])
+
+  const blocker = useBlocker(isDirty && !isPending)
 
   function handleSave() {
     if (!name.trim()) {
@@ -138,7 +179,7 @@ export default function TodoFormPage() {
           notes: notes || null,
           frequency,
         },
-        { onSuccess: () => navigate(-1) },
+        { onSuccess: () => { snapshot.current = null; navigate(-1) } },
       )
     } else {
       createTodo.mutate(
@@ -153,7 +194,7 @@ export default function TodoFormPage() {
           notes: notes || null,
           frequency,
         },
-        { onSuccess: () => navigate('/todos', { replace: true }) },
+        { onSuccess: () => { snapshot.current = null; navigate('/todos', { replace: true }) } },
       )
     }
   }
@@ -426,7 +467,7 @@ export default function TodoFormPage() {
                 variant="destructive"
                 onClick={() => {
                   deleteTodo.mutate(id!, {
-                    onSuccess: () => navigate('/todos', { replace: true }),
+                    onSuccess: () => { snapshot.current = null; navigate('/todos', { replace: true }) },
                   })
                 }}
               >
@@ -435,6 +476,21 @@ export default function TodoFormPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <AlertDialog open={blocker.state === 'blocked'}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+              <AlertDialogDescription>
+                You have unsaved changes. Are you sure you want to leave?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => blocker.reset?.()}>Keep Editing</AlertDialogCancel>
+              <AlertDialogAction onClick={() => blocker.proceed?.()}>Leave</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )
