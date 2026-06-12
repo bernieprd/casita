@@ -193,6 +193,8 @@ export function normalizeTodo(page: NotionPage): Todo {
     url: null,
     notes: null,
     frequency: null,
+    frequencyInterval: null,
+    frequencyDays: null,
     sortOrder: 0,
   }
 }

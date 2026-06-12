@@ -275,6 +275,22 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
 
 // ── Todo summary ──────────────────────────────────────────────────────────────
 
+function formatFrequency(frequency: string | null, interval: number | null, days: string[] | null): string | null {
+  if (!frequency) return null
+  const n = interval ?? 1
+  const dayShort = (d: string) => d.slice(0, 3)
+  if (frequency === 'daily') return 'Daily'
+  if (frequency === 'weekly') {
+    const daysStr = days && days.length > 0 ? ` · ${days.map(dayShort).join(', ')}` : ''
+    return n === 1 ? `Weekly${daysStr}` : `Every ${n}w${daysStr}`
+  }
+  if (frequency === 'biweekly') return 'Biweekly'
+  if (frequency === 'monthly') return n === 1 ? 'Monthly' : `Every ${n}mo`
+  if (frequency === 'quarterly') return 'Quarterly'
+  if (frequency === 'yearly') return 'Yearly'
+  return frequency
+}
+
 const PRIORITY_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 }
 
 function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
@@ -386,7 +402,12 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
                             </a>
                           )}
                           {todo.notes && <FileText className="size-3 text-muted-foreground shrink-0" />}
-                          {todo.frequency && <Repeat2 className="size-3 text-muted-foreground shrink-0" />}
+                          {formatFrequency(todo.frequency, todo.frequencyInterval, todo.frequencyDays) && (
+                            <span className="flex items-center gap-0.5 text-xs text-muted-foreground shrink-0">
+                              <Repeat2 className="size-3" />
+                              {formatFrequency(todo.frequency, todo.frequencyInterval, todo.frequencyDays)}
+                            </span>
+                          )}
                         </>
                       }
                     />

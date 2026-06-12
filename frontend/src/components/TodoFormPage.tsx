@@ -63,60 +63,68 @@ const FREQUENCY_OPTIONS = [
   { label: 'None', value: null },
   { label: 'Daily', value: 'daily' },
   { label: 'Weekly', value: 'weekly' },
-  { label: 'Biweekly', value: 'biweekly' },
   { label: 'Monthly', value: 'monthly' },
-  { label: 'Quarterly', value: 'quarterly' },
   { label: 'Yearly', value: 'yearly' },
 ] as const
+
+const DAY_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Mon', value: 'Monday' },
+  { label: 'Tue', value: 'Tuesday' },
+  { label: 'Wed', value: 'Wednesday' },
+  { label: 'Thu', value: 'Thursday' },
+  { label: 'Fri', value: 'Friday' },
+  { label: 'Sat', value: 'Saturday' },
+  { label: 'Sun', value: 'Sunday' },
+]
 
 export default function TodoFormPage() {
   const { id } = useParams<{ id?: string }>()
   const isEdit = !!id
   const navigate = useNavigate()
 
-  // Data queries
   const { data: todos } = useTodos()
   const todo = todos?.find((t: Todo) => t.id === id)
   const { data: workflowData } = useTodoWorkflow()
   const { data: categories } = useConceptList('todo-categories')
   const { data: householdSettings } = useHouseholdSettings()
 
-  // Mutations
   const createTodo = useCreateTodo()
   const updateTodo = useUpdateTodo()
   const deleteTodo = useDeleteTodo()
   const createCategory = useCreateConcept('todo-categories')
 
-  // Form state
   const [name, setName] = useState('')
   const [status, setStatus] = useState<string | null>('Todo')
   const [priority, setPriority] = useState<string | null>(null)
   const [due, setDue] = useState('')
   const [categoryId, setCategoryId] = useState<string | null>(null)
-  const [assignedTo, setAssignedTo] = useState<string | null>(null)
+  const [assignedTo, setAssignedTo] = useState<string[]>([])
   const [url, setUrl] = useState('')
   const [notes, setNotes] = useState('')
   const [frequency, setFrequency] = useState<string | null>(null)
+  const [frequencyInterval, setFrequencyInterval] = useState<number>(1)
+  const [frequencyDays, setFrequencyDays] = useState<string[]>([])
 
   type TodoSnapshot = {
     name: string; status: string | null; priority: string | null; due: string
-    categoryId: string | null; assignedTo: string | null; url: string
-    notes: string; frequency: string | null
+    categoryId: string | null; assignedTo: string[]; url: string
+    notes: string; frequency: string | null; frequencyInterval: number; frequencyDays: string[]
   }
   const snapshot = useRef<TodoSnapshot | null>(null)
 
-  // UI state
   const [initialized, setInitialized] = useState(false)
   const [nameError, setNameError] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [newCategoryInput, setNewCategoryInput] = useState('')
   const [showCategoryInput, setShowCategoryInput] = useState(false)
 
-  // Initialize form in edit mode
+  const saveDoneRef = useRef(false)
+
   useEffect(() => {
+    saveDoneRef.current = false
     if (initialized) return
     if (!isEdit) {
-      snapshot.current = { name: '', status: 'Todo', priority: null, due: '', categoryId: null, assignedTo: null, url: '', notes: '', frequency: null }
+      snapshot.current = { name: '', status: 'Todo', priority: null, due: '', categoryId: null, assignedTo: [], url: '', notes: '', frequency: null, frequencyInterval: 1, frequencyDays: [] }
       setInitialized(true)
       return
     }
@@ -126,20 +134,24 @@ export default function TodoFormPage() {
     setPriority(todo.priority)
     setDue(todo.due ?? '')
     setCategoryId(todo.categoryId)
-    setAssignedTo(todo.assignedTo)
+    setAssignedTo(todo.assignedTo ?? [])
     setUrl(todo.url ?? '')
     setNotes(todo.notes ?? '')
     setFrequency(todo.frequency)
+    setFrequencyInterval(todo.frequencyInterval ?? 1)
+    setFrequencyDays(todo.frequencyDays ?? [])
     snapshot.current = {
       name: todo.name,
       status: todo.status ?? 'Todo',
       priority: todo.priority,
       due: todo.due ?? '',
       categoryId: todo.categoryId,
-      assignedTo: todo.assignedTo,
+      assignedTo: todo.assignedTo ?? [],
       url: todo.url ?? '',
       notes: todo.notes ?? '',
       frequency: todo.frequency,
+      frequencyInterval: todo.frequencyInterval ?? 1,
+      frequencyDays: todo.frequencyDays ?? [],
     }
     setInitialized(true)
   }, [initialized, isEdit, todo])
@@ -153,12 +165,15 @@ export default function TodoFormPage() {
     const s = snapshot.current
     return (
       name !== s.name || status !== s.status || priority !== s.priority ||
-      due !== s.due || categoryId !== s.categoryId || assignedTo !== s.assignedTo ||
-      url !== s.url || notes !== s.notes || frequency !== s.frequency
+      due !== s.due || categoryId !== s.categoryId ||
+      JSON.stringify(assignedTo) !== JSON.stringify(s.assignedTo) ||
+      url !== s.url || notes !== s.notes || frequency !== s.frequency ||
+      frequencyInterval !== s.frequencyInterval ||
+      JSON.stringify(frequencyDays) !== JSON.stringify(s.frequencyDays)
     )
-  }, [name, status, priority, due, categoryId, assignedTo, url, notes, frequency])
+  }, [name, status, priority, due, categoryId, assignedTo, url, notes, frequency, frequencyInterval, frequencyDays])
 
-  const blocker = useBlocker(isDirty && !isPending)
+  const blocker = useBlocker(() => !saveDoneRef.current && isDirty && !isPending)
 
   function handleSave() {
     if (!name.trim()) {
@@ -178,8 +193,16 @@ export default function TodoFormPage() {
           url: url || null,
           notes: notes || null,
           frequency,
+          frequencyInterval,
+          frequencyDays,
         },
-        { onSuccess: () => { snapshot.current = null; navigate(-1) } },
+        {
+          onSuccess: () => {
+            saveDoneRef.current = true
+            snapshot.current = null
+            navigate(-1)
+          },
+        },
       )
     } else {
       createTodo.mutate(
@@ -193,8 +216,16 @@ export default function TodoFormPage() {
           url: url || null,
           notes: notes || null,
           frequency,
+          frequencyInterval,
+          frequencyDays,
         },
-        { onSuccess: () => { snapshot.current = null; navigate('/todos', { replace: true }) } },
+        {
+          onSuccess: () => {
+            saveDoneRef.current = true
+            snapshot.current = null
+            navigate('/todos', { replace: true })
+          },
+        },
       )
     }
   }
@@ -208,6 +239,15 @@ export default function TodoFormPage() {
         setShowCategoryInput(false)
       },
     })
+  }
+
+  function handleFrequencyChange(value: string) {
+    const newFreq = value === '__none__' ? null : value
+    setFrequency(newFreq)
+    if (!newFreq || newFreq === 'daily' || newFreq === 'yearly') {
+      setFrequencyInterval(1)
+      setFrequencyDays([])
+    }
   }
 
   return (
@@ -370,24 +410,31 @@ export default function TodoFormPage() {
             {/* Assigned to */}
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">Assigned to</label>
-              <Select value={assignedTo ?? '__none__'} onValueChange={v => setAssignedTo(v === '__none__' ? null : v)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Unassigned" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Unassigned</SelectItem>
-                  {(householdSettings?.members ?? []).map(m => (
-                    <SelectItem key={m.clerkUserId} value={m.clerkUserId}>
-                      <div className="flex items-center gap-2">
-                        {m.imageUrl && (
-                          <img src={m.imageUrl} alt="" className="size-5 rounded-full" />
-                        )}
-                        {m.displayName ?? m.email ?? m.clerkUserId}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap gap-2">
+                {(householdSettings?.members ?? []).map(m => {
+                  const isSelected = assignedTo.includes(m.clerkUserId)
+                  return (
+                    <button
+                      key={m.clerkUserId}
+                      type="button"
+                      onClick={() => setAssignedTo(prev =>
+                        prev.includes(m.clerkUserId)
+                          ? prev.filter(id => id !== m.clerkUserId)
+                          : [...prev, m.clerkUserId]
+                      )}
+                      className={[
+                        'flex items-center gap-1.5 px-2 py-1 rounded-full text-sm border transition-colors',
+                        isSelected
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background text-foreground border-border hover:bg-muted',
+                      ].join(' ')}
+                    >
+                      {m.imageUrl && <img src={m.imageUrl} alt="" className="size-5 rounded-full" />}
+                      {m.displayName ?? m.email ?? m.clerkUserId}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             {/* Due date */}
@@ -399,7 +446,7 @@ export default function TodoFormPage() {
             {/* Frequency */}
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">Frequency</label>
-              <Select value={frequency ?? '__none__'} onValueChange={v => setFrequency(v === '__none__' ? null : v)}>
+              <Select value={frequency ?? '__none__'} onValueChange={handleFrequencyChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="None" />
                 </SelectTrigger>
@@ -411,6 +458,74 @@ export default function TodoFormPage() {
                   ))}
                 </SelectContent>
               </Select>
+
+              {frequency === 'weekly' && (
+                <div className="flex flex-col gap-2 mt-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-muted-foreground">Every</span>
+                    {[1, 2, 3, 4].map(n => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setFrequencyInterval(n)}
+                        className={[
+                          'px-3 py-1 rounded-full text-sm border transition-colors',
+                          frequencyInterval === n
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-background text-foreground border-border hover:bg-muted',
+                        ].join(' ')}
+                      >
+                        {n}w
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {DAY_OPTIONS.map(day => {
+                      const isDaySelected = frequencyDays.includes(day.value)
+                      return (
+                        <button
+                          key={day.value}
+                          type="button"
+                          onClick={() => setFrequencyDays(prev =>
+                            prev.includes(day.value)
+                              ? prev.filter(d => d !== day.value)
+                              : [...prev, day.value]
+                          )}
+                          className={[
+                            'px-3 py-1 rounded-full text-sm border transition-colors',
+                            isDaySelected
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background text-foreground border-border hover:bg-muted',
+                          ].join(' ')}
+                        >
+                          {day.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {frequency === 'monthly' && (
+                <div className="flex items-center gap-2 flex-wrap mt-1">
+                  <span className="text-sm text-muted-foreground">Every</span>
+                  {[1, 2, 3, 6].map(n => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setFrequencyInterval(n)}
+                      className={[
+                        'px-3 py-1 rounded-full text-sm border transition-colors',
+                        frequencyInterval === n
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background text-foreground border-border hover:bg-muted',
+                      ].join(' ')}
+                    >
+                      {n}mo
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* URL */}

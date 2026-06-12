@@ -89,10 +89,12 @@ export function ItemRow(props: ItemRowProps) {
           className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-accent transition-colors"
           aria-label={`Mark ${props.name} as done`}
         >
-          <span className="text-sm truncate flex-1">{props.name}</span>
-          {props.meta && (
-            <div className="flex items-center gap-2 shrink-0">{props.meta}</div>
-          )}
+          <div className="flex-1 min-w-0">
+            <span className="block text-sm">{props.name}</span>
+            {props.meta && (
+              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">{props.meta}</div>
+            )}
+          </div>
           <Check className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         </button>
       </div>

@@ -135,10 +135,12 @@ CREATE TABLE IF NOT EXISTS todos (
   created_at   INTEGER NOT NULL,
   updated_at   INTEGER NOT NULL,
   category_id  TEXT,
-  assigned_to  TEXT,
+  assigned_to  TEXT,                          -- JSON array of clerkUserIds
   url          TEXT,
   notes        TEXT,
   frequency    TEXT,
+  frequency_interval INTEGER DEFAULT 1,
+  frequency_days     TEXT,
   sort_order   INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS todos_household ON todos(household_id);
