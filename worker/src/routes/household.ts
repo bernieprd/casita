@@ -415,3 +415,33 @@ export async function deleteHousehold(
 
   return Response.json({ ok: true })
 }
+
+export async function getTodoSettings(
+  _req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return err(403, 'Forbidden')
+  const row = await env.DB
+    .prepare('SELECT todo_workflow FROM households WHERE id = ?')
+    .bind(ctx.householdId)
+    .first<{ todo_workflow: string }>()
+  return Response.json({ workflow: row?.todo_workflow ?? 'simple' })
+}
+
+export async function updateTodoSettings(
+  req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return err(403, 'Forbidden')
+  const body = await req.json<{ workflow?: string }>()
+  const allowed = ['simple', 'board']
+  if (!body.workflow || !allowed.includes(body.workflow))
+    return new Response('Invalid workflow', { status: 400 })
+  await env.DB
+    .prepare('UPDATE households SET todo_workflow = ? WHERE id = ?')
+    .bind(body.workflow, ctx.householdId)
+    .run()
+  return Response.json({ workflow: body.workflow })
+}

@@ -1,11 +1,12 @@
 import type { Env, RequestContext, ConceptItem } from '../types'
 
-type ConceptType = 'recipe-types' | 'categories' | 'supermarkets'
+type ConceptType = 'recipe-types' | 'categories' | 'supermarkets' | 'todo-categories'
 
 const TABLE: Record<ConceptType, string> = {
-  'recipe-types': 'household_recipe_types',
-  'categories':   'household_categories',
-  'supermarkets': 'household_supermarkets',
+  'recipe-types':    'household_recipe_types',
+  'categories':      'household_categories',
+  'supermarkets':    'household_supermarkets',
+  'todo-categories': 'household_todo_categories',
 }
 
 function rowToConcept(row: Record<string, unknown>): ConceptItem {
@@ -23,9 +24,10 @@ function isValidType(type: string): type is ConceptType {
 
 
 const USAGE_SUBQUERY: Record<ConceptType, string> = {
-  'recipe-types': `(SELECT COUNT(*) FROM recipes WHERE household_id = c.household_id AND type = c.name)`,
-  'categories':   `(SELECT COUNT(*) FROM items WHERE household_id = c.household_id AND category = c.name)`,
-  'supermarkets': `(SELECT COUNT(*) FROM item_supermarkets WHERE item_id IN (SELECT id FROM items WHERE household_id = c.household_id) AND supermarket = c.name)`,
+  'recipe-types':    `(SELECT COUNT(*) FROM recipes WHERE household_id = c.household_id AND type = c.name)`,
+  'categories':      `(SELECT COUNT(*) FROM items WHERE household_id = c.household_id AND category = c.name)`,
+  'supermarkets':    `(SELECT COUNT(*) FROM item_supermarkets WHERE item_id IN (SELECT id FROM items WHERE household_id = c.household_id) AND supermarket = c.name)`,
+  'todo-categories': `(SELECT COUNT(*) FROM todos WHERE todos.category_id = c.id AND todos.household_id = c.household_id)`,
 }
 
 export async function listConcepts(
@@ -147,6 +149,8 @@ export async function deleteConcept(
     ? env.DB.prepare('UPDATE recipes SET type = NULL WHERE household_id = ? AND type = ?').bind(ctx.householdId, name)
     : type === 'categories'
     ? env.DB.prepare('UPDATE items SET category = NULL WHERE household_id = ? AND category = ?').bind(ctx.householdId, name)
+    : type === 'todo-categories'
+    ? env.DB.prepare('UPDATE todos SET category_id = NULL WHERE category_id = ? AND household_id = ?').bind(id, ctx.householdId)
     : env.DB.prepare('DELETE FROM item_supermarkets WHERE item_id IN (SELECT id FROM items WHERE household_id = ?) AND supermarket = ?').bind(ctx.householdId, name)
 
   await env.DB.batch([

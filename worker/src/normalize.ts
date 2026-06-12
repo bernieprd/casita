@@ -188,6 +188,12 @@ export function normalizeTodo(page: NotionPage): Todo {
     status: select(p['Status']) ?? 'Todo',
     priority: select(p['Priority']),
     due: date(p['Due']),
+    categoryId: null,
+    assignedTo: null,
+    url: null,
+    notes: null,
+    frequency: null,
+    sortOrder: 0,
   }
 }
 
