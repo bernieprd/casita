@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useCalendarEvents, useGoogleStatus } from '../api'
+import { useCalendarEvents, useGoogleStatus, useUserCalendars } from '../api'
 import type { CalendarEvent } from '../api/types'
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -128,8 +129,13 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
   const timeMax = useMemo(() => endOfMonth(viewYear, viewMonth).toISOString(), [viewYear, viewMonth])
 
   const { data: googleStatus, isLoading: statusLoading } = useGoogleStatus()
+  const { data: userCalendars } = useUserCalendars()
   const { data: events, isLoading: eventsLoading } = useCalendarEvents(timeMin, timeMax)
   const isLoading = statusLoading || eventsLoading
+
+  const noneEnabled = googleStatus?.connected &&
+    userCalendars?.calendars !== undefined &&
+    !userCalendars.calendars.some(c => c.enabled)
 
   // Group events by day, sorted chronologically
   const dayGroups = useMemo((): Array<{ dateKey: string; events: CalendarEvent[] }> => {
@@ -196,8 +202,10 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
           <p className="text-sm font-medium text-muted-foreground mb-1">Nothing coming up</p>
           <p className="text-sm text-muted-foreground/60">
             {!googleStatus?.connected
-              ? 'Connect Google Calendar in Settings to see your events'
-              : 'Enjoy the quiet'}
+              ? <>Connect Google Calendar in{' '}<Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">Settings</Link>{' '}to see your events</>
+              : noneEnabled
+                ? <>No calendars selected —{' '}<Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">choose which ones to show</Link></>
+                : 'Enjoy the quiet'}
           </p>
         </div>
       ) : (
@@ -208,7 +216,7 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
           {!googleStatus?.connected && (
             <div className="pt-4 text-center px-8 pb-4">
               <p className="text-sm text-muted-foreground/60">
-                Connect Google Calendar in Settings to add your own events
+                Connect Google Calendar in{' '}<Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">Settings</Link>{' '}to add your own events
               </p>
             </div>
           )}

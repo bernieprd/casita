@@ -72,7 +72,7 @@ export async function handleGoogleOAuthCallback(req: Request, env: Env): Promise
   )
 
   const baseUrl = env.APP_BASE_URL ?? 'https://app.casita.bernardoprd.com'
-  return Response.redirect(`${baseUrl}/settings?google=connected`, 302)
+  return Response.redirect(`${baseUrl}/settings/calendar?google=connected`, 302)
 }
 
 export async function getGoogleAuthStatus(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
