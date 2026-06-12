@@ -34,10 +34,12 @@ export interface Todo {
   priority: string | null
   due: string | null
   categoryId: string | null
-  assignedTo: string | null
+  assignedTo: string[] | null
   url: string | null
   notes: string | null
   frequency: string | null
+  frequencyInterval: number | null
+  frequencyDays: string[] | null
   sortOrder: number
 }
 

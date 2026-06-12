@@ -22,10 +22,12 @@ export function useCreateTodo() {
       due?: string | null
       priority?: string | null
       categoryId?: string | null
-      assignedTo?: string | null
+      assignedTo?: string[] | null
       url?: string | null
       notes?: string | null
       frequency?: string | null
+      frequencyInterval?: number | null
+      frequencyDays?: string[] | null
     }) => api.post<Todo>('/todos', data),
     onMutate: async (data) => {
       await qc.cancelQueries({ queryKey: todoKeys.all })
@@ -41,6 +43,8 @@ export function useCreateTodo() {
         url: data.url ?? null,
         notes: data.notes ?? null,
         frequency: data.frequency ?? null,
+        frequencyInterval: data.frequencyInterval ?? null,
+        frequencyDays: data.frequencyDays ?? null,
         sortOrder: (previous?.reduce((max: number, t: Todo) => Math.max(max, t.sortOrder), -1) ?? -1) + 1,
       }
       qc.setQueryData<Todo[]>(todoKeys.all, old => [optimistic, ...(old ?? [])])

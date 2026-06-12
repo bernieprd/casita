@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect, useCallback, type ReactNode } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { toast } from 'sonner'
-import { ChevronUp, ChevronDown } from 'lucide-react'
+import { ChevronUp, ChevronDown, Link2, FileText, Repeat2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
@@ -44,7 +44,7 @@ import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo, useHouseholdSett
 import { useReorderTodos } from '../api/todos'
 import type { Todo, ConceptItem, HouseholdSettings } from '../api'
 import { useTodoWorkflow } from '../api/household'
-import { memberInitials } from '@/lib/utils'
+import { memberInitials, safeUrl, formatFrequency } from '@/lib/utils'
 import GuidedImport from './GuidedImport'
 import { ImportModal } from './ImportModal'
 
@@ -119,7 +119,9 @@ function TodoCard({
   const dueLabel = formatDue(todo.due)
   const isDone = todo.status === 'Done'
   const category = todo.categoryId ? categories.find(c => c.id === todo.categoryId) : null
-  const assignee = todo.assignedTo ? members.find(m => m.clerkUserId === todo.assignedTo) : null
+  const assignees = todo.assignedTo ?? []
+  const freqLabel = formatFrequency(todo.frequency, todo.frequencyInterval, todo.frequencyDays)
+  const todoUrl = safeUrl(todo.url)
 
   return (
     <div
@@ -132,7 +134,7 @@ function TodoCard({
         {todo.name}
       </p>
 
-      {(todo.priority || dueLabel || category || assignee) && (
+      {(todo.priority || dueLabel || category || assignees.length > 0 || freqLabel || todoUrl || todo.notes) && (
         <div className="mt-2 flex items-center gap-1.5 flex-wrap">
           <PriorityChip priority={todo.priority} />
           {dueLabel && (
@@ -145,12 +147,38 @@ function TodoCard({
               {category.name}
             </Badge>
           )}
-          {assignee && (
-            <Avatar className="size-4 shrink-0">
-              {assignee.imageUrl && <AvatarImage src={assignee.imageUrl} alt={assignee.displayName ?? ''} />}
-              <AvatarFallback className="text-[0.5rem]">{memberInitials(assignee)}</AvatarFallback>
-            </Avatar>
+          {assignees.length > 0 && (
+            <div className="flex -space-x-1">
+              {assignees.slice(0, 3).map(uid => {
+                const m = members.find(m => m.clerkUserId === uid)
+                if (!m) return null
+                return (
+                  <Avatar key={uid} className="size-4 shrink-0 ring-1 ring-background">
+                    {m.imageUrl && <AvatarImage src={m.imageUrl} alt={m.displayName ?? ''} />}
+                    <AvatarFallback className="text-[0.5rem]">{memberInitials(m)}</AvatarFallback>
+                  </Avatar>
+                )
+              })}
+            </div>
           )}
+          {freqLabel && (
+            <span className="flex items-center gap-0.5 text-xs text-muted-foreground shrink-0">
+              <Repeat2 className="size-3" />
+              {freqLabel}
+            </span>
+          )}
+          {todoUrl && (
+            <a
+              href={todoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              aria-label="Open link"
+            >
+              <Link2 className="size-3 text-muted-foreground shrink-0" />
+            </a>
+          )}
+          {todo.notes && <FileText className="size-3 text-muted-foreground shrink-0" />}
         </div>
       )}
     </div>
@@ -404,6 +432,7 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
   const [importOpen, setImportOpen] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overColumnStatus, setOverColumnStatus] = useState<string | null>(null)
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
 
   const pendingDeleteRef = useRef<PendingDelete | null>(null)
   useEffect(() => { pendingDeleteRef.current = pendingDelete }, [pendingDelete])
@@ -483,8 +512,27 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
 
   const pendingDeleteIds = new Set(pendingDelete?.ids ?? [])
 
+  const filterableCategories = useMemo(() => {
+    if (!categories.length) return []
+    return [...new Set(
+      (todos ?? [])
+        .filter(t => t.categoryId)
+        .map(t => categories.find(c => c.id === t.categoryId)?.name)
+        .filter((n): n is string => !!n)
+    )].sort()
+  }, [todos, categories])
+
+  const displayTodos = useMemo(() => {
+    if (!todos) return []
+    if (selectedCategories.size === 0) return todos
+    return todos.filter(t => {
+      const cat = categories.find(c => c.id === t.categoryId)
+      return cat && selectedCategories.has(cat.name)
+    })
+  }, [todos, categories, selectedCategories])
+
   function byStatus(status: string): Todo[] {
-    return (todos ?? []).filter(t => (t.status ?? 'Todo') === status && !pendingDeleteIds.has(t.id))
+    return displayTodos.filter(t => (t.status ?? 'Todo') === status && !pendingDeleteIds.has(t.id))
   }
 
   function getColumnTodos(status: string): Todo[] {
@@ -624,6 +672,25 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
             >
               Or import your to-dos →
             </button>
+          </div>
+        )}
+
+        {!isLoading && !error && !isEmpty && filterableCategories.length > 0 && (
+          <div className="flex gap-1.5 flex-wrap mb-3">
+            {filterableCategories.map(name => (
+              <Badge
+                key={name}
+                variant={selectedCategories.has(name) ? 'default' : 'outline'}
+                className="cursor-pointer"
+                onClick={() => setSelectedCategories(prev => {
+                  const next = new Set(prev)
+                  next.has(name) ? next.delete(name) : next.add(name)
+                  return next
+                })}
+              >
+                {name}
+              </Badge>
+            ))}
           </div>
         )}
 

@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { cn, memberInitials, safeUrl } from '@/lib/utils'
+import { cn, memberInitials, safeUrl, formatFrequency } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus, useToggleShoppingList, useUpdateTodo, useHouseholdSettings, useConceptList } from '../api'
 import type { Item } from '../api/types'
@@ -338,7 +338,8 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
             <>
               {topTodos.map((todo, i) => {
                 const cat = categories.find(c => c.id === todo.categoryId) ?? null
-                const assignee = members.find(m => m.clerkUserId === todo.assignedTo) ?? null
+                const assignees = todo.assignedTo ?? []
+                const freqLabel = formatFrequency(todo.frequency, todo.frequencyInterval, todo.frequencyDays)
                 return (
                   <div key={todo.id} className={cn(i > 0 && 'border-t border-border')}>
                     <ItemRow
@@ -366,13 +367,19 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
                               {cat.name}
                             </Badge>
                           )}
-                          {assignee && (
-                            <Avatar className="size-4 shrink-0">
-                              {assignee.imageUrl && (
-                                <AvatarImage src={assignee.imageUrl} alt={assignee.displayName ?? ''} />
-                              )}
-                              <AvatarFallback className="text-[0.5rem]">{memberInitials(assignee)}</AvatarFallback>
-                            </Avatar>
+                          {assignees.length > 0 && (
+                            <div className="flex -space-x-1">
+                              {assignees.slice(0, 3).map(uid => {
+                                const m = members.find(m => m.clerkUserId === uid)
+                                if (!m) return null
+                                return (
+                                  <Avatar key={uid} className="size-4 shrink-0 ring-1 ring-background">
+                                    {m.imageUrl && <AvatarImage src={m.imageUrl} alt={m.displayName ?? ''} />}
+                                    <AvatarFallback className="text-[0.5rem]">{memberInitials(m)}</AvatarFallback>
+                                  </Avatar>
+                                )
+                              })}
+                            </div>
                           )}
                           {safeUrl(todo.url) && (
                             <a
@@ -386,7 +393,12 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
                             </a>
                           )}
                           {todo.notes && <FileText className="size-3 text-muted-foreground shrink-0" />}
-                          {todo.frequency && <Repeat2 className="size-3 text-muted-foreground shrink-0" />}
+                          {freqLabel && (
+                            <span className="flex items-center gap-0.5 text-xs text-muted-foreground shrink-0">
+                              <Repeat2 className="size-3" />
+                              {freqLabel}
+                            </span>
+                          )}
                         </>
                       }
                     />
