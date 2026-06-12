@@ -35,7 +35,15 @@ type RecipeVariant = {
   onToggle: () => void
 }
 
-type ItemRowProps = ShoppingVariant | InventoryVariant | RecipeVariant
+type TodoVariant = {
+  variant: 'todo'
+  name: string
+  removing?: boolean
+  onDone: () => void
+  meta?: React.ReactNode
+}
+
+type ItemRowProps = ShoppingVariant | InventoryVariant | RecipeVariant | TodoVariant
 
 export function ItemRow(props: ItemRowProps) {
   if (props.variant === 'shopping') {
@@ -60,6 +68,31 @@ export function ItemRow(props: ItemRowProps) {
               <span className="block text-xs text-muted-foreground truncate">{props.subtitle}</span>
             )}
           </div>
+          <Check className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </button>
+      </div>
+    )
+  }
+
+  if (props.variant === 'todo') {
+    return (
+      <div
+        style={{
+          overflow: 'hidden',
+          transition: `opacity ${EXIT_DURATION_MS}ms ease, max-height ${EXIT_DURATION_MS}ms ease`,
+          maxHeight: props.removing ? 0 : '200px',
+          opacity: props.removing ? 0 : 1,
+        }}
+      >
+        <button
+          onClick={props.onDone}
+          className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-accent transition-colors"
+          aria-label={`Mark ${props.name} as done`}
+        >
+          <span className="text-sm truncate flex-1">{props.name}</span>
+          {props.meta && (
+            <div className="flex items-center gap-2 shrink-0">{props.meta}</div>
+          )}
           <Check className="size-4 shrink-0 text-muted-foreground" aria-hidden />
         </button>
       </div>
