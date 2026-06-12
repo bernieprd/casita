@@ -71,7 +71,7 @@ export async function handleGoogleOAuthCallback(req: Request, env: Env): Promise
     { expirationTtl: 7_776_000 },
   )
 
-  const baseUrl = env.APP_BASE_URL ?? 'https://app.casita.bernardoprd.com'
+  const baseUrl = env.APP_BASE_URL ?? 'https://dashboard.mycasita.app'
   return Response.redirect(`${baseUrl}/settings/calendar?google=connected`, 302)
 }
 

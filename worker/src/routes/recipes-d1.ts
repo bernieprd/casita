@@ -206,7 +206,7 @@ export async function shareRecipe(_req: Request, env: Env, ctx: RequestContext, 
 
   if (!existing) return Response.json({ error: 'Not found' }, { status: 404 })
 
-  const appUrl = env.APP_BASE_URL ?? 'https://app.casita.bernardoprd.com'
+  const appUrl = env.APP_BASE_URL ?? 'https://dashboard.mycasita.app'
 
   if (existing.share_token) {
     return Response.json({ token: existing.share_token, url: `${appUrl}/share/${existing.share_token}` })
