@@ -8,13 +8,13 @@ type ShoppingVariant = {
   name: string
   subtitle?: string
   removing?: boolean
-  handlers: {
+  handlers?: {
     onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => void
     onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => void
     onPointerLeave: (e: React.PointerEvent<HTMLButtonElement>) => void
     onPointerMove: (e: React.PointerEvent<HTMLButtonElement>) => void
   }
-  didFire: () => boolean
+  didFire?: () => boolean
   onRemove: () => void
 }
 
@@ -58,7 +58,7 @@ export function ItemRow(props: ItemRowProps) {
       >
         <button
           {...props.handlers}
-          onClick={() => { if (!props.didFire()) props.onRemove() }}
+          onClick={() => { if (!props.didFire?.()) props.onRemove() }}
           className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-accent transition-colors select-none"
           aria-label={`Mark ${props.name} as bought`}
         >

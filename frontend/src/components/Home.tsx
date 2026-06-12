@@ -49,6 +49,87 @@ const COLLAPSE_DURATION_MS = 220
 // How long the toast stays up; mutation fires 100ms after this.
 const TOAST_DURATION_MS = 4000
 
+function useCollapsible() {
+  const [collapsed, setCollapsed] = useState(false)
+  const [contentVisible, setContentVisible] = useState(true)
+  const handleToggle = () => {
+    if (collapsed) { setContentVisible(true); setCollapsed(false) }
+    else setCollapsed(true)
+  }
+  return { collapsed, contentVisible, handleToggle, onCollapsed: () => setContentVisible(false) }
+}
+
+function CollapsibleBody({ collapsed, onCollapsed, children }: {
+  collapsed: boolean
+  onCollapsed: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div
+      style={{
+        overflow: 'hidden',
+        transition: `max-height ${COLLAPSE_DURATION_MS}ms ease, opacity ${COLLAPSE_DURATION_MS}ms ease`,
+        maxHeight: collapsed ? 0 : '2000px',
+        opacity: collapsed ? 0 : 1,
+      }}
+      onTransitionEnd={e => { if (e.target === e.currentTarget && collapsed) onCollapsed() }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function useDeferredAction(
+  mutate: (id: string) => void,
+  formatMessage: (name: string) => string,
+) {
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
+  const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const toastIds = useRef<Map<string, string | number>>(new Map())
+  const mutateRef = useRef(mutate)
+  useEffect(() => { mutateRef.current = mutate })
+
+  useEffect(() => {
+    const t = timers.current
+    const tid = toastIds.current
+    return () => {
+      t.forEach((timer, id) => {
+        clearTimeout(timer)
+        mutateRef.current(id)
+        const toastId = tid.get(id)
+        if (toastId !== undefined) toast.dismiss(toastId)
+      })
+    }
+  }, [])
+
+  const trigger = useCallback((id: string, name: string) => {
+    if (timers.current.has(id)) return
+    setRemovingIds(prev => new Set(prev).add(id))
+    const timer = setTimeout(() => {
+      mutateRef.current(id)
+      setRemovingIds(prev => { const s = new Set(prev); s.delete(id); return s })
+      timers.current.delete(id)
+      toastIds.current.delete(id)
+    }, TOAST_DURATION_MS + 100)
+    timers.current.set(id, timer)
+    const toastId = toast(formatMessage(name), {
+      duration: TOAST_DURATION_MS,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          const t = timers.current.get(id)
+          if (t !== undefined) { clearTimeout(t); timers.current.delete(id) }
+          toastIds.current.delete(id)
+          setRemovingIds(prev => { const s = new Set(prev); s.delete(id); return s })
+        },
+      },
+    })
+    toastIds.current.set(id, toastId)
+  }, [formatMessage])
+
+  return { removingIds, trigger }
+}
+
 function CardHeader({
   label,
   showBorder,
@@ -109,8 +190,7 @@ function timeLabel(dateStr: string): string | null {
 }
 
 function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
-  const [collapsed, setCollapsed] = useState(false)
-  const [contentVisible, setContentVisible] = useState(true)
+  const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
   const { data: googleStatus } = useGoogleStatus()
   const timeMin = useMemo(() => new Date().toISOString(), [])
   const timeMax = useMemo(() => {
@@ -130,11 +210,6 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
       .slice(0, 3)
   }, [events])
 
-  const handleToggle = () => {
-    if (collapsed) { setContentVisible(true); setCollapsed(false) }
-    else setCollapsed(true)
-  }
-
   if (!googleStatus?.connected && !isLoading && upcoming.length === 0) return null
 
   return (
@@ -147,15 +222,7 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
           onToggle={handleToggle}
           onSeeAll={onNavigate}
         />
-        <div
-          style={{
-            overflow: 'hidden',
-            transition: `max-height ${COLLAPSE_DURATION_MS}ms ease, opacity ${COLLAPSE_DURATION_MS}ms ease`,
-            maxHeight: collapsed ? 0 : '500px',
-            opacity: collapsed ? 0 : 1,
-          }}
-          onTransitionEnd={e => { if (e.target === e.currentTarget && collapsed) setContentVisible(false) }}
-        >
+        <CollapsibleBody collapsed={collapsed} onCollapsed={onCollapsed}>
           {isLoading ? (
             <div className="px-4">
               {[0, 1, 2].map(i => (
@@ -192,7 +259,7 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
               )
             })
           )}
-        </div>
+        </CollapsibleBody>
       </SectionCard>
     </div>
   )
@@ -203,58 +270,13 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
 const PRIORITY_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 }
 
 function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
-  const [collapsed, setCollapsed] = useState(false)
-  const [contentVisible, setContentVisible] = useState(true)
+  const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
   const { data: todos, isLoading } = useTodos()
   const updateTodo = useUpdateTodo()
-  const [removingTodoIds, setRemovingTodoIds] = useState<Set<string>>(new Set())
-  const todoTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
-  const todoToastIds = useRef<Map<string, string | number>>(new Map())
-  const updateTodoMutate = useRef(updateTodo.mutate)
-  useEffect(() => { updateTodoMutate.current = updateTodo.mutate })
-
-  useEffect(() => {
-    const timers = todoTimers.current
-    const toastIds = todoToastIds.current
-    return () => {
-      timers.forEach((timer, id) => {
-        clearTimeout(timer)
-        updateTodoMutate.current({ id, status: 'Done' })
-        const toastId = toastIds.get(id)
-        if (toastId !== undefined) toast.dismiss(toastId)
-      })
-    }
-  }, [])
-
-  const handleToggle = () => {
-    if (collapsed) { setContentVisible(true); setCollapsed(false) }
-    else setCollapsed(true)
-  }
-
-  const handleDone = useCallback((id: string, name: string) => {
-    if (todoTimers.current.has(id)) return
-    setRemovingTodoIds(prev => new Set(prev).add(id))
-    const timer = setTimeout(() => {
-      updateTodo.mutate({ id, status: 'Done' })
-      setRemovingTodoIds(prev => { const s = new Set(prev); s.delete(id); return s })
-      todoTimers.current.delete(id)
-      todoToastIds.current.delete(id)
-    }, TOAST_DURATION_MS + 100)
-    todoTimers.current.set(id, timer)
-    const toastId = toast(`Marked "${name}" as done`, {
-      duration: TOAST_DURATION_MS,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          const t = todoTimers.current.get(id)
-          if (t !== undefined) { clearTimeout(t); todoTimers.current.delete(id) }
-          todoToastIds.current.delete(id)
-          setRemovingTodoIds(prev => { const s = new Set(prev); s.delete(id); return s })
-        },
-      },
-    })
-    todoToastIds.current.set(id, toastId)
-  }, [updateTodo.mutate])
+  const { removingIds: removingTodoIds, trigger: handleDone } = useDeferredAction(
+    (id) => updateTodo.mutate({ id, status: 'Done' }),
+    (name) => `Marked "${name}" as done`,
+  )
 
   const { topTodos, remaining } = useMemo(() => {
     if (!todos) return { topTodos: [], remaining: 0 }
@@ -294,15 +316,7 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
           onToggle={handleToggle}
           onSeeAll={onSeeAll}
         />
-        <div
-          style={{
-            overflow: 'hidden',
-            transition: `max-height ${COLLAPSE_DURATION_MS}ms ease, opacity ${COLLAPSE_DURATION_MS}ms ease`,
-            maxHeight: collapsed ? 0 : '500px',
-            opacity: collapsed ? 0 : 1,
-          }}
-          onTransitionEnd={e => { if (e.target === e.currentTarget && collapsed) setContentVisible(false) }}
-        >
+        <CollapsibleBody collapsed={collapsed} onCollapsed={onCollapsed}>
           {isLoading ? (
             <div className="px-4">
               {[0, 1, 2].map(i => (
@@ -353,7 +367,7 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
               )}
             </>
           )}
-        </div>
+        </CollapsibleBody>
       </SectionCard>
     </div>
   )
@@ -446,68 +460,23 @@ function useShoppingPlan(items: Item[] | undefined): ShoppingPlan {
 }
 
 function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
-  const [collapsed, setCollapsed] = useState(false)
-  const [contentVisible, setContentVisible] = useState(true)
+  const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
   const { data: items, isLoading } = useShoppingList()
   const plan = useShoppingPlan(items)
   const toggle = useToggleShoppingList()
-  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
-  const shoppingTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
-  const shoppingToastIds = useRef<Map<string, string | number>>(new Map())
-  const toggleMutate = useRef(toggle.mutate)
-  useEffect(() => { toggleMutate.current = toggle.mutate })
-
-  useEffect(() => {
-    const timers = shoppingTimers.current
-    const toastIds = shoppingToastIds.current
-    return () => {
-      timers.forEach((timer, id) => {
-        clearTimeout(timer)
-        toggleMutate.current({ id, onShoppingList: false })
-        const toastId = toastIds.get(id)
-        if (toastId !== undefined) toast.dismiss(toastId)
-      })
-    }
-  }, [])
-
-  const handleToggle = () => {
-    if (collapsed) { setContentVisible(true); setCollapsed(false) }
-    else setCollapsed(true)
-  }
-
-  const handleRemove = useCallback((id: string, name: string) => {
-    if (shoppingTimers.current.has(id)) return
-    setRemovingIds(prev => new Set(prev).add(id))
-    const timer = setTimeout(() => {
-      toggle.mutate({ id, onShoppingList: false })
-      setRemovingIds(prev => { const s = new Set(prev); s.delete(id); return s })
-      shoppingTimers.current.delete(id)
-      shoppingToastIds.current.delete(id)
-    }, TOAST_DURATION_MS + 100)
-    shoppingTimers.current.set(id, timer)
-    const toastId = toast(`Removed "${name}" from list`, {
-      duration: TOAST_DURATION_MS,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          const t = shoppingTimers.current.get(id)
-          if (t !== undefined) { clearTimeout(t); shoppingTimers.current.delete(id) }
-          shoppingToastIds.current.delete(id)
-          setRemovingIds(prev => { const s = new Set(prev); s.delete(id); return s })
-        },
-      },
-    })
-    shoppingToastIds.current.set(id, toastId)
-  }, [toggle.mutate])
+  const { removingIds, trigger: handleRemove } = useDeferredAction(
+    (id) => toggle.mutate({ id, onShoppingList: false }),
+    (name) => `Removed "${name}" from list`,
+  )
 
   const removingInTop = plan.topItems.filter(i => removingIds.has(i.id)).length
   const adjustedRemaining = Math.max(0, plan.remaining - removingInTop)
 
   const remainderLabel = useMemo(() => {
     if (!items) return null
+    if (adjustedRemaining === 0) return null
     const topIds = new Set(plan.topItems.map(i => i.id))
     const remainderItems = items.filter(i => !topIds.has(i.id) && !removingIds.has(i.id))
-    if (remainderItems.length === 0) return null
 
     // Count per store; items with no supermarkets go to the "no store" bucket
     const storeCounts = new Map<string, number>()
@@ -524,7 +493,7 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
 
     // If no item has a store, fall back to the plain "+N more" format
     if (storeCounts.size === 0) {
-      return `+${remainderItems.length} more`
+      return `+${adjustedRemaining} more`
     }
 
     // Sort stores by their total count across the full list, not just the remainder
@@ -542,7 +511,7 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
       parts.push(`+${noStoreCount} more`)
     }
     return parts.join(', ')
-  }, [items, plan.topItems, removingIds])
+  }, [items, plan.topItems, removingIds, adjustedRemaining])
 
   return (
     <div className="mb-6">
@@ -554,15 +523,7 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
           onToggle={handleToggle}
           onSeeAll={onNavigate}
         />
-        <div
-          style={{
-            overflow: 'hidden',
-            transition: `max-height ${COLLAPSE_DURATION_MS}ms ease, opacity ${COLLAPSE_DURATION_MS}ms ease`,
-            maxHeight: collapsed ? 0 : '500px',
-            opacity: collapsed ? 0 : 1,
-          }}
-          onTransitionEnd={e => { if (e.target === e.currentTarget && collapsed) setContentVisible(false) }}
-        >
+        <CollapsibleBody collapsed={collapsed} onCollapsed={onCollapsed}>
           {isLoading ? (
             <div className="px-4">
               {[0, 1, 2].map(i => (
@@ -586,20 +547,18 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
                     name={item.name}
                     subtitle={item.supermarkets.length > 0 ? item.supermarkets.join(', ') : undefined}
                     removing={removingIds.has(item.id)}
-                    handlers={{ onPointerDown: () => {}, onPointerUp: () => {}, onPointerLeave: () => {}, onPointerMove: () => {} }}
-                    didFire={() => false}
                     onRemove={() => handleRemove(item.id, item.name)}
                   />
                 </div>
               ))}
-              {adjustedRemaining > 0 && remainderLabel && (
+              {remainderLabel && (
                 <div onClick={onNavigate} className="px-4 py-2.5 border-t border-border cursor-pointer">
                   <span className="text-xs text-muted-foreground">{remainderLabel}</span>
                 </div>
               )}
             </>
           )}
-        </div>
+        </CollapsibleBody>
       </SectionCard>
     </div>
   )
