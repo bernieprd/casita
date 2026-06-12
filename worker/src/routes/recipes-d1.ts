@@ -1,4 +1,5 @@
 import type { Block, Env, Recipe, RecipeIngredient, RecipeWithBlocks, RequestContext } from '../types'
+import { getAppBaseUrl } from '../types'
 
 type RecipeRow = {
   id: string
@@ -206,7 +207,7 @@ export async function shareRecipe(_req: Request, env: Env, ctx: RequestContext, 
 
   if (!existing) return Response.json({ error: 'Not found' }, { status: 404 })
 
-  const appUrl = env.APP_BASE_URL ?? 'https://dashboard.mycasita.app'
+  const appUrl = getAppBaseUrl(env)
 
   if (existing.share_token) {
     return Response.json({ token: existing.share_token, url: `${appUrl}/share/${existing.share_token}` })
