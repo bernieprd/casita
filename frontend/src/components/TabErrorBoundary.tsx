@@ -1,4 +1,6 @@
 import React from 'react'
+// i18next.t() is used directly (not the hook) because class components can't call hooks.
+// A language change while the error boundary is displayed won't re-render this UI.
 import i18next from 'i18next'
 import { Button } from '@/components/ui/button'
 

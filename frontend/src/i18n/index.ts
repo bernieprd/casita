@@ -32,7 +32,9 @@ i18n
       escapeValue: false,
     },
     detection: {
-      order: ['localStorage', 'navigator'],
+      // Omit 'navigator' so the app stays on 'en' until the server locale
+      // resolves via LocaleSync, preventing a language flash on first load.
+      order: ['localStorage'],
       caches: ['localStorage'],
       lookupLocalStorage: 'casita_locale',
     },

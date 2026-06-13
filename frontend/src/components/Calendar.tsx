@@ -7,6 +7,7 @@ import { useCalendarEvents, useGoogleStatus, useUserCalendars } from '../api'
 import type { CalendarEvent } from '../api/types'
 import { useTranslation } from 'react-i18next'
 import { useLocale } from '@/hooks/useLocale'
+import { makeDayLabel } from '@/lib/dayLabel'
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -35,24 +36,6 @@ function todayKey(): string {
   return dayKey(new Date().toISOString().slice(0, 10))
 }
 
-/** Human-readable day label factory — returns a function bound to locale and translations. */
-function makeDayLabel(locale: string, today: string, tomorrow: string) {
-  return (dateStr: string): string => {
-    const [y, m, d] = dateStr.split('-').map(Number)
-    const date = new Date(y, m - 1, d)
-    const todayDate = new Date()
-    const tomorrowDate = new Date(todayDate)
-    tomorrowDate.setDate(todayDate.getDate() + 1)
-
-    if (date.toDateString() === todayDate.toDateString()) return today
-    if (date.toDateString() === tomorrowDate.toDateString()) return tomorrow
-
-    const weekday = date.toLocaleDateString(locale, { weekday: 'short' })
-    const day     = date.getDate()
-    const month   = date.toLocaleDateString(locale, { month: 'short' })
-    return `${weekday}, ${day} ${month}`
-  }
-}
 
 /** "10:00 AM – 11:30 AM" or "All day". */
 function makeTimeRange(locale: string, allDayLabel: string) {

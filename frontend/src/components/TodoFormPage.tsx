@@ -40,7 +40,6 @@ import { STATUS_TRANSLATION_KEYS } from '@/lib/todoConstants'
 const SIMPLE_STATUSES = ['Todo', 'Done'] as const
 const BOARD_STATUSES = ['Todo', 'In progress', 'Blocked', 'Done'] as const
 
-
 const STATUS_SELECTED_CLASSES: Record<string, string> = {
   'Todo':        'bg-secondary text-secondary-foreground border-secondary',
   'In progress': 'bg-primary text-primary-foreground border-primary',

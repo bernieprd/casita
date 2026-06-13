@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom'
 import { ItemRow } from './ItemRow'
 import { useTranslation } from 'react-i18next'
 import { useLocale } from '@/hooks/useLocale'
+import { makeDayLabel } from '@/lib/dayLabel'
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
@@ -53,19 +54,6 @@ const COLLAPSE_DURATION_MS = 220
 const TOAST_DURATION_MS = 4000
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
-
-function makeDayLabel(locale: string, today: string, tomorrow: string) {
-  return (dateStr: string, includeDatePart = false): string => {
-    const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00')
-    const todayDate = new Date(); todayDate.setHours(0, 0, 0, 0)
-    const tomorrowDate = new Date(todayDate); tomorrowDate.setDate(todayDate.getDate() + 1)
-    if (d.toDateString() === todayDate.toDateString()) return today
-    if (d.toDateString() === tomorrowDate.toDateString()) return tomorrow
-    if (includeDatePart)
-      return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
-    return d.toLocaleDateString(locale, { weekday: 'short' })
-  }
-}
 
 function makeTimeLabel(locale: string) {
   return (dateStr: string): string | null => {
@@ -206,7 +194,7 @@ function CardHeader({
 function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
   const { t } = useTranslation()
   const locale = useLocale()
-  const dayLabel = useMemo(() => makeDayLabel(locale, t('home.today'), t('home.tomorrow')), [locale, t])
+  const dayLabel = useMemo(() => makeDayLabel(locale, t('home.today'), t('home.tomorrow'), 'weekday'), [locale, t])
   const timeLabel = useMemo(() => makeTimeLabel(locale), [locale])
   const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
   const { data: googleStatus } = useGoogleStatus()
@@ -290,7 +278,7 @@ const PRIORITY_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 }
 function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
   const { t } = useTranslation()
   const locale = useLocale()
-  const dayLabel = useMemo(() => makeDayLabel(locale, t('home.today'), t('home.tomorrow')), [locale, t])
+  const dayLabel = useMemo(() => makeDayLabel(locale, t('home.today'), t('home.tomorrow'), 'date'), [locale, t])
   const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
   const { data: todos, isLoading } = useTodos()
   const { data: settings } = useHouseholdSettings()
@@ -373,7 +361,7 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
                           )}
                           {todo.due && (
                             <span className="text-xs font-semibold text-primary whitespace-nowrap">
-                              {dayLabel(todo.due, true)}
+                              {dayLabel(todo.due)}
                             </span>
                           )}
                           {cat && (

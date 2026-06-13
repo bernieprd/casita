@@ -13,7 +13,7 @@ export async function getMe(
   ctx: RequestContext,
 ): Promise<Response> {
   const row = await env.DB
-    .prepare('SELECT locale FROM household_members WHERE clerk_user_id = ?')
+    .prepare('SELECT locale FROM household_members WHERE clerk_user_id = ? LIMIT 1')
     .bind(ctx.clerkUserId)
     .first<{ locale: string }>()
 

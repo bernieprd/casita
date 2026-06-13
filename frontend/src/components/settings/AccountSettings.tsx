@@ -22,7 +22,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useDeleteAccount, useExportAccount } from '../../api/account'
 import { useHouseholdSettings } from '../../api/household'
 import { useMe, useUpdateLocale } from '../../api/me'
-import { SUPPORTED_LOCALES, type LocaleCode } from '../../i18n'
+import i18n, { SUPPORTED_LOCALES, type LocaleCode } from '../../i18n'
 import { translateError } from '../../lib/errors'
 
 interface Props {
@@ -121,7 +121,10 @@ export default function AccountSettings({ setHeader }: Props) {
       </p>
       <Select
         value={meData?.locale ?? 'en'}
-        onValueChange={(value) => updateLocale(value as LocaleCode)}
+        onValueChange={(value) => {
+          i18n.changeLanguage(value as LocaleCode)
+          updateLocale(value as LocaleCode)
+        }}
       >
         <SelectTrigger className="w-56">
           <SelectValue />

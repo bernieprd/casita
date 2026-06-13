@@ -5,6 +5,7 @@ import type { Locale } from 'date-fns'
 const DATE_FNS_LOCALES: Record<string, Locale> = {
   en: enUS,
   es,
+  // date-fns has no dedicated pt-PT locale; 'pt' is generic/Brazilian Portuguese
   'pt-PT': pt,
   it,
 }
