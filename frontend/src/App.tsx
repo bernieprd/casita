@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { Settings, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
-import { BRAND_BG } from '@/lib/brand'
 import { useQueryClient } from '@tanstack/react-query'
 import { itemKeys, itemsApi, todoKeys, todosApi } from './api'
 import { useOnlineStatus } from './useOnlineStatus'
@@ -153,7 +152,7 @@ function AppShell() {
       ])
       await StatusBar.setStyle({ style: Style.Default })
       if (Capacitor.getPlatform() === 'android') {
-        await StatusBar.setBackgroundColor({ color: BRAND_BG })
+        await StatusBar.setOverlaysWebView({ overlay: true })
       }
       await SplashScreen.hide()
       backHandler = await CapApp.addListener('backButton', ({ canGoBack }) => {
@@ -169,7 +168,7 @@ function AppShell() {
   return (
     <div className="min-h-screen bg-background">
       <LocaleSync />
-      <header className="sticky top-0 z-50 bg-background border-b">
+      <header className="sticky top-0 z-50 bg-background border-b" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="max-w-xl mx-auto flex items-center px-2 h-14">
           {headerContent ?? (
             isSettings ? (
