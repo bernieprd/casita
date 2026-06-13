@@ -271,7 +271,8 @@
     "resultCount_other": "{{count}} results",
     "recipeCount_one": "{{count}} recipe",
     "recipeCount_other": "{{count}} recipes",
-    "importDescription": "Import your recipes."
+    "importDescription": "Import your recipes.",
+    "createIngredient": "Create \"{{name}}\""
   },
   "item": {
     "editTitle": "Edit item",

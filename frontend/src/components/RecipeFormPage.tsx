@@ -13,7 +13,7 @@ import {
   useDraggable,
 } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
-import { useItems, useCreateRecipe, useEditRecipe, useDeleteRecipe, useRecipe, useRecipeIngredients, useConceptList } from '../api'
+import { useItems, useCreateItem, useCreateRecipe, useEditRecipe, useDeleteRecipe, useRecipe, useRecipeIngredients, useConceptList } from '../api'
 import type { Item } from '../api'
 import { uploadPhoto } from '../api/client'
 import { Button } from '@/components/ui/button'
@@ -75,6 +75,7 @@ function ItemCombobox({
   const [search, setSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
   const selected = allItems.find(i => i.id === value)
+  const createItem = useCreateItem()
 
   useEffect(() => {
     if (!open) return
@@ -110,6 +111,26 @@ function ItemCombobox({
                   </CommandItem>
                 ))}
               <CommandEmpty>{t('recipes.noItemsFound')}</CommandEmpty>
+              {search.trim() && (
+                <CommandItem
+                  onSelect={() => {
+                    const name = search.trim()
+                    createItem.mutate(
+                      { name, category: null, supermarkets: [], onShoppingList: false },
+                      {
+                        onSuccess: (newItem) => {
+                          onChange(newItem)
+                          setOpen(false)
+                          setSearch('')
+                        },
+                      },
+                    )
+                  }}
+                  disabled={createItem.isPending}
+                >
+                  {t('recipes.createIngredient', { name: search.trim() })}
+                </CommandItem>
+              )}
             </CommandList>
           </Command>
         </div>
@@ -454,7 +475,8 @@ export default function RecipeFormPage() {
     )
   }, [name, type, url, coverUrl, instructions, currentRowsKey])
 
-  const blocker = useBlocker(isDirty && !isPending)
+  const savedRef = useRef(false)
+  const blocker = useBlocker(() => !savedRef.current && isDirty && !isPending)
 
   // ── DnD sensors ─────────────────────────────────────────────────────────────
 
@@ -581,7 +603,7 @@ export default function RecipeFormPage() {
 
       editRecipe.mutate(
         { recipe: recipeBody, removedIngredientIds: removedIds, newIngredients, updatedIngredients },
-        { onSuccess: () => { snapshot.current = null; navigate(-1) } },
+        { onSuccess: () => { savedRef.current = true; navigate(-1) } },
       )
     } else {
       const ingredients = rows
@@ -591,7 +613,7 @@ export default function RecipeFormPage() {
       createRecipe.mutate(
         { recipe: recipeBody, ingredients },
         {
-          onSuccess: newRecipe => { snapshot.current = null; navigate(`/recipes/${newRecipe.id}`, { replace: true }) },
+          onSuccess: newRecipe => { savedRef.current = true; navigate(`/recipes/${newRecipe.id}`, { replace: true }) },
         },
       )
     }
@@ -599,7 +621,7 @@ export default function RecipeFormPage() {
 
   function handleDelete() {
     deleteRecipe.mutate(undefined, {
-      onSuccess: () => { snapshot.current = null; navigate('/recipes', { replace: true }) },
+      onSuccess: () => { savedRef.current = true; navigate('/recipes', { replace: true }) },
     })
   }
 

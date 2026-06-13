@@ -271,7 +271,8 @@
     "resultCount_other": "{{count}} resultados",
     "recipeCount_one": "{{count}} receita",
     "recipeCount_other": "{{count}} receitas",
-    "importDescription": "Importa as tuas receitas."
+    "importDescription": "Importa as tuas receitas.",
+    "createIngredient": "Criar \"{{name}}\""
   },
   "item": {
     "editTitle": "Editar artigo",
