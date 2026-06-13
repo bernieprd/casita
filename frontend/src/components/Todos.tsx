@@ -49,6 +49,7 @@ import GuidedImport from './GuidedImport'
 import { ImportModal } from './ImportModal'
 import { useTranslation } from 'react-i18next'
 import { useLocale } from '@/hooks/useLocale'
+import { STATUS_TRANSLATION_KEYS } from '@/lib/todoConstants'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -65,12 +66,6 @@ const BLOCKED_HEADER_CLASS = 'text-amber-600 dark:text-amber-400'
 
 const UNDO_DURATION_MS = 4000
 
-const STATUS_TRANSLATION_KEYS: Record<string, string> = {
-  'Todo':        'todos.status.todo',
-  'Done':        'todos.status.done',
-  'In progress': 'todos.status.inProgress',
-  'Blocked':     'todos.status.blocked',
-}
 
 interface PendingDelete {
   ids: string[]

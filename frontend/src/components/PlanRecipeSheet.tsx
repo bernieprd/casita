@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { format, parseISO } from 'date-fns'
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale'
 import { CalendarIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -51,6 +52,7 @@ interface Props {
 
 export default function PlanRecipeSheet({ open, recipeName, onClose }: Props) {
   const { t } = useTranslation()
+  const dateFnsLocale = useDateFnsLocale()
   const [date, setDate] = useState(tomorrow)
   const [calOpen, setCalOpen] = useState(false)
   const createTodo = useCreateTodo()
@@ -83,7 +85,7 @@ export default function PlanRecipeSheet({ open, recipeName, onClose }: Props) {
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(parseISO(date), 'PPP') : <span>{t('planRecipe.pickDate')}</span>}
+            {date ? format(parseISO(date), 'PPP', { locale: dateFnsLocale }) : <span>{t('planRecipe.pickDate')}</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">

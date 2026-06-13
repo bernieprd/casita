@@ -211,7 +211,7 @@ export default function Items() {
             {t('items.orImport')}
           </button>
         </div>
-        <ImportModal open={importOpen} onOpenChange={setImportOpen} description="Import your pantry and shopping list data.">
+        <ImportModal open={importOpen} onOpenChange={setImportOpen} description={t('items.importDescription')}>
           <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
         </ImportModal>
       </>

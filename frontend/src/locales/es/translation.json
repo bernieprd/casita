@@ -178,7 +178,8 @@
     "missingInfo_other": "{{count}} artículos sin categoría o supermercado",
     "other": "Otras",
     "deleteItemTitle": "¿Eliminar «{{name}}»?",
-    "deleteItemDescription": "Esto eliminará el artículo de tu inventario permanentemente."
+    "deleteItemDescription": "Esto eliminará el artículo de tu inventario permanentemente.",
+    "createItem": "Crear \"{{name}}\""
   },
   "items": {
     "noItemsYet": "Aún no hay artículos",
@@ -190,7 +191,8 @@
     "markAsBought": "Marcar {{name}} como comprado",
     "markAsDone": "Marcar {{name}} como hecho",
     "removeFromList": "Eliminar {{name}} de la lista de la compra",
-    "addToList": "Añadir {{name}} a la lista de la compra"
+    "addToList": "Añadir {{name}} a la lista de la compra",
+    "importDescription": "Importa los datos de tu despensa y lista de la compra."
   },
   "planRecipe": {
     "title": "Planificar receta",
@@ -267,7 +269,8 @@
     "resultCount_one": "{{count}} resultado",
     "resultCount_other": "{{count}} resultados",
     "recipeCount_one": "{{count}} receta",
-    "recipeCount_other": "{{count}} recetas"
+    "recipeCount_other": "{{count}} recetas",
+    "importDescription": "Importa tus recetas."
   },
   "item": {
     "editTitle": "Editar artículo",
@@ -351,6 +354,8 @@
       "deleteHouseholdDescription": "Esto eliminará permanentemente el hogar y todo lo que contiene — todas las recetas, artículos de la lista de compras, tareas y los datos de conexión con Google Calendar. Esta acción no se puede deshacer. Tu cuenta permanecerá y podrás unirte o crear un nuevo hogar.",
       "failedToCopy": "Error al copiar",
       "transferFailed": "Error en la transferencia",
+      "deleteFailed": "Error al eliminar el hogar",
+      "confirmTransfer": "Confirmar transferencia de propiedad a {{name}}",
       "renameHousehold": "Renombrar hogar",
       "copyInviteCode": "Copiar código de invitación"
     },

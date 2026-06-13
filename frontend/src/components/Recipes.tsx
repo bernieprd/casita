@@ -236,7 +236,7 @@ function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: str
             {t('recipes.orImport')}
           </button>
         </div>
-        <ImportModal open={importOpen} onOpenChange={setImportOpen} description="Import your recipes.">
+        <ImportModal open={importOpen} onOpenChange={setImportOpen} description={t('recipes.importDescription')}>
           <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
         </ImportModal>
       </>

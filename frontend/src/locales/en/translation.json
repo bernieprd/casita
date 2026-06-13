@@ -178,7 +178,8 @@
     "missingInfo_other": "{{count}} items missing category or supermarket",
     "other": "Other",
     "deleteItemTitle": "Delete \"{{name}}\"?",
-    "deleteItemDescription": "This will permanently remove the item from your inventory."
+    "deleteItemDescription": "This will permanently remove the item from your inventory.",
+    "createItem": "Create \"{{name}}\""
   },
   "items": {
     "noItemsYet": "No items yet",
@@ -190,7 +191,8 @@
     "markAsBought": "Mark {{name}} as bought",
     "markAsDone": "Mark {{name}} as done",
     "removeFromList": "Remove {{name}} from shopping list",
-    "addToList": "Add {{name}} to shopping list"
+    "addToList": "Add {{name}} to shopping list",
+    "importDescription": "Import your pantry and shopping list data."
   },
   "planRecipe": {
     "title": "Plan recipe",
@@ -267,7 +269,8 @@
     "resultCount_one": "{{count}} result",
     "resultCount_other": "{{count}} results",
     "recipeCount_one": "{{count}} recipe",
-    "recipeCount_other": "{{count}} recipes"
+    "recipeCount_other": "{{count}} recipes",
+    "importDescription": "Import your recipes."
   },
   "item": {
     "editTitle": "Edit item",
@@ -351,6 +354,8 @@
       "deleteHouseholdDescription": "This will permanently delete the household and everything in it — all recipes, shopping items, to-dos, and your Google Calendar connection data. This cannot be undone. Your account will remain and you can join or create a new household.",
       "failedToCopy": "Failed to copy",
       "transferFailed": "Transfer failed",
+      "deleteFailed": "Failed to delete household",
+      "confirmTransfer": "Confirm transfer ownership to {{name}}",
       "renameHousehold": "Rename household",
       "copyInviteCode": "Copy invite code"
     },

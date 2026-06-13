@@ -135,7 +135,7 @@ export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | 
                       <PlusCircle className="h-4 w-4 text-primary shrink-0" />
                       <div className="text-left">
                         <span className="block text-sm">
-                          Create <span className="font-semibold">"{query.trim()}"</span>
+                          {t('shopping.createItem', { name: query.trim() })}
                         </span>
                         <span className="block text-xs text-muted-foreground">{t('shopping.itemAdded')}</span>
                       </div>

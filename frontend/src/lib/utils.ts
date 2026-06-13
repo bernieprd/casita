@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import type { TFunction } from 'i18next'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -10,13 +11,11 @@ export function memberInitials(member: { displayName?: string | null; email?: st
   return name.split(' ').filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase()
 }
 
-type TranslateFn = (key: string, options?: Record<string, unknown>) => string
-
 export function formatFrequency(
   frequency: string | null,
   interval: number | null,
   days: string[] | null,
-  t: TranslateFn,
+  t: TFunction,
 ): string | null {
   if (!frequency) return null
   const n = interval ?? 1

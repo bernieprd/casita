@@ -35,16 +35,11 @@ import type { Todo } from '../api'
 import { useHouseholdSettings, useTodoWorkflow } from '../api/household'
 import { useConceptList, useCreateConcept } from '../api/concepts'
 import { useTranslation } from 'react-i18next'
+import { STATUS_TRANSLATION_KEYS } from '@/lib/todoConstants'
 
 const SIMPLE_STATUSES = ['Todo', 'Done'] as const
 const BOARD_STATUSES = ['Todo', 'In progress', 'Blocked', 'Done'] as const
 
-const STATUS_TRANSLATION_KEYS: Record<string, string> = {
-  'Todo':        'todos.status.todo',
-  'Done':        'todos.status.done',
-  'In progress': 'todos.status.inProgress',
-  'Blocked':     'todos.status.blocked',
-}
 
 const STATUS_SELECTED_CLASSES: Record<string, string> = {
   'Todo':        'bg-secondary text-secondary-foreground border-secondary',

@@ -39,6 +39,7 @@ import {
 import { useUser } from '@clerk/clerk-react'
 import { useHousehold } from '../../context/AuthContext'
 import { useTranslation } from 'react-i18next'
+import { translateError } from '../../lib/errors'
 
 interface Props {
   themePrefs: ThemePrefs
@@ -261,12 +262,12 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               disabled={transferring}
-              aria-label={`Confirm transfer ownership to ${transferTarget?.name ?? 'this member'}`}
+              aria-label={t('settings.household.confirmTransfer', { name: transferTarget?.name ?? '' })}
               onClick={() => {
                 if (!transferTarget) return
                 transferOwnership(transferTarget.id, {
                   onSuccess: () => { setTransferTarget(null); refreshHousehold() },
-                  onError: () => toast.error(t('settings.household.transferFailed')),
+                  onError: (err: unknown) => toast.error(translateError((err as { message?: string })?.message ?? '', t)),
                 })
               }}
             >
@@ -483,7 +484,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
                 e.preventDefault()
                 deleteHousehold(undefined, {
                   onSuccess: () => { setDeleteHouseholdOpen(false); refreshHousehold() },
-                  onError: () => toast.error(t('settings.household.deleteHousehold')),
+                  onError: (err: unknown) => toast.error(translateError((err as { message?: string })?.message ?? '', t)),
                 })
               }}
             >
