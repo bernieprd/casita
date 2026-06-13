@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -115,6 +116,7 @@ const CHANGELOG: ChangelogEntry[] = [
 ]
 
 export default function ChangelogSettings({ setHeader }: Props) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -125,15 +127,15 @@ export default function ChangelogSettings({ setHeader }: Props) {
           size="icon"
           onClick={() => navigate('/settings')}
           className="-ml-2"
-          aria-label="Back to Settings"
+          aria-label={t('common.back')}
         >
           <ArrowLeft />
         </Button>
-        <h1 className="flex-1 text-lg font-bold">What's New</h1>
+        <h1 className="flex-1 text-lg font-bold">{t('settings.menu.whatsNew')}</h1>
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader])
+  }, [navigate, setHeader, t])
 
   const groups = CHANGELOG.reduce<{ month: string; entries: ChangelogEntry[] }[]>((acc, entry) => {
     const existing = acc.find((g) => g.month === entry.date)

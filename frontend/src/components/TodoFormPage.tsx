@@ -294,14 +294,14 @@ export default function TodoFormPage() {
           <div className="flex flex-col gap-5">
             {/* Name */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Name</label>
+              <label className="text-sm font-medium">{t('todos.name')}</label>
               <Input
                 value={name}
                 onChange={e => {
                   setName(e.target.value)
                   if (nameError) setNameError(false)
                 }}
-                placeholder="What needs to be done?"
+                placeholder={t('todos.namePlaceholder')}
                 className={nameError ? 'border-destructive' : ''}
                 autoFocus={!isEdit}
               />
@@ -310,7 +310,7 @@ export default function TodoFormPage() {
 
             {/* Status */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Status</label>
+              <label className="text-sm font-medium">{t('todos.statusLabel')}</label>
               <div className="flex flex-wrap gap-2">
                 {statusOptions.map(s => {
                   const isSelected = status === s
@@ -336,7 +336,7 @@ export default function TodoFormPage() {
 
             {/* Priority */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Priority</label>
+              <label className="text-sm font-medium">{t('todos.priorityLabel')}</label>
               <div className="flex flex-wrap gap-2">
                 {PRIORITY_OPTIONS.map(opt => {
                   const isSelected = priority === opt.value
@@ -366,7 +366,7 @@ export default function TodoFormPage() {
 
             {/* Category */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Category</label>
+              <label className="text-sm font-medium">{t('todos.categoryLabel')}</label>
               {!showCategoryInput ? (
                 <Select
                   value={categoryId ?? '__none__'}
@@ -380,16 +380,16 @@ export default function TodoFormPage() {
                   }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="None" />
+                    <SelectValue placeholder={t('todos.noneOption')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">None</SelectItem>
+                    <SelectItem value="__none__">{t('todos.noneOption')}</SelectItem>
                     {(categories ?? []).map(c => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.name}
                       </SelectItem>
                     ))}
-                    <SelectItem value="__new__">+ New category…</SelectItem>
+                    <SelectItem value="__new__">{t('todos.newCategory')}</SelectItem>
                   </SelectContent>
                 </Select>
               ) : (
@@ -402,7 +402,7 @@ export default function TodoFormPage() {
                       if (e.key === 'Enter') commitNewCategory()
                       if (e.key === 'Escape') setShowCategoryInput(false)
                     }}
-                    placeholder="Category name"
+                    placeholder={t('todos.categoryNamePlaceholder')}
                     className="flex-1"
                   />
                   <Button
@@ -410,10 +410,10 @@ export default function TodoFormPage() {
                     onClick={commitNewCategory}
                     disabled={!newCategoryInput.trim() || createCategory.isPending}
                   >
-                    Add
+                    {t('common.add')}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => setShowCategoryInput(false)}>
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                 </div>
               )}
@@ -421,7 +421,7 @@ export default function TodoFormPage() {
 
             {/* Assigned to */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Assigned to</label>
+              <label className="text-sm font-medium">{t('todos.assignedTo')}</label>
               <div className="flex flex-wrap gap-2">
                 {(householdSettings?.members ?? []).map(m => {
                   const isSelected = assignedTo.includes(m.clerkUserId)
@@ -451,21 +451,21 @@ export default function TodoFormPage() {
 
             {/* Due date */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Due date</label>
+              <label className="text-sm font-medium">{t('todos.dueDate')}</label>
               <Input type="date" value={due} onChange={e => setDue(e.target.value)} />
             </div>
 
             {/* Frequency */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Frequency</label>
+              <label className="text-sm font-medium">{t('todos.frequencyLabel')}</label>
               <Select value={frequency ?? '__none__'} onValueChange={handleFrequencyChange}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="None" />
+                  <SelectValue placeholder={t('todos.noneOption')} />
                 </SelectTrigger>
                 <SelectContent>
                   {FREQUENCY_OPTIONS.map(opt => (
                     <SelectItem key={opt.value ?? 'none'} value={opt.value ?? '__none__'}>
-                      {opt.label}
+                      {opt.value === null ? t('todos.noneOption') : t(`frequency.${opt.value}`, { defaultValue: opt.label })}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -474,7 +474,7 @@ export default function TodoFormPage() {
               {frequency === 'weekly' && (
                 <div className="flex flex-col gap-2 mt-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm text-muted-foreground">Every</span>
+                    <span className="text-sm text-muted-foreground">{t('todos.every')}</span>
                     {[1, 2, 3, 4].map(n => (
                       <button
                         key={n}
@@ -487,7 +487,7 @@ export default function TodoFormPage() {
                             : 'bg-background text-foreground border-border hover:bg-muted',
                         ].join(' ')}
                       >
-                        {n}w
+                        {t('todos.nWeeks', { n })}
                       </button>
                     ))}
                   </div>
@@ -520,7 +520,7 @@ export default function TodoFormPage() {
 
               {frequency === 'monthly' && (
                 <div className="flex items-center gap-2 flex-wrap mt-1">
-                  <span className="text-sm text-muted-foreground">Every</span>
+                  <span className="text-sm text-muted-foreground">{t('todos.every')}</span>
                   {[1, 2, 3, 6].map(n => (
                     <button
                       key={n}
@@ -533,7 +533,7 @@ export default function TodoFormPage() {
                           : 'bg-background text-foreground border-border hover:bg-muted',
                       ].join(' ')}
                     >
-                      {n}mo
+                      {t('todos.nMonths', { n })}
                     </button>
                   ))}
                 </div>
@@ -542,23 +542,23 @@ export default function TodoFormPage() {
 
             {/* URL */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">URL</label>
+              <label className="text-sm font-medium">{t('todos.urlLabel')}</label>
               <Input
                 type="url"
                 value={url}
                 onChange={e => setUrl(e.target.value)}
-                placeholder="https://…"
+                placeholder={t('todos.urlPlaceholder')}
               />
             </div>
 
             {/* Notes */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium">Notes</label>
+              <label className="text-sm font-medium">{t('todos.notesLabel')}</label>
               <Textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 rows={3}
-                placeholder="Any details…"
+                placeholder={t('todos.notesPlaceholder')}
               />
             </div>
           </div>
