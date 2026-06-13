@@ -36,6 +36,9 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Check i18n key parity
+        run: pnpm --filter frontend check:i18n
+
       - name: Build frontend
         run: pnpm build:frontend
         env:

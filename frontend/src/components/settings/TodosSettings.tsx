@@ -10,12 +10,14 @@ import {
   type TodoWorkflow,
 } from '../../api/household'
 import ConceptManager from './ConceptManager'
+import { useTranslation } from 'react-i18next'
 
 interface TodosSettingsProps {
   setHeader: (node: ReactNode | null) => void
 }
 
 export default function TodosSettings({ setHeader }: TodosSettingsProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const { data: householdData } = useHouseholdSettings()
@@ -32,15 +34,15 @@ export default function TodosSettings({ setHeader }: TodosSettingsProps) {
           size="icon"
           onClick={() => navigate('/settings')}
           className="-ml-2"
-          aria-label="Back to Settings"
+          aria-label={t('common.back')}
         >
           <ArrowLeft />
         </Button>
-        <h1 className="flex-1 text-lg font-bold">To-Dos</h1>
+        <h1 className="flex-1 text-lg font-bold">{t('settings.todos.title')}</h1>
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader])
+  }, [navigate, setHeader, t])
 
   const workflow = todoSettings?.workflow ?? 'simple'
 
@@ -52,9 +54,9 @@ export default function TodosSettings({ setHeader }: TodosSettingsProps) {
   return (
     <div className="p-4 space-y-6">
       <div>
-        <h2 className="text-sm font-semibold mb-1">Workflow mode</h2>
+        <h2 className="text-sm font-semibold mb-1">{t('settings.todos.workflowMode')}</h2>
         <p className="text-xs text-muted-foreground mb-3">
-          Choose how to-dos flow through your household.
+          {t('settings.todos.workflowDescription')}
         </p>
         {isOwner ? (
           <div className="space-y-3">
@@ -65,16 +67,16 @@ export default function TodosSettings({ setHeader }: TodosSettingsProps) {
               onValueChange={handleWorkflowChange}
             >
               <ToggleGroupItem value="simple" className="flex-1">
-                Simple
+                {t('settings.todos.simple')}
               </ToggleGroupItem>
               <ToggleGroupItem value="board" className="flex-1">
-                Board
+                {t('settings.todos.board')}
               </ToggleGroupItem>
             </ToggleGroup>
             <p className="text-xs text-muted-foreground">
               {workflow === 'simple'
-                ? 'Simple: To-Do → Done'
-                : 'Board: To-Do → In Progress → Blocked → Done'}
+                ? t('settings.todos.simpleDescription')
+                : t('settings.todos.boardDescription')}
             </p>
           </div>
         ) : (
@@ -84,12 +86,12 @@ export default function TodosSettings({ setHeader }: TodosSettingsProps) {
 
       <div>
         <p className="text-sm text-muted-foreground mb-4">
-          Categories help you organize and filter your to-do list.
+          {t('settings.todos.categoriesHelp')}
         </p>
         <ConceptManager
           type="todo-categories"
-          label="Categories"
-          addPlaceholder="Add a category"
+          label={t('settings.todos.categories')}
+          addPlaceholder={t('settings.todos.addCategory')}
           ownerOnly={isOwner}
         />
       </div>

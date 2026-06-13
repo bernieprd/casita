@@ -5,8 +5,8 @@ import { rebuildSharedIndex } from './shared-calendar-index'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function err(status: number, message: string): Response {
-  return Response.json({ error: message }, { status })
+function err(status: number, code: string): Response {
+  return Response.json({ error: code }, { status })
 }
 
 export async function getNotionConfig(
@@ -95,14 +95,14 @@ export async function createHousehold(
   ctx: RequestContext,
 ): Promise<Response> {
   if (ctx.householdId) {
-    return err(409, 'You already belong to a household')
+    return err(409, 'ERR_ALREADY_IN_HOUSEHOLD')
   }
 
   const body = await req.json<{ name: string }>()
   const { name } = body
 
   if (!name || typeof name !== 'string' || !name.trim()) {
-    return err(400, 'name is required')
+    return err(400, 'ERR_NAME_REQUIRED')
   }
 
   const id = crypto.randomUUID()
@@ -135,12 +135,12 @@ export async function joinHousehold(
   ctx: RequestContext,
 ): Promise<Response> {
   if (ctx.householdId) {
-    return err(409, 'You already belong to a household')
+    return err(409, 'ERR_ALREADY_IN_HOUSEHOLD')
   }
 
   const { inviteCode } = await req.json<{ inviteCode: string }>()
   if (!inviteCode || typeof inviteCode !== 'string') {
-    return err(400, 'inviteCode is required')
+    return err(400, 'ERR_INVITE_CODE_REQUIRED')
   }
 
   const normalized = inviteCode.trim().toUpperCase()
@@ -151,7 +151,7 @@ export async function joinHousehold(
     .first<{ id: string; name: string }>()
 
   if (!household) {
-    return err(404, 'Invite code not found')
+    return err(404, 'ERR_INVITE_NOT_FOUND')
   }
 
   const now = Date.now()
@@ -175,10 +175,10 @@ export async function generateInvite(
   ctx: RequestContext,
 ): Promise<Response> {
   if (!ctx.householdId) {
-    return err(403, 'Forbidden')
+    return err(403, 'ERR_FORBIDDEN')
   }
   if (ctx.role !== 'owner') {
-    return err(403, 'Forbidden')
+    return err(403, 'ERR_FORBIDDEN')
   }
 
   const inviteCode = crypto.randomUUID().slice(0, 8).toUpperCase()
@@ -201,12 +201,12 @@ export async function renameHousehold(
   env: Env,
   ctx: RequestContext,
 ): Promise<Response> {
-  if (!ctx.householdId) return err(403, 'Forbidden')
-  if (ctx.role !== 'owner') return err(403, 'Forbidden')
+  if (!ctx.householdId) return err(403, 'ERR_FORBIDDEN')
+  if (ctx.role !== 'owner') return err(403, 'ERR_FORBIDDEN')
 
   const body = await req.json<{ name?: unknown }>()
   if (!body.name || typeof body.name !== 'string' || !body.name.trim()) {
-    return err(400, 'name is required')
+    return err(400, 'ERR_NAME_REQUIRED')
   }
   const newName = body.name.trim()
 
@@ -229,10 +229,10 @@ export async function revokeInvite(
   ctx: RequestContext,
 ): Promise<Response> {
   if (!ctx.householdId) {
-    return err(403, 'Forbidden')
+    return err(403, 'ERR_FORBIDDEN')
   }
   if (ctx.role !== 'owner') {
-    return err(403, 'Forbidden')
+    return err(403, 'ERR_FORBIDDEN')
   }
 
   await env.DB
@@ -248,7 +248,7 @@ export async function getHouseholdSettings(
   env: Env,
   ctx: RequestContext,
 ): Promise<Response> {
-  if (!ctx.householdId) return err(403, 'Forbidden')
+  if (!ctx.householdId) return err(403, 'ERR_FORBIDDEN')
 
   const row = await env.DB
     .prepare('SELECT settings FROM households WHERE id = ?')
@@ -267,7 +267,7 @@ export async function updateHouseholdSettings(
   env: Env,
   ctx: RequestContext,
 ): Promise<Response> {
-  if (!ctx.householdId) return err(403, 'Forbidden')
+  if (!ctx.householdId) return err(403, 'ERR_FORBIDDEN')
 
   const body = await req.json<Record<string, unknown>>()
   const { colorScheme: _dropped, ...rest } = body
@@ -283,29 +283,29 @@ export async function updateHouseholdSettings(
   for (const [key, val] of Object.entries(rest)) {
     if (val === undefined) continue
     if (typeof val !== 'string') {
-      return err(400, `${key} must be a string`)
+      return err(400, 'ERR_INVALID_SETTING')
     }
     if (key === 'primaryHsl') {
       if (!/^\d{1,3}\s+\d{1,3}%\s+\d{1,3}%$/.test(val)) {
-        return err(400, `primaryHsl must be in HSL format like "220 9% 30%"`)
+        return err(400, 'ERR_INVALID_SETTING')
       }
       const [h, s, l] = val.split(/\s+/).map(v => parseFloat(v))
       if (h < 0 || h > 360 || s < 0 || s > 100 || l < 0 || l > 100) {
-        return err(400, `primaryHsl must be in HSL format like "220 9% 30%"`)
+        return err(400, 'ERR_INVALID_SETTING')
       }
     } else if (key === 'headingFont' || key === 'bodyFont') {
       if (!ALLOWED_FONTS.includes(val)) {
-        return err(400, `${key} is not an allowed font value`)
+        return err(400, 'ERR_INVALID_SETTING')
       }
     } else if (key === 'radius') {
       if (!/^\d+(\.\d+)?rem$/.test(val)) {
-        return err(400, `radius must be in rem units like "0.25rem"`)
+        return err(400, 'ERR_INVALID_SETTING')
       }
       if (parseFloat(val) > 4) {
-        return err(400, `radius must be 4rem or less`)
+        return err(400, 'ERR_INVALID_SETTING')
       }
     } else {
-      return err(400, `Unknown setting key: ${key}`)
+      return err(400, 'ERR_INVALID_SETTING')
     }
   }
 
@@ -323,17 +323,17 @@ export async function transferOwnership(
   env: Env,
   ctx: RequestContext,
 ): Promise<Response> {
-  if (!ctx.householdId) return err(403, 'Forbidden')
-  if (ctx.role !== 'owner') return err(403, 'Forbidden')
+  if (!ctx.householdId) return err(403, 'ERR_FORBIDDEN')
+  if (ctx.role !== 'owner') return err(403, 'ERR_FORBIDDEN')
 
   const body = await req.json<{ newOwnerId?: unknown }>()
   if (!body.newOwnerId || typeof body.newOwnerId !== 'string') {
-    return err(400, 'newOwnerId is required')
+    return err(400, 'ERR_INVALID_REQUEST')
   }
   const newOwnerId = body.newOwnerId
 
   if (newOwnerId === ctx.clerkUserId) {
-    return err(400, 'You are already the owner')
+    return err(400, 'ERR_ALREADY_OWNER')
   }
 
   const member = await env.DB
@@ -341,7 +341,7 @@ export async function transferOwnership(
     .bind(newOwnerId, ctx.householdId)
     .first<{ clerk_user_id: string }>()
 
-  if (!member) return err(404, 'Member not found')
+  if (!member) return err(404, 'ERR_MEMBER_NOT_FOUND')
 
   await env.DB.batch([
     env.DB
@@ -364,8 +364,8 @@ export async function leaveHousehold(
   env: Env,
   ctx: RequestContext,
 ): Promise<Response> {
-  if (!ctx.householdId) return err(400, 'Not in a household')
-  if (ctx.role === 'owner') return err(400, 'Owners cannot leave the household')
+  if (!ctx.householdId) return err(400, 'ERR_NO_HOUSEHOLD')
+  if (ctx.role === 'owner') return err(400, 'ERR_OWNER_CANNOT_LEAVE')
   await env.DB
     .prepare('DELETE FROM household_members WHERE clerk_user_id = ? AND household_id = ?')
     .bind(ctx.clerkUserId, ctx.householdId)
@@ -378,8 +378,8 @@ export async function deleteHousehold(
   env: Env,
   ctx: RequestContext,
 ): Promise<Response> {
-  if (!ctx.householdId) return err(403, 'Forbidden')
-  if (ctx.role !== 'owner') return err(403, 'Forbidden')
+  if (!ctx.householdId) return err(403, 'ERR_FORBIDDEN')
+  if (ctx.role !== 'owner') return err(403, 'ERR_FORBIDDEN')
 
   const others = await env.DB
     .prepare('SELECT clerk_user_id FROM household_members WHERE household_id = ? AND clerk_user_id != ?')
@@ -387,7 +387,7 @@ export async function deleteHousehold(
     .all<{ clerk_user_id: string }>()
 
   if (others.results.length > 0) {
-    return err(400, 'Transfer ownership or remove all members before deleting the household')
+    return err(400, 'ERR_TRANSFER_BEFORE_DELETE_HOUSEHOLD')
   }
 
   const allMembers = await env.DB
@@ -421,7 +421,7 @@ export async function getTodoSettings(
   env: Env,
   ctx: RequestContext,
 ): Promise<Response> {
-  if (!ctx.householdId) return err(403, 'Forbidden')
+  if (!ctx.householdId) return err(403, 'ERR_FORBIDDEN')
   const row = await env.DB
     .prepare('SELECT todo_workflow FROM households WHERE id = ?')
     .bind(ctx.householdId)
@@ -434,12 +434,12 @@ export async function updateTodoSettings(
   env: Env,
   ctx: RequestContext,
 ): Promise<Response> {
-  if (!ctx.householdId) return err(403, 'Forbidden')
-  if (ctx.role !== 'owner') return err(403, 'Only the owner can change todo settings')
+  if (!ctx.householdId) return err(403, 'ERR_FORBIDDEN')
+  if (ctx.role !== 'owner') return err(403, 'ERR_FORBIDDEN')
   const body = await req.json<{ workflow?: string }>()
   const allowed = ['simple', 'board']
   if (!body.workflow || !allowed.includes(body.workflow))
-    return new Response('Invalid workflow', { status: 400 })
+    return Response.json({ error: 'ERR_INVALID_REQUEST' }, { status: 400 })
   const householdStmt = env.DB
     .prepare('UPDATE households SET todo_workflow = ? WHERE id = ?')
     .bind(body.workflow, ctx.householdId)

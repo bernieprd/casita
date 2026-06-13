@@ -21,27 +21,27 @@ type ImportRecipe = {
 }
 
 export async function importData(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   // Body size guard — read the actual bytes so chunked/no Content-Length requests
   // are also covered. 100 000 bytes ≈ 100 KB, plenty for any valid import payload.
   const bodyText = await req.text()
   if (bodyText.length > 100_000) {
-    return Response.json({ error: 'Payload too large (max 100 000 bytes)' }, { status: 400 })
+    return Response.json({ error: 'ERR_PAYLOAD_TOO_LARGE' }, { status: 400 })
   }
   let body: { items?: ImportItem[]; recipes?: ImportRecipe[]; todos?: ImportTodo[] }
   try {
     body = JSON.parse(bodyText) as { items?: ImportItem[]; recipes?: ImportRecipe[]; todos?: ImportTodo[] }
   } catch {
-    return Response.json({ error: 'Invalid JSON' }, { status: 400 })
+    return Response.json({ error: 'ERR_INVALID_JSON' }, { status: 400 })
   }
 
   const { items = [], recipes = [], todos = [] } = body
 
   // Array length validation
-  if (items.length > 500) return Response.json({ error: 'items array exceeds 500 entries' }, { status: 400 })
-  if (recipes.length > 100) return Response.json({ error: 'recipes array exceeds 100 entries' }, { status: 400 })
-  if (todos.length > 500) return Response.json({ error: 'todos array exceeds 500 entries' }, { status: 400 })
+  if (items.length > 500) return Response.json({ error: 'ERR_IMPORT_TOO_MANY_ITEMS' }, { status: 400 })
+  if (recipes.length > 100) return Response.json({ error: 'ERR_IMPORT_TOO_MANY_RECIPES' }, { status: 400 })
+  if (todos.length > 500) return Response.json({ error: 'ERR_IMPORT_TOO_MANY_TODOS' }, { status: 400 })
 
   const householdId = ctx.householdId
   const now = Date.now()

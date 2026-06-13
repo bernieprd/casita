@@ -20,6 +20,7 @@ import {
   DrawerDescription,
   DrawerFooter,
 } from '@/components/ui/drawer'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   open: boolean
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }: Props) {
+  const { t } = useTranslation()
   const { data: allItems = [] } = useItems()
   const { data: categoryConcepts = [] } = useConceptList('categories')
   const { data: supermarketConcepts = [] } = useConceptList('supermarkets')
@@ -104,12 +106,12 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
         value={name}
         onChange={e => setName(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && canSubmit && handleSubmit()}
-        placeholder="Name"
+        placeholder={t('item.namePlaceholder')}
       />
       <Input
         value={category ?? ''}
         onChange={e => setCategory(e.target.value.replace(/,/g, '') || null)}
-        placeholder="Category"
+        placeholder={t('item.categoryPlaceholder')}
         list={categoryListId}
       />
       <div className="flex flex-col gap-1.5">
@@ -156,7 +158,7 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
               setSupermarketInput('')
             }
           }}
-          placeholder="Supermarkets (comma or Enter to add)"
+          placeholder={t('item.supermarketsPlaceholder')}
           list={supermarketListId}
         />
       </div>
@@ -166,13 +168,13 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
   const actions = (
     <div className="flex justify-between items-center w-full">
       {isEdit && onDeleteRequest
-        ? <Button variant="ghost" onClick={onDeleteRequest} className="text-destructive hover:text-destructive">Delete</Button>
+        ? <Button variant="ghost" onClick={onDeleteRequest} className="text-destructive hover:text-destructive">{t('common.delete')}</Button>
         : <span />
       }
       <div className="flex gap-2">
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
+        <Button variant="ghost" onClick={onClose}>{t('common.cancel')}</Button>
         <Button disabled={!canSubmit} onClick={handleSubmit}>
-          {isEdit ? 'Save' : 'Create'}
+          {isEdit ? t('common.save') : t('common.create')}
         </Button>
       </div>
     </div>
@@ -187,14 +189,14 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
           <DrawerHeader className="pb-2 shrink-0">
             <div className="flex items-center justify-between">
               <DrawerTitle className="text-base font-semibold">
-                {isEdit ? 'Edit item' : 'New item'}
+                {isEdit ? t('item.editTitle') : t('item.newTitle')}
               </DrawerTitle>
               <Button variant="ghost" size="icon-sm" onClick={onClose}>
                 <X className="size-4" />
               </Button>
             </div>
             <DrawerDescription className="sr-only">
-              {isEdit ? 'Update the item details.' : 'Fill in the details for the new item.'}
+              {isEdit ? t('item.editDescription') : t('item.newDescription')}
             </DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-2 overflow-auto flex-1 overscroll-contain">
@@ -212,9 +214,9 @@ export default function ItemFormDialog({ open, item, onClose, onDeleteRequest }:
     <Dialog open={open} onOpenChange={v => { if (!v) onClose() }}>
       <DialogContent className="max-w-xs" showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Edit item' : 'New item'}</DialogTitle>
+          <DialogTitle>{isEdit ? t('item.editTitle') : t('item.newTitle')}</DialogTitle>
           <DialogDescription className="sr-only">
-            {isEdit ? 'Update item details.' : 'Add a new item to your inventory.'}
+            {isEdit ? t('item.editDescription') : t('item.newDescription')}
           </DialogDescription>
         </DialogHeader>
         <div className="pt-1">

@@ -4,12 +4,14 @@ import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useHouseholdSettings } from '../../api/household'
 import ConceptManager from './ConceptManager'
+import { useTranslation } from 'react-i18next'
 
 interface RecipesSettingsProps {
   setHeader: (node: ReactNode | null) => void
 }
 
 export default function RecipesSettings({ setHeader }: RecipesSettingsProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const { data: householdData } = useHouseholdSettings()
@@ -23,26 +25,26 @@ export default function RecipesSettings({ setHeader }: RecipesSettingsProps) {
           size="icon"
           onClick={() => navigate('/settings')}
           className="-ml-2"
-          aria-label="Back to Settings"
+          aria-label={t('common.back')}
         >
           <ArrowLeft />
         </Button>
-        <h1 className="flex-1 text-lg font-bold">Recipes</h1>
+        <h1 className="flex-1 text-lg font-bold">{t('settings.recipes.title')}</h1>
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader])
+  }, [navigate, setHeader, t])
 
   return (
     <div className="p-4">
       <p className="text-sm text-muted-foreground mb-4">
-        Types help you filter and browse your recipe collection.
+        {t('settings.recipes.help')}
       </p>
 
       <ConceptManager
         type="recipe-types"
-        label="Types"
-        addPlaceholder="Add a type"
+        label={t('settings.recipes.types')}
+        addPlaceholder={t('settings.recipes.addType')}
         ownerOnly={isOwner}
       />
     </div>

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +28,7 @@ interface GroupSectionProps {
 }
 
 function GroupSection({ label, items, onEdit, onToggle }: GroupSectionProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(true)
 
   return (
@@ -34,7 +36,7 @@ function GroupSection({ label, items, onEdit, onToggle }: GroupSectionProps) {
       <Collapsible open={open} onOpenChange={setOpen}>
         <button
           onClick={() => setOpen(o => !o)}
-          aria-label={`${open ? 'Collapse' : 'Expand'} ${label}`}
+          aria-label={open ? t('todos.collapseStatus', { status: label }) : t('todos.expandStatus', { status: label })}
           aria-expanded={open}
           className={`w-full flex items-center px-4 py-3 sticky top-[57px] z-[8] bg-card hover:bg-background transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
         >
@@ -81,6 +83,7 @@ interface DeleteConfirmProps {
 }
 
 function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
+  const { t } = useTranslation()
   const isMobile = useIsMobile()
 
   if (isMobile) {
@@ -88,14 +91,14 @@ function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
       <Drawer open={!!item} onOpenChange={open => { if (!open) onCancel() }}>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>Delete "{item?.name}"?</DrawerTitle>
+            <DrawerTitle>{t('shopping.deleteItemTitle', { name: item?.name })}</DrawerTitle>
             <DrawerDescription>
-              This will permanently remove the item from your inventory.
+              {t('shopping.deleteItemDescription')}
             </DrawerDescription>
           </DrawerHeader>
           <DrawerFooter>
-            <Button variant="destructive" onClick={onConfirm}>Delete</Button>
-            <Button variant="outline" onClick={onCancel}>Cancel</Button>
+            <Button variant="destructive" onClick={onConfirm}>{t('common.delete')}</Button>
+            <Button variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
@@ -106,14 +109,14 @@ function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
     <Dialog open={!!item} onOpenChange={open => { if (!open) onCancel() }}>
       <DialogContent showCloseButton={false} className="max-w-xs">
         <DialogHeader>
-          <DialogTitle>Delete "{item?.name}"?</DialogTitle>
+          <DialogTitle>{t('shopping.deleteItemTitle', { name: item?.name })}</DialogTitle>
         </DialogHeader>
         <DialogDescription className="text-sm text-muted-foreground">
-          This will permanently remove the item from your inventory.
+          {t('shopping.deleteItemDescription')}
         </DialogDescription>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button variant="destructive" onClick={onConfirm}>Delete</Button>
+          <Button variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
+          <Button variant="destructive" onClick={onConfirm}>{t('common.delete')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -155,6 +158,7 @@ function ItemsSkeleton() {
 // ── Items ─────────────────────────────────────────────────────────────────────
 
 export default function Items() {
+  const { t } = useTranslation()
   const { data, isLoading, error } = useItems()
   const deleteItem = useDeleteItem()
   const toggleShoppingList = useToggleShoppingList()
@@ -189,7 +193,7 @@ export default function Items() {
   if (isLoading) return <ItemsSkeleton />
 
   if (error) {
-    return <p className="text-destructive p-4">Failed to load items.</p>
+    return <p className="text-destructive p-4">{t('items.failedToLoad')}</p>
   }
 
   if (allItems.length === 0) {
@@ -197,17 +201,17 @@ export default function Items() {
       <>
         <div className="pt-10 text-center px-8">
           <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
-          <p className="text-sm font-medium text-muted-foreground mb-1">No items yet</p>
-          <p className="text-sm text-muted-foreground/60">Use the search above to add your first item</p>
+          <p className="text-sm font-medium text-muted-foreground mb-1">{t('items.noItemsYet')}</p>
+          <p className="text-sm text-muted-foreground/60">{t('items.getStarted')}</p>
           <button
             type="button"
             onClick={() => setImportOpen(true)}
             className="mt-3 text-sm text-primary hover:underline underline-offset-4 transition-colors"
           >
-            Or import your pantry & shopping list →
+            {t('items.orImport')}
           </button>
         </div>
-        <ImportModal open={importOpen} onOpenChange={setImportOpen} description="Import your pantry and shopping list data.">
+        <ImportModal open={importOpen} onOpenChange={setImportOpen} description={t('items.importDescription')}>
           <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
         </ImportModal>
       </>
@@ -222,12 +226,12 @@ export default function Items() {
 
   const groupMap: Record<string, Item[]> = {}
   for (const item of visibleItems) {
-    const key = item.category ?? 'Other'
+    const key = item.category ?? '__other__'
     ;(groupMap[key] ??= []).push(item)
   }
   const groups: Array<[string, Item[]]> = Object.entries(groupMap)
-    .sort(([a], [b]) => a === 'Other' ? 1 : b === 'Other' ? -1 : a.localeCompare(b))
-    .map(([label, groupItems]) => [label, [...groupItems].sort(byName)])
+    .sort(([a], [b]) => a === '__other__' ? 1 : b === '__other__' ? -1 : a.localeCompare(b))
+    .map(([key, groupItems]) => [key === '__other__' ? t('shopping.other') : key, [...groupItems].sort(byName)])
 
   function handleDeleteRequest() {
     // Close edit first, then open confirm sheet
@@ -247,9 +251,7 @@ export default function Items() {
       {duplicateGroups.length > 0 && (
         <div className="flex items-center justify-between bg-warning/90 text-warning-foreground rounded-lg px-4 py-2 mb-3">
           <p className="text-sm font-medium">
-            {duplicateGroups.length === 1
-              ? '1 duplicate name found'
-              : `${duplicateGroups.length} duplicate names found`}
+            {t('items.duplicates', { count: duplicateGroups.length })}
           </p>
           <Button
             size="sm"
@@ -257,7 +259,7 @@ export default function Items() {
             className="text-warning-foreground font-semibold ml-2 hover:bg-warning-foreground/10"
             onClick={() => setMergeSheetOpen(true)}
           >
-            Review
+            {t('common.review')}
           </Button>
         </div>
       )}
@@ -265,9 +267,7 @@ export default function Items() {
       {incompleteItems.length > 0 && (
         <div className="flex items-center justify-between bg-warning/90 text-warning-foreground rounded-lg px-4 py-2 mb-3">
           <p className="text-sm font-medium">
-            {incompleteItems.length === 1
-              ? '1 item missing category or supermarket'
-              : `${incompleteItems.length} items missing category or supermarket`}
+            {t('shopping.missingInfo', { count: incompleteItems.length })}
           </p>
           <Button
             size="sm"
@@ -275,7 +275,7 @@ export default function Items() {
             className="text-warning-foreground font-semibold ml-2 hover:bg-warning-foreground/10"
             onClick={() => setIncompleteSheetOpen(true)}
           >
-            Review
+            {t('common.review')}
           </Button>
         </div>
       )}
@@ -305,7 +305,7 @@ export default function Items() {
 
       {groups.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center mt-8">
-          No items for selected supermarket(s)
+          {t('shopping.noItemsForSupermarket')}
         </p>
       ) : (
         groups.map(([label, groupItems]) => (

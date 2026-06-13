@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Check, ShoppingCart } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -46,6 +47,8 @@ type TodoVariant = {
 type ItemRowProps = ShoppingVariant | InventoryVariant | RecipeVariant | TodoVariant
 
 export function ItemRow(props: ItemRowProps) {
+  const { t } = useTranslation()
+
   if (props.variant === 'shopping') {
     return (
       <div
@@ -60,7 +63,7 @@ export function ItemRow(props: ItemRowProps) {
           {...props.handlers}
           onClick={() => { if (!props.didFire?.()) props.onRemove() }}
           className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-accent transition-colors select-none"
-          aria-label={`Mark ${props.name} as bought`}
+          aria-label={t('items.markAsBought', { name: props.name })}
         >
           <div className="flex-1 min-w-0">
             <span className="block text-sm truncate">{props.name}</span>
@@ -87,7 +90,7 @@ export function ItemRow(props: ItemRowProps) {
         <button
           onClick={props.onDone}
           className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-accent transition-colors"
-          aria-label={`Mark ${props.name} as done`}
+          aria-label={t('items.markAsDone', { name: props.name })}
         >
           <div className="flex-1 min-w-0">
             <span className="block text-sm">{props.name}</span>
@@ -118,8 +121,8 @@ export function ItemRow(props: ItemRowProps) {
           size="icon-sm"
           className="shrink-0 mr-2 text-muted-foreground"
           aria-label={props.onShoppingList
-            ? `Remove ${props.name} from shopping list`
-            : `Add ${props.name} to shopping list`}
+            ? t('items.removeFromList', { name: props.name })
+            : t('items.addToList', { name: props.name })}
           onClick={props.onToggle}
         >
           {props.onShoppingList
@@ -143,8 +146,8 @@ export function ItemRow(props: ItemRowProps) {
         size="icon-sm"
         className="shrink-0 text-muted-foreground"
         aria-label={props.onShoppingList
-          ? `Remove ${props.name} from shopping list`
-          : `Add ${props.name} to shopping list`}
+          ? t('items.removeFromList', { name: props.name })
+          : t('items.addToList', { name: props.name })}
         onClick={props.onToggle}
       >
         {props.onShoppingList

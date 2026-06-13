@@ -12,6 +12,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useTranslation } from 'react-i18next'
 
 interface NavRow {
   icon: React.ReactNode
@@ -27,74 +28,75 @@ interface NavGroup {
 }
 
 export default function SettingsMenu() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const groups: NavGroup[] = [
     {
-      heading: 'PERSONAL',
+      heading: t('settings.menu.personal'),
       rows: [
         {
           icon: <User className="size-5 shrink-0 text-muted-foreground" />,
-          label: 'Account',
-          description: 'Profile, sign out',
+          label: t('settings.menu.account'),
+          description: t('settings.menu.accountDescription'),
           path: '/settings/account',
         },
       ],
     },
     {
-      heading: 'YOUR HOUSEHOLD',
+      heading: t('settings.menu.yourHousehold'),
       rows: [
         {
           icon: <Home className="size-5 shrink-0 text-muted-foreground" />,
-          label: 'Household',
-          description: 'Members, invite code',
+          label: t('settings.menu.household'),
+          description: t('settings.menu.householdDescription'),
           path: '/settings/household',
         },
         {
           icon: <CalendarDays className="size-5 shrink-0 text-muted-foreground" />,
-          label: 'Calendar',
-          description: 'Google Calendar sync',
+          label: t('settings.menu.calendar'),
+          description: t('settings.menu.calendarDescription'),
           path: '/settings/calendar',
         },
         {
           icon: <CheckSquare className="size-5 shrink-0 text-muted-foreground" />,
-          label: 'To-Dos',
-          description: 'Workflow style and categories',
+          label: t('settings.menu.todos'),
+          description: t('settings.menu.todosDescription'),
           path: '/settings/todos',
         },
         {
           icon: <ShoppingCart className="size-5 shrink-0 text-muted-foreground" />,
-          label: 'Shopping',
-          description: 'Categories, stores',
+          label: t('settings.menu.shopping'),
+          description: t('settings.menu.shoppingDescription'),
           path: '/settings/shopping',
         },
         {
           icon: <BookOpen className="size-5 shrink-0 text-muted-foreground" />,
-          label: 'Recipes',
-          description: 'Types of recipe',
+          label: t('settings.menu.recipes'),
+          description: t('settings.menu.recipesDescription'),
           path: '/settings/recipes',
         },
       ],
     },
     {
-      heading: 'APP',
+      heading: t('settings.menu.app'),
       rows: [
         {
           icon: <Upload className="size-5 shrink-0 text-muted-foreground" />,
-          label: 'Import data',
-          description: 'Bring in your existing data',
+          label: t('settings.menu.importData'),
+          description: t('settings.menu.importDataDescription'),
           path: '/settings/import',
         },
         {
           icon: <Sparkles className="size-5 shrink-0 text-muted-foreground" />,
-          label: "What's New",
-          description: 'Recent updates & releases',
+          label: t('settings.menu.whatsNew'),
+          description: t('settings.menu.whatsNewDescription'),
           path: '/settings/changelog',
         },
         {
           icon: <MessageSquare className="size-5 shrink-0 text-muted-foreground" />,
-          label: 'Share feedback or report a bug',
-          description: 'Feature suggestions, issues',
+          label: t('settings.menu.feedback'),
+          description: t('settings.menu.feedbackDescription'),
           href: 'https://form.typeform.com/to/Hb0utMfi',
         },
       ],
@@ -147,7 +149,7 @@ export default function SettingsMenu() {
 {/* Legal */}
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-1">
-          Legal
+          {t('settings.menu.legal')}
         </p>
         <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border">
           <a
@@ -156,7 +158,7 @@ export default function SettingsMenu() {
             rel="noreferrer"
             className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent transition-colors min-h-[44px] first:rounded-t-lg last:rounded-b-lg"
           >
-            <span className="flex-1 text-sm font-medium">Privacy Policy</span>
+            <span className="flex-1 text-sm font-medium">{t('settings.menu.privacyPolicy')}</span>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           </a>
           <a
@@ -165,7 +167,7 @@ export default function SettingsMenu() {
             rel="noreferrer"
             className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent transition-colors min-h-[44px] first:rounded-t-lg last:rounded-b-lg"
           >
-            <span className="flex-1 text-sm font-medium">Terms of Service</span>
+            <span className="flex-1 text-sm font-medium">{t('settings.menu.termsOfService')}</span>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           </a>
         </div>
@@ -174,15 +176,15 @@ export default function SettingsMenu() {
       {/* Support Casita */}
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-1">
-          Support Casita
+          {t('settings.menu.supportCasita')}
         </p>
         <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] px-4 py-4 flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">
-            Support Casita's development with a coffee! Have a feature request or feedback? Send it our way — we'd love to hear from you and will take it into account.
+            {t('settings.menu.supportText')}
           </p>
           <Button asChild className="w-full">
             <a href="https://buy.stripe.com/eVq14hd4bgafdZzfoZcV200" target="_blank" rel="noreferrer">
-              Buy us a coffee ☕
+              {t('settings.menu.buyACoffee')}
             </a>
           </Button>
         </div>

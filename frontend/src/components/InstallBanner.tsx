@@ -1,7 +1,9 @@
 import { Download, Share, X } from 'lucide-react'
+import { useTranslation, Trans } from 'react-i18next'
 import { useInstallPrompt } from '@/hooks/useInstallPrompt'
 
 export default function InstallBanner() {
+  const { t } = useTranslation()
   const { showBanner, isIOS, dismiss, triggerInstall } = useInstallPrompt()
 
   if (!showBanner) return null
@@ -12,19 +14,19 @@ export default function InstallBanner() {
         <>
           <Share className="size-4 shrink-0" />
           <span className="flex-1">
-            Tap <strong>Share</strong> then <strong>"Add to Home Screen"</strong>
+            <Trans i18nKey="nav.installIOS" components={{ bold: <strong /> }} />
           </span>
         </>
       ) : (
         <>
           <Download className="size-4 shrink-0" />
-          <span className="flex-1">Install Casita for quick access</span>
+          <span className="flex-1">{t('nav.installAndroid')}</span>
           <button onClick={triggerInstall} className="font-semibold underline shrink-0">
-            Install
+            {t('nav.install')}
           </button>
         </>
       )}
-      <button onClick={dismiss} aria-label="Dismiss install banner" className="shrink-0 ml-1">
+      <button onClick={dismiss} aria-label={t('nav.dismissInstall')} className="shrink-0 ml-1">
         <X className="size-4" />
       </button>
     </div>

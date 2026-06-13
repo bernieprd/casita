@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button'
 import { useBackfillConcepts } from '../../api/concepts'
 import { useHouseholdSettings } from '../../api/household'
 import ConceptManager from './ConceptManager'
+import { useTranslation } from 'react-i18next'
 
 interface ShoppingSettingsProps {
   setHeader: (node: ReactNode | null) => void
 }
 
 export default function ShoppingSettings({ setHeader }: ShoppingSettingsProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const { data: householdData } = useHouseholdSettings()
@@ -34,33 +36,33 @@ export default function ShoppingSettings({ setHeader }: ShoppingSettingsProps) {
           size="icon"
           onClick={() => navigate('/settings')}
           className="-ml-2"
-          aria-label="Back to Settings"
+          aria-label={t('common.back')}
         >
           <ArrowLeft />
         </Button>
-        <h1 className="flex-1 text-lg font-bold">Shopping</h1>
+        <h1 className="flex-1 text-lg font-bold">{t('settings.shopping.title')}</h1>
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader])
+  }, [navigate, setHeader, t])
 
   return (
     <div className="p-4">
       <p className="text-sm text-muted-foreground mb-4">
-        These labels help you organize your shopping list and group items by store.
+        {t('settings.shopping.help')}
       </p>
 
       <ConceptManager
         type="categories"
-        label="Categories"
-        addPlaceholder="Add a category"
+        label={t('settings.shopping.categories')}
+        addPlaceholder={t('settings.shopping.addCategory')}
         ownerOnly={isOwner}
       />
 
       <ConceptManager
         type="supermarkets"
-        label="Supermarkets"
-        addPlaceholder="Add a supermarket"
+        label={t('settings.shopping.supermarkets')}
+        addPlaceholder={t('settings.shopping.addSupermarket')}
         ownerOnly={isOwner}
       />
     </div>
