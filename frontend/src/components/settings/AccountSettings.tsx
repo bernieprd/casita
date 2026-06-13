@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ArrowLeft, Download } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   AlertDialog,
@@ -13,18 +14,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { useUser } from '@clerk/clerk-react'
 import { useAuth } from '../../context/AuthContext'
 import { useDeleteAccount, useExportAccount } from '../../api/account'
 import { useHouseholdSettings } from '../../api/household'
+import { useMe, useUpdateLocale } from '../../api/me'
+import i18n, { SUPPORTED_LOCALES, type LocaleCode } from '../../i18n'
+import { translateError } from '../../lib/errors'
 
 interface Props {
   setHeader: (node: ReactNode | null) => void
 }
 
 export default function AccountSettings({ setHeader }: Props) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { user } = useUser()
   const { logout } = useAuth()
@@ -36,6 +42,9 @@ export default function AccountSettings({ setHeader }: Props) {
   const { mutate: exportAccount, isPending: exportingAccount } = useExportAccount()
   const [deleteOpen, setDeleteOpen] = useState(false)
 
+  const { data: meData } = useMe()
+  const { mutate: updateLocale } = useUpdateLocale()
+
   useEffect(() => {
     setHeader(
       <>
@@ -44,22 +53,22 @@ export default function AccountSettings({ setHeader }: Props) {
           size="icon"
           onClick={() => navigate('/settings')}
           className="-ml-2"
-          aria-label="Back to Settings"
+          aria-label={t('common.back')}
         >
           <ArrowLeft />
         </Button>
-        <h1 className="flex-1 text-lg font-bold">Account</h1>
+        <h1 className="flex-1 text-lg font-bold">{t('settings.account.title')}</h1>
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader])
+  }, [navigate, setHeader, t])
 
   return (
     <div className="p-4">
 
       {/* Profile */}
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-        Profile
+        {t('settings.account.profile')}
       </p>
 
       <div className="flex items-center gap-3 mb-4">
@@ -85,27 +94,59 @@ export default function AccountSettings({ setHeader }: Props) {
           size="sm"
           onClick={logout}
         >
-          Sign out
+          {t('common.signOut')}
         </Button>
 
         <Button
           variant="outline"
           size="sm"
           onClick={() => exportAccount(undefined, {
-            onSuccess: () => toast.success('Your data is downloading'),
+            onSuccess: () => toast.success(t('settings.account.dataDownloading')),
           })}
           disabled={exportingAccount}
         >
           <Download className="h-4 w-4" />
-          {exportingAccount ? 'Preparing…' : 'Download my data'}
+          {exportingAccount ? t('common.preparing') : t('settings.account.downloadData')}
         </Button>
       </div>
 
       <Separator className="my-4" />
 
+      {/* Language */}
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+        {t('settings.account.language')}
+      </p>
+      <p className="text-xs text-muted-foreground mb-3">
+        {t('settings.account.languageDescription')}
+      </p>
+      <Select
+        value={meData?.locale ?? 'en'}
+        onValueChange={(value) => {
+          const previous = meData?.locale ?? 'en'
+          i18n.changeLanguage(value as LocaleCode)
+          updateLocale(value as LocaleCode, {
+            onError: () => {
+              i18n.changeLanguage(previous)
+              toast.error(t('settings.account.languageUpdateFailed'))
+            },
+          })
+        }}
+      >
+        <SelectTrigger className="w-56">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {SUPPORTED_LOCALES.map(({ code, label }) => (
+            <SelectItem key={code} value={code}>{label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Separator className="my-4" />
+
       {/* Danger zone */}
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-        Danger Zone
+        {t('settings.account.dangerZone')}
       </p>
 
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
@@ -117,10 +158,10 @@ export default function AccountSettings({ setHeader }: Props) {
               className="text-destructive/40 border-destructive/20 cursor-not-allowed"
               disabled
             >
-              Delete account
+              {t('settings.account.deleteAccount')}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Transfer ownership to another member first
+              {t('settings.account.transferOwnershipFirst')}
             </p>
           </div>
         ) : (
@@ -130,7 +171,7 @@ export default function AccountSettings({ setHeader }: Props) {
             className="text-destructive border-destructive/50 hover:bg-destructive/10"
             onClick={() => setDeleteOpen(true)}
           >
-            Delete account
+            {t('settings.account.deleteAccount')}
           </Button>
         )}
       </div>
@@ -138,26 +179,18 @@ export default function AccountSettings({ setHeader }: Props) {
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.account.deleteAccountTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
               {isOwner && (householdData?.members?.length ?? 0) <= 1
-                ? <>
-                    Deleting your account will also permanently delete your household
-                    {householdData?.householdName ? ` "${householdData.householdName}"` : ''}{' '}
-                    and everything in it — all recipes, shopping items, to-dos, and your
-                    Google Calendar connection. This cannot be undone.
-                  </>
-                : <>
-                    Your personal information (email, profile, calendar connection) will be
-                    permanently deleted. Recipes, shopping items, and to-dos you contributed
-                    to the household will remain for other members and will no longer be
-                    linked to you. This cannot be undone.
-                  </>
+                ? t('settings.account.deleteAccountOwnerDescription', {
+                    householdName: householdData?.householdName ? `"${householdData.householdName}"` : '',
+                  })
+                : t('settings.account.deleteAccountMemberDescription')
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-white hover:bg-destructive/90"
               disabled={deletingAccount}
@@ -166,11 +199,11 @@ export default function AccountSettings({ setHeader }: Props) {
                 deleteAccount(undefined, {
                   onSuccess: () => { setDeleteOpen(false); logout() },
                   onError: (err: unknown) =>
-                    toast.error((err as { message?: string })?.message ?? 'Failed to delete account'),
+                    toast.error(translateError((err as { message?: string })?.message ?? '', t)),
                 })
               }}
             >
-              Delete account
+              {t('settings.account.deleteAccount')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

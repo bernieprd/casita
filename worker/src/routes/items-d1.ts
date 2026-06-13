@@ -32,7 +32,7 @@ function rowToItem(row: ItemRow, supermarkets: string[]): Item {
 }
 
 export async function getItems(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const url = new URL(req.url)
   const shopping = url.searchParams.get('shopping')
@@ -52,7 +52,7 @@ export async function getItems(req: Request, env: Env, ctx: RequestContext): Pro
 }
 
 export async function createItem(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const body = await req.json<{
     name: string
@@ -82,7 +82,7 @@ export async function createItem(req: Request, env: Env, ctx: RequestContext): P
 }
 
 export async function updateItem(req: Request, env: Env, ctx: RequestContext, id: string): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const body = await req.json<{
     name?: string
@@ -113,12 +113,12 @@ export async function updateItem(req: Request, env: Env, ctx: RequestContext, id
   }
 
   const item = await fetchItemWithJunctions(env, id)
-  if (!item) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!item) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
   return Response.json(item)
 }
 
 export async function deleteItem(_req: Request, env: Env, ctx: RequestContext, id: string): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   await env.DB.prepare(
     'DELETE FROM items WHERE id = ? AND household_id = ?',
@@ -128,7 +128,7 @@ export async function deleteItem(_req: Request, env: Env, ctx: RequestContext, i
 }
 
 export async function mergeItem(req: Request, env: Env, ctx: RequestContext, id: string): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const { keepId } = await req.json<{ keepId: string }>()
 
@@ -143,6 +143,6 @@ export async function mergeItem(req: Request, env: Env, ctx: RequestContext, id:
   ])
 
   const item = await fetchItemWithJunctions(env, keepId)
-  if (!item) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!item) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
   return Response.json(item)
 }

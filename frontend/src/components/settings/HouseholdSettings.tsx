@@ -38,6 +38,8 @@ import {
 } from '../../api/household'
 import { useUser } from '@clerk/clerk-react'
 import { useHousehold } from '../../context/AuthContext'
+import { useTranslation } from 'react-i18next'
+import { translateError } from '../../lib/errors'
 
 interface Props {
   themePrefs: ThemePrefs
@@ -47,6 +49,7 @@ interface Props {
 }
 
 export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSaving, setHeader }: Props) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { user } = useUser()
   const isDark = themePrefs.colorScheme === 'dark' || (themePrefs.colorScheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
@@ -82,15 +85,15 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
           size="icon"
           onClick={() => navigate('/settings')}
           className="-ml-2"
-          aria-label="Back to Settings"
+          aria-label={t('common.back')}
         >
           <ArrowLeft />
         </Button>
-        <h1 className="flex-1 text-lg font-bold">Household</h1>
+        <h1 className="flex-1 text-lg font-bold">{t('settings.household.title')}</h1>
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader])
+  }, [navigate, setHeader, t])
 
   function handleRenameOpen() {
     setNameInput(householdData?.householdName ?? '')
@@ -127,10 +130,10 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
             }}
           />
           <Button size="sm" onClick={handleRenameSave} disabled={renamePending}>
-            Save
+            {t('common.save')}
           </Button>
           <Button size="sm" variant="ghost" onClick={() => setRenaming(false)} disabled={renamePending}>
-            Cancel
+            {t('common.cancel')}
           </Button>
         </div>
       ) : (
@@ -142,7 +145,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
               variant="ghost"
               className="h-7 w-7"
               onClick={handleRenameOpen}
-              aria-label="Rename household"
+              aria-label={t('settings.household.renameHousehold')}
             >
               <Pencil className="h-3.5 w-3.5" />
             </Button>
@@ -160,11 +163,11 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
             size="icon"
             variant="ghost"
             className="h-7 w-7"
-            aria-label="Copy invite code"
+            aria-label={t('settings.household.copyInviteCode')}
             onClick={() =>
               navigator.clipboard
                 .writeText(householdData.inviteCode!)
-                .catch(() => toast.error('Failed to copy'))
+                .catch(() => toast.error(t('settings.household.failedToCopy')))
             }
           >
             <Copy className="h-3.5 w-3.5" />
@@ -177,7 +180,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
                 onClick={() => generateInvite()}
                 disabled={generatingInvite}
               >
-                Regenerate
+                {t('settings.household.regenerate')}
               </Button>
               <Button
                 size="sm"
@@ -186,7 +189,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
                 onClick={() => revokeInvite()}
                 disabled={revokingInvite}
               >
-                Revoke
+                {t('settings.household.revoke')}
               </Button>
             </>
           )}
@@ -199,7 +202,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
           disabled={generatingInvite}
           className="mb-1"
         >
-          {generatingInvite ? 'Generating…' : 'Generate invite code'}
+          {generatingInvite ? t('common.generating') : t('settings.household.generateInviteCode')}
         </Button>
       ) : null}
 
@@ -233,7 +236,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
                     })
                   }
                 >
-                  Make owner
+                  {t('settings.household.makeOwner')}
                 </Button>
               )}
               <Badge variant="secondary" className="text-xs capitalize">
@@ -250,26 +253,25 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Transfer ownership?</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.household.transferOwnershipTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {transferTarget?.name} will become the household owner. You will become a regular member.
+              {t('settings.household.transferOwnershipDescription', { name: transferTarget?.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               disabled={transferring}
-              aria-label={`Confirm transfer ownership to ${transferTarget?.name ?? 'this member'}`}
+              aria-label={t('settings.household.confirmTransfer', { name: transferTarget?.name ?? '' })}
               onClick={() => {
                 if (!transferTarget) return
                 transferOwnership(transferTarget.id, {
                   onSuccess: () => { setTransferTarget(null); refreshHousehold() },
-                  onError: (err: unknown) =>
-                    toast.error((err as { message?: string })?.message ?? 'Transfer failed'),
+                  onError: (err: unknown) => toast.error(translateError((err as { message?: string })?.message ?? '', t)),
                 })
               }}
             >
-              Transfer ownership
+              {t('settings.household.transferOwnership')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -283,7 +285,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
         {/* Color scheme */}
         <div className="flex flex-col gap-3">
           <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Color scheme
+            {t('settings.household.colorScheme')}
           </Label>
           <ToggleGroup
             type="single"
@@ -294,17 +296,17 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
             }}
             className={cn('justify-start [&_[data-state=on]]:bg-primary [&_[data-state=on]]:text-primary-foreground', themeSaving && 'opacity-50 pointer-events-none')}
           >
-            <ToggleGroupItem value="light" aria-label="Light mode">
+            <ToggleGroupItem value="light" aria-label={t('settings.household.light')}>
               <Sun className="h-4 w-4" />
-              <span className="ml-1 text-sm">Light</span>
+              <span className="ml-1 text-sm">{t('settings.household.light')}</span>
             </ToggleGroupItem>
-            <ToggleGroupItem value="system" aria-label="System default">
+            <ToggleGroupItem value="system" aria-label={t('settings.household.system')}>
               <SunMoon className="h-4 w-4" />
-              <span className="ml-1 text-sm">System</span>
+              <span className="ml-1 text-sm">{t('settings.household.system')}</span>
             </ToggleGroupItem>
-            <ToggleGroupItem value="dark" aria-label="Dark mode">
+            <ToggleGroupItem value="dark" aria-label={t('settings.household.dark')}>
               <Moon className="h-4 w-4" />
-              <span className="ml-1 text-sm">Dark</span>
+              <span className="ml-1 text-sm">{t('settings.household.dark')}</span>
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
@@ -313,7 +315,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
 
         <div className="flex flex-col gap-3">
           <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Color
+            {t('settings.household.color')}
           </Label>
           <div className={themeSaving ? 'opacity-50 pointer-events-none' : ''}>
             <div className="flex gap-2">
@@ -338,7 +340,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
 
         <div className="flex flex-col gap-3">
           <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Heading Font
+            {t('settings.household.headingFont')}
           </Label>
           <div className={themeSaving ? 'opacity-50 pointer-events-none' : ''}>
             <Select
@@ -365,7 +367,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
 
         <div className="flex flex-col gap-3">
           <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Body Font
+            {t('settings.household.bodyFont')}
           </Label>
           <div className={themeSaving ? 'opacity-50 pointer-events-none' : ''}>
             <Select
@@ -392,7 +394,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
 
         <div className="flex flex-col gap-3">
           <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Radius
+            {t('settings.household.radius')}
           </Label>
           <div className={themeSaving ? 'opacity-50 pointer-events-none' : ''}>
             <Slider
@@ -406,14 +408,14 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
               }}
             />
             <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>None</span>
-              <span>Rounded</span>
+              <span>{t('settings.household.none')}</span>
+              <span>{t('settings.household.rounded')}</span>
             </div>
           </div>
         </div>
 
         <Button variant="outline" onClick={() => setThemePrefs(DEFAULT_THEME)} className="w-full" disabled={themeSaving}>
-          Reset to defaults
+          {t('settings.household.resetToDefaults')}
         </Button>
       </div>
 
@@ -421,7 +423,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
 
       {/* Danger zone */}
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-        Danger Zone
+        {t('settings.household.dangerZone')}
       </p>
 
       <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
@@ -433,7 +435,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
             onClick={() => leaveHousehold(undefined, { onSuccess: refreshHousehold })}
             disabled={leaving}
           >
-            Leave household
+            {t('settings.household.leaveHousehold')}
           </Button>
         )}
 
@@ -444,7 +446,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
             className="text-destructive border-destructive/50 hover:bg-destructive/10"
             onClick={() => setDeleteHouseholdOpen(true)}
           >
-            Delete household
+            {t('settings.household.deleteHousehold')}
           </Button>
         )}
 
@@ -456,10 +458,10 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
               className="text-destructive/40 border-destructive/20 cursor-not-allowed"
               disabled
             >
-              Delete household
+              {t('settings.household.deleteHousehold')}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Transfer ownership to another member before deleting
+              {t('settings.household.transferOwnershipFirst')}
             </p>
           </div>
         )}
@@ -468,15 +470,13 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
       <AlertDialog open={deleteHouseholdOpen} onOpenChange={setDeleteHouseholdOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this household?</AlertDialogTitle>
+            <AlertDialogTitle>{t('settings.household.deleteHouseholdTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the household and everything in it — all recipes,
-              shopping items, to-dos, and your Google Calendar connection data. This cannot be undone.
-              Your account will remain and you can join or create a new household.
+              {t('settings.household.deleteHouseholdDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-white hover:bg-destructive/90"
               disabled={deletingHousehold}
@@ -484,12 +484,11 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
                 e.preventDefault()
                 deleteHousehold(undefined, {
                   onSuccess: () => { setDeleteHouseholdOpen(false); refreshHousehold() },
-                  onError: (err: unknown) =>
-                    toast.error((err as { message?: string })?.message ?? 'Failed to delete household'),
+                  onError: (err: unknown) => toast.error(translateError((err as { message?: string })?.message ?? '', t)),
                 })
               }}
             >
-              Delete household
+              {t('settings.household.deleteHousehold')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

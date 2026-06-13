@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate, useBlocker } from 'react-router-dom'
 import { ArrowLeft, Plus, Trash2, GripVertical, Pencil, Check, ImagePlus, X } from 'lucide-react'
 import {
@@ -12,7 +13,7 @@ import {
   useDraggable,
 } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
-import { useItems, useCreateRecipe, useEditRecipe, useDeleteRecipe, useRecipe, useRecipeIngredients, useConceptList } from '../api'
+import { useItems, useCreateItem, useCreateRecipe, useEditRecipe, useDeleteRecipe, useRecipe, useRecipeIngredients, useConceptList } from '../api'
 import type { Item } from '../api'
 import { uploadPhoto } from '../api/client'
 import { Button } from '@/components/ui/button'
@@ -69,10 +70,12 @@ function ItemCombobox({
   value: string
   onChange: (item: Item) => void
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
   const selected = allItems.find(i => i.id === value)
+  const createItem = useCreateItem()
 
   useEffect(() => {
     if (!open) return
@@ -87,7 +90,7 @@ function ItemCombobox({
     <div ref={containerRef} className="relative flex-1">
       <Input
         value={open ? search : (selected?.name ?? '')}
-        placeholder="Item"
+        placeholder={t('recipes.itemPlaceholder')}
         className="h-8 text-sm"
         onFocus={() => { setSearch(''); setOpen(true) }}
         onChange={e => { setSearch(e.target.value); if (!open) setOpen(true) }}
@@ -107,7 +110,27 @@ function ItemCombobox({
                     {item.name}
                   </CommandItem>
                 ))}
-              <CommandEmpty>No items found</CommandEmpty>
+              <CommandEmpty>{t('recipes.noItemsFound')}</CommandEmpty>
+              {search.trim() && !allItems.some(i => i.name.toLowerCase() === search.trim().toLowerCase()) && (
+                <CommandItem
+                  onSelect={() => {
+                    const name = search.trim()
+                    createItem.mutate(
+                      { name, category: null, supermarkets: [], onShoppingList: false },
+                      {
+                        onSuccess: (newItem) => {
+                          onChange(newItem)
+                          setOpen(false)
+                          setSearch('')
+                        },
+                      },
+                    )
+                  }}
+                  disabled={createItem.isPending}
+                >
+                  {t('recipes.createIngredient', { name: search.trim() })}
+                </CommandItem>
+              )}
             </CommandList>
           </Command>
         </div>
@@ -156,6 +179,7 @@ function IngredientRowForm({
   onRemove: () => void
   isDragOverlay?: boolean
 }) {
+  const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: row.key })
 
   const style = transform
@@ -184,7 +208,7 @@ function IngredientRowForm({
       <Input
         value={row.quantity}
         onChange={e => onUpdate({ quantity: e.target.value })}
-        placeholder="Qty"
+        placeholder={t('recipes.qtyPlaceholder')}
         className="w-20 h-8 text-sm"
       />
       <Button
@@ -264,6 +288,7 @@ function SectionHeader({
 // ── Add section input ─────────────────────────────────────────────────────────
 
 function AddSectionInput({ onAdd }: { onAdd: (name: string) => void }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -289,7 +314,7 @@ function AddSectionInput({ onAdd }: { onAdd: (name: string) => void }) {
         className="mt-2 gap-1"
       >
         <Plus className="size-4" />
-        Add section
+        {t('recipes.addSection')}
       </Button>
     )
   }
@@ -304,15 +329,15 @@ function AddSectionInput({ onAdd }: { onAdd: (name: string) => void }) {
           if (e.key === 'Enter') commit()
           if (e.key === 'Escape') { setValue(''); setOpen(false) }
         }}
-        placeholder="Section name"
+        placeholder={t('recipes.sectionName')}
         className="flex-1 h-8 text-sm"
         autoFocus
       />
       <Button size="sm" onClick={commit} disabled={!value.trim()}>
-        Add
+        {t('common.add')}
       </Button>
       <Button size="sm" variant="ghost" onClick={() => { setValue(''); setOpen(false) }}>
-        Cancel
+        {t('common.cancel')}
       </Button>
     </div>
   )
@@ -321,6 +346,7 @@ function AddSectionInput({ onAdd }: { onAdd: (name: string) => void }) {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function RecipeFormPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id?: string }>()
   const navigate = useNavigate()
 
@@ -449,7 +475,8 @@ export default function RecipeFormPage() {
     )
   }, [name, type, url, coverUrl, instructions, currentRowsKey])
 
-  const blocker = useBlocker(isDirty && !isPending)
+  const savedRef = useRef(false)
+  const blocker = useBlocker(() => !savedRef.current && isDirty && !isPending)
 
   // ── DnD sensors ─────────────────────────────────────────────────────────────
 
@@ -576,7 +603,7 @@ export default function RecipeFormPage() {
 
       editRecipe.mutate(
         { recipe: recipeBody, removedIngredientIds: removedIds, newIngredients, updatedIngredients },
-        { onSuccess: () => { snapshot.current = null; navigate(-1) } },
+        { onSuccess: () => { savedRef.current = true; navigate(-1) } },
       )
     } else {
       const ingredients = rows
@@ -586,7 +613,7 @@ export default function RecipeFormPage() {
       createRecipe.mutate(
         { recipe: recipeBody, ingredients },
         {
-          onSuccess: newRecipe => { snapshot.current = null; navigate(`/recipes/${newRecipe.id}`, { replace: true }) },
+          onSuccess: newRecipe => { savedRef.current = true; navigate(`/recipes/${newRecipe.id}`, { replace: true }) },
         },
       )
     }
@@ -594,7 +621,7 @@ export default function RecipeFormPage() {
 
   function handleDelete() {
     deleteRecipe.mutate(undefined, {
-      onSuccess: () => { snapshot.current = null; navigate('/recipes', { replace: true }) },
+      onSuccess: () => { savedRef.current = true; navigate('/recipes', { replace: true }) },
     })
   }
 
@@ -612,7 +639,7 @@ export default function RecipeFormPage() {
     <div>
       <div className="flex items-center gap-1 mb-2">
         <h2 className="flex-1 text-sm font-semibold tracking-widest uppercase text-muted-foreground">
-          Ingredients
+          {t('recipes.ingredients')}
         </h2>
       </div>
       <Separator className="mb-3" />
@@ -634,7 +661,7 @@ export default function RecipeFormPage() {
           </div>
           <Button variant="ghost" size="sm" onClick={() => addRow(NO_SECTION)} className="mt-2 gap-1 px-4 my-2">
             <Plus className="size-4" />
-            Add ingredient
+            {t('recipes.addIngredient')}
           </Button>
         </DroppableGroup>
 
@@ -665,7 +692,7 @@ export default function RecipeFormPage() {
             </div>
             <Button variant="ghost" size="sm" onClick={() => addRow(sectionName)} className="mt-2 gap-1 px-4 my-2">
               <Plus className="size-4" />
-              Add ingredient
+              {t('recipes.addIngredient')}
             </Button>
           </DroppableGroup>
         ))}
@@ -701,27 +728,27 @@ export default function RecipeFormPage() {
         <Input
           value={name}
           onChange={e => { setName(e.target.value); if (nameError) setNameError(false) }}
-          placeholder="Name *"
+          placeholder={t('recipes.name')}
           autoFocus
           aria-invalid={nameError}
           className={nameError ? 'border-destructive' : ''}
         />
         {nameError && (
-          <p className="text-xs text-destructive">Name is required</p>
+          <p className="text-xs text-destructive">{t('recipes.nameRequired')}</p>
         )}
       </div>
 
       <Input
         value={type ?? ''}
         onChange={e => setType(e.target.value || null)}
-        placeholder="Type"
+        placeholder={t('recipes.type')}
         list={typeId}
       />
 
       <Input
         value={url}
         onChange={e => setUrl(e.target.value)}
-        placeholder="https://..."
+        placeholder={t('recipes.url')}
         type="url"
       />
 
@@ -766,7 +793,7 @@ export default function RecipeFormPage() {
             {!photoUploading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/35 transition-colors">
                 <span className="text-white text-xs opacity-0 pointer-events-none group-hover:opacity-100">
-                  Change photo
+                  {t('recipes.changePhoto')}
                 </span>
               </div>
             )}
@@ -778,12 +805,12 @@ export default function RecipeFormPage() {
             style={{ aspectRatio: '16/9' }}
           >
             <ImagePlus className="size-6" />
-            <span className="text-xs">Add photo</span>
+            <span className="text-xs">{t('recipes.addPhoto')}</span>
           </div>
         )}
         {photoError && (
           <p className="text-xs text-destructive mt-1">
-            Upload failed — previous photo kept
+            {t('recipes.uploadFailed')}
           </p>
         )}
       </div>
@@ -792,20 +819,18 @@ export default function RecipeFormPage() {
 
       <div className="flex items-center gap-1 mt-6 mb-2">
         <h2 className="flex-1 text-sm font-semibold tracking-widest uppercase text-muted-foreground">
-          Instructions
+          {t('recipes.instructions')}
         </h2>
       </div>
       <Separator className="mb-3" />
       <MarkdownEditor
         value={instructions}
         onChange={setInstructions}
-        placeholder="One paragraph per line…"
+        placeholder={t('recipes.oneParaPerLine')}
         rows={6}
       />
     </div>
   )
-
-  const title = isEdit ? 'Edit recipe' : 'New recipe'
 
   return (
     <div className="h-dvh bg-background flex flex-col">
@@ -816,13 +841,14 @@ export default function RecipeFormPage() {
             size="icon"
             onClick={() => navigate(-1)}
             disabled={isPending}
+            aria-label={t('common.back')}
             className="-ml-2"
           >
             <ArrowLeft />
           </Button>
-          <h1 className="flex-1 text-lg font-bold">{title}</h1>
+          <h1 className="flex-1 text-lg font-bold">{isEdit ? t('recipes.editTitle') : t('recipes.newTitle')}</h1>
           <Button disabled={!canSubmit} onClick={handleSubmit} size="sm">
-            {isPending ? (isEdit ? 'Saving…' : 'Creating…') : (isEdit ? 'Save' : 'Create')}
+            {isPending ? (isEdit ? t('common.saving') : t('common.creating')) : (isEdit ? t('common.save') : t('common.create'))}
           </Button>
         </div>
       </header>
@@ -853,7 +879,7 @@ export default function RecipeFormPage() {
               className="text-destructive hover:text-destructive gap-1"
             >
               <Trash2 className="size-4" />
-              Delete recipe
+              {t('recipes.deleteRecipeButton')}
             </Button>
           </div>
         )}
@@ -861,17 +887,17 @@ export default function RecipeFormPage() {
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent showCloseButton={false}>
             <DialogHeader>
-              <DialogTitle>Delete recipe?</DialogTitle>
+              <DialogTitle>{t('recipes.deleteRecipe')}</DialogTitle>
               <DialogDescription>
-                This will permanently delete "{name}" and all its ingredients. This can't be undone.
+                {t('recipes.deleteRecipeDescription', { name })}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleteRecipe.isPending}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button variant="destructive" onClick={handleDelete} disabled={deleteRecipe.isPending}>
-                {deleteRecipe.isPending ? 'Deleting…' : 'Delete'}
+                {deleteRecipe.isPending ? t('common.deleting') : t('common.delete')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -880,14 +906,14 @@ export default function RecipeFormPage() {
         <AlertDialog open={blocker.state === 'blocked'}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+              <AlertDialogTitle>{t('recipes.unsavedChanges')}</AlertDialogTitle>
               <AlertDialogDescription>
-                You have unsaved changes. Are you sure you want to leave?
+                {t('recipes.unsavedDescription')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => blocker.reset?.()}>Keep Editing</AlertDialogCancel>
-              <AlertDialogAction onClick={() => blocker.proceed?.()}>Leave</AlertDialogAction>
+              <AlertDialogCancel onClick={() => blocker.reset?.()}>{t('recipes.keepEditing')}</AlertDialogCancel>
+              <AlertDialogAction onClick={() => blocker.proceed?.()}>{t('common.leave')}</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

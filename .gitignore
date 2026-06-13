@@ -21,3 +21,7 @@ dev-dist/
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# Native app projects (developed on separate branches)
+frontend/android/
+frontend/ios/

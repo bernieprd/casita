@@ -5,7 +5,7 @@ export async function uploadRecipePhoto(req: Request, env: Env, _ctx: RequestCon
   const file = formData.get('file') as File | null
 
   if (!file || !file.type.startsWith('image/')) {
-    return Response.json({ error: 'Expected an image file' }, { status: 400 })
+    return Response.json({ error: 'ERR_EXPECTED_IMAGE' }, { status: 400 })
   }
 
   const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase()
@@ -21,7 +21,7 @@ export async function uploadRecipePhoto(req: Request, env: Env, _ctx: RequestCon
 
 export async function serveRecipePhoto(_req: Request, env: Env, key: string): Promise<Response> {
   const object = await env.RECIPE_PHOTOS.get(key)
-  if (!object) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!object) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
 
   const headers = new Headers()
   object.writeHttpMetadata(headers)

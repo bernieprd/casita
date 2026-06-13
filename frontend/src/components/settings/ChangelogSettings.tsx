@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -8,113 +9,34 @@ interface Props {
 }
 
 interface ChangelogEntry {
-  date: string
-  title: string
-  description: string
+  monthKey: string
+  entryKey: string
 }
 
 const CHANGELOG: ChangelogEntry[] = [
-  {
-    date: 'June 2026',
-    title: 'Android & iOS app',
-    description:
-      'Casita can now be packaged as a native Android and iOS app via Capacitor. The PWA also got improvements: consistent theme color, better icons (maskable, 64px), home-screen shortcuts for Shopping, To-Dos, and Recipes, and edge-to-edge status bar on iOS.',
-  },
-  {
-    date: 'June 2026',
-    title: 'To-Do reliability fixes',
-    description:
-      'Drag-and-drop reordering is now atomic (no more partial failures). Dropping a card onto a collapsed Done column now auto-expands it. Switching workflow from Board to Simple cleanly resets statuses in one step.',
-  },
-  {
-    date: 'June 2026',
-    title: 'To-Dos overhaul',
-    description:
-      'To-dos now support categories, assignees, due dates, priority, frequency, URLs, and notes. A new Kanban board view with drag-and-drop replaces the old list, and a full-page form replaces the sheet. Configure workflow style and categories from Settings → To-Dos.',
-  },
-  {
-    date: 'June 2026',
-    title: 'Shopping home widget',
-    description:
-      'The home screen shopping card now gives smart trip guidance — recommending your best store, handling tied stores, and surfacing items clearly whether or not you use supermarkets.',
-  },
-  {
-    date: 'June 2026',
-    title: 'Guided import & onboarding',
-    description:
-      'A new import wizard lets you paste a grocery list, recipes, or to-dos and have them automatically structured and brought into Casita. New households are also walked through an optional import step right after setup.',
-  },
-  {
-    date: 'June 2026',
-    title: 'Support & Changelog',
-    description: "You can now support Casita and see what's new directly from Settings.",
-  },
-  {
-    date: 'June 2026',
-    title: 'Concept delete with undo',
-    description: 'Deleting a concept now cascades to clear references and shows an undo toast.',
-  },
-  {
-    date: 'June 2026',
-    title: 'Settings reorganised',
-    description:
-      'Settings has been reordered and each section now has a cleaner, more consistent layout.',
-  },
-  {
-    date: 'June 2026',
-    title: 'Privacy & data controls',
-    description:
-      'You can now delete your account, export your data, and manage privacy settings from the new Privacy section in Settings.',
-  },
-  {
-    date: 'June 2026',
-    title: 'Household member profiles',
-    description: 'Each household member now has a profile with their own colour theme.',
-  },
-  {
-    date: 'June 2026',
-    title: 'PWA install prompt',
-    description: 'You can install Casita on your home screen directly from the app.',
-  },
-  {
-    date: 'June 2026',
-    title: 'Recipe editor improvements',
-    description:
-      'Recipe instructions now support markdown formatting, and you can remove images from recipes.',
-  },
-  {
-    date: 'June 2026',
-    title: 'Household colour themes',
-    description: 'Each household can now set its own colour theme from Settings.',
-  },
-  {
-    date: 'June 2026',
-    title: 'New design system',
-    description: 'The app has been rebuilt with a refreshed look using a consistent design system.',
-  },
-  {
-    date: 'June 2026',
-    title: 'Shopping list improvements',
-    description: 'Added quantity controls and other UX improvements to the shopping list.',
-  },
-  {
-    date: 'June 2026',
-    title: 'Household invites',
-    description: 'You can now invite people to your household via a shared invite link.',
-  },
-  {
-    date: 'June 2026',
-    title: 'Google Calendar sync',
-    description: 'Connect your Google Calendar to see events alongside your household tasks.',
-  },
-  {
-    date: 'May 2026',
-    title: 'Settings redesign',
-    description: 'Settings pages have been reorganised with a cleaner layout.',
-  },
+  { monthKey: 'month_june_2026', entryKey: 'e18' },
+  { monthKey: 'month_june_2026', entryKey: 'e0' },
+  { monthKey: 'month_june_2026', entryKey: 'e1' },
+  { monthKey: 'month_june_2026', entryKey: 'e2' },
+  { monthKey: 'month_june_2026', entryKey: 'e3' },
+  { monthKey: 'month_june_2026', entryKey: 'e4' },
+  { monthKey: 'month_june_2026', entryKey: 'e5' },
+  { monthKey: 'month_june_2026', entryKey: 'e6' },
+  { monthKey: 'month_june_2026', entryKey: 'e7' },
+  { monthKey: 'month_june_2026', entryKey: 'e8' },
+  { monthKey: 'month_june_2026', entryKey: 'e9' },
+  { monthKey: 'month_june_2026', entryKey: 'e10' },
+  { monthKey: 'month_june_2026', entryKey: 'e11' },
+  { monthKey: 'month_june_2026', entryKey: 'e12' },
+  { monthKey: 'month_june_2026', entryKey: 'e13' },
+  { monthKey: 'month_june_2026', entryKey: 'e14' },
+  { monthKey: 'month_june_2026', entryKey: 'e15' },
+  { monthKey: 'month_june_2026', entryKey: 'e16' },
+  { monthKey: 'month_may_2026', entryKey: 'e17' },
 ]
 
 export default function ChangelogSettings({ setHeader }: Props) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -125,36 +47,43 @@ export default function ChangelogSettings({ setHeader }: Props) {
           size="icon"
           onClick={() => navigate('/settings')}
           className="-ml-2"
-          aria-label="Back to Settings"
+          aria-label={t('common.back')}
         >
           <ArrowLeft />
         </Button>
-        <h1 className="flex-1 text-lg font-bold">What's New</h1>
+        <h1 className="flex-1 text-lg font-bold">{t('settings.menu.whatsNew')}</h1>
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader])
+  }, [navigate, setHeader, t])
 
-  const groups = CHANGELOG.reduce<{ month: string; entries: ChangelogEntry[] }[]>((acc, entry) => {
-    const existing = acc.find((g) => g.month === entry.date)
-    if (existing) {
-      existing.entries.push(entry)
-    } else {
-      acc.push({ month: entry.date, entries: [entry] })
-    }
-    return acc
-  }, [])
+  const groups = CHANGELOG.reduce<{ monthKey: string; entries: ChangelogEntry[] }[]>(
+    (acc, entry) => {
+      const existing = acc.find((g) => g.monthKey === entry.monthKey)
+      if (existing) {
+        existing.entries.push(entry)
+      } else {
+        acc.push({ monthKey: entry.monthKey, entries: [entry] })
+      }
+      return acc
+    },
+    [],
+  )
 
   return (
     <div className="py-2 space-y-5">
       {groups.map((group) => (
-        <div key={group.month} className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground px-1">{group.month}</p>
+        <div key={group.monthKey} className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground px-1">
+            {t(`changelog.${group.monthKey}`)}
+          </p>
           <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border">
             {group.entries.map((entry) => (
-              <div key={entry.title} className="px-4 py-4">
-                <p className="text-sm font-medium">{entry.title}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{entry.description}</p>
+              <div key={entry.entryKey} className="px-4 py-4">
+                <p className="text-sm font-medium">{t(`changelog.${entry.entryKey}_title`)}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t(`changelog.${entry.entryKey}_desc`)}
+                </p>
               </div>
             ))}
           </div>

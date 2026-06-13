@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { GitMerge, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
+  const { t } = useTranslation()
   const [keepers, setKeepers] = useState<Record<number, string>>({})
   const [merging, setMerging] = useState(false)
   const mergeItems = useMergeItems()
@@ -51,6 +53,10 @@ export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
 
   const totalDuplicates = groups.reduce((sum, g) => sum + g.length - 1, 0)
 
+  const description = groups.length === 1
+    ? t('mergeItems.appearsNTimes', { name: groups[0][0].name, count: groups[0].length }) + t('mergeItems.pickerNote')
+    : t('mergeItems.namesAppear', { count: groups.length }) + t('mergeItems.pickerNote')
+
   return (
     <Drawer
       open={open}
@@ -60,15 +66,10 @@ export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
       <DrawerContent
         className="flex flex-col max-h-[80dvh]"
       >
-        {/* Handle is rendered by DrawerContent automatically */}
-
         <DrawerHeader className="text-left pb-3">
-          <DrawerTitle>Duplicate items</DrawerTitle>
+          <DrawerTitle>{t('mergeItems.title')}</DrawerTitle>
           <DrawerDescription>
-            {groups.length === 1
-              ? `"${groups[0][0].name}" appears ${groups[0].length} times`
-              : `${groups.length} names appear more than once`}
-            . Pick which to keep — recipe links update automatically.
+            {description}
           </DrawerDescription>
         </DrawerHeader>
 
@@ -102,7 +103,7 @@ export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
                           </Badge>
                         ))}
                         {!item.category && item.supermarkets.length === 0 && (
-                          <span className="text-xs text-muted-foreground/60">No details</span>
+                          <span className="text-xs text-muted-foreground/60">{t('mergeItems.noDetails')}</span>
                         )}
                       </div>
                     </Label>
@@ -122,12 +123,12 @@ export default function MergeDuplicatesSheet({ open, groups, onClose }: Props) {
             disabled={merging}
           >
             {merging
-              ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Merging…</>
-              : <><GitMerge className="mr-2 h-4 w-4" />Remove {totalDuplicates} duplicate{totalDuplicates !== 1 ? 's' : ''}</>
+              ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('mergeItems.merging')}</>
+              : <><GitMerge className="mr-2 h-4 w-4" />{t('mergeItems.removeDuplicates', { count: totalDuplicates })}</>
             }
           </Button>
           <Button variant="ghost" onClick={onClose} disabled={merging} className="w-full">
-            Cancel
+            {t('common.cancel')}
           </Button>
         </DrawerFooter>
       </DrawerContent>

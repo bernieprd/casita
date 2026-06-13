@@ -13,7 +13,7 @@ function rowToIngredient(row: Record<string, unknown>): RecipeIngredient {
 }
 
 export async function createRecipeIngredient(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const body = await req.json<{
     recipeId: string
@@ -56,7 +56,7 @@ export async function updateRecipeIngredient(
   ctx: RequestContext,
   id: string,
 ): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const body = await req.json<{
     needsShopping?: boolean
@@ -98,7 +98,7 @@ export async function updateRecipeIngredient(
     WHERE ri.id = ?
   `).bind(id).first<Record<string, unknown>>()
 
-  if (!row) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!row) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
   return Response.json(rowToIngredient(row))
 }
 
@@ -108,7 +108,7 @@ export async function deleteRecipeIngredient(
   ctx: RequestContext,
   id: string,
 ): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   await env.DB.prepare(
     'DELETE FROM recipe_ingredients WHERE id = ? AND household_id = ?',

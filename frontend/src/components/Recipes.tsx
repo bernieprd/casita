@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import PlanRecipeSheet from './PlanRecipeSheet'
 import GuidedImport from './GuidedImport'
 import { ImportModal } from './ImportModal'
@@ -73,6 +74,7 @@ function RecipeGridSkeleton() {
 type SortOption = 'name-asc' | 'name-desc' | 'updated-desc' | 'created-desc' | 'created-asc' | 'type'
 
 function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: string) => void; setHeader?: (node: ReactNode | null) => void; initialScroll?: number | null }) {
+  const { t } = useTranslation()
   const { data: recipes, isLoading, error } = useRecipes()
   const navigate = useNavigate()
   const [importOpen, setImportOpen] = useState(false)
@@ -132,31 +134,18 @@ function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: str
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder="Search recipes…"
+            placeholder={t('recipes.searchPlaceholder')}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <Select value={sortBy} onValueChange={v => setSortBy(v as SortOption)}>
-          <SelectTrigger size="sm" className="w-auto shrink-0">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent align="end">
-            <SelectItem value="name-asc">Name (A → Z)</SelectItem>
-            <SelectItem value="name-desc">Name (Z → A)</SelectItem>
-            <SelectItem value="updated-desc">Recently updated</SelectItem>
-            <SelectItem value="created-desc">Newest first</SelectItem>
-            <SelectItem value="created-asc">Oldest first</SelectItem>
-            <SelectItem value="type">Group by type</SelectItem>
-          </SelectContent>
-        </Select>
         <Button size="sm" onClick={() => navigate('/recipes/new')}>
-          <Plus className="h-4 w-4 mr-1" /> New
+          <Plus className="h-4 w-4 mr-1" /> {t('recipes.new')}
         </Button>
       </div>
     )
     return () => setHeader(null)
-  }, [search, sortBy, setHeader])
+  }, [search, setHeader])
 
   const renderCard = (recipe: NonNullable<typeof recipes>[number]) => (
     <div
@@ -208,7 +197,7 @@ function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: str
               className="text-[10px] h-[18px] px-1.5 inline-flex items-center rounded-full border text-muted-foreground hover:text-foreground transition-colors"
             >
               <ExternalLink className="size-2.5 mr-1" />
-              Recipe
+              {t('recipes.recipeLink')}
             </a>
           )}
         </div>
@@ -217,24 +206,24 @@ function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: str
   )
 
   if (isLoading) return <RecipeGridSkeleton />
-  if (error) return <p className="text-destructive p-4">Failed to load recipes.</p>
+  if (error) return <p className="text-destructive p-4">{t('recipes.failedToLoad')}</p>
 
   if (!recipes?.length) {
     return (
       <>
         <div className="pt-10 text-center px-4">
           <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
-          <p className="text-sm font-medium text-muted-foreground mb-1">No recipes yet</p>
-          <p className="text-sm text-muted-foreground/60">Tap + to add your first recipe</p>
+          <p className="text-sm font-medium text-muted-foreground mb-1">{t('recipes.noRecipesYet')}</p>
+          <p className="text-sm text-muted-foreground/60">{t('recipes.tapToAdd')}</p>
           <button
             type="button"
             onClick={() => setImportOpen(true)}
             className="mt-3 text-sm text-primary hover:underline underline-offset-4 transition-colors"
           >
-            Or import your recipes →
+            {t('recipes.orImport')}
           </button>
         </div>
-        <ImportModal open={importOpen} onOpenChange={setImportOpen} description="Import your recipes.">
+        <ImportModal open={importOpen} onOpenChange={setImportOpen} description={t('recipes.importDescription')}>
           <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
         </ImportModal>
       </>
@@ -243,6 +232,22 @@ function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: str
 
   return (
     <div>
+      {/* Sort control */}
+      <div className="mb-2">
+        <Select value={sortBy} onValueChange={v => setSortBy(v as SortOption)}>
+          <SelectTrigger size="sm" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name-asc">{t('recipes.sortNameAsc')}</SelectItem>
+            <SelectItem value="name-desc">{t('recipes.sortNameDesc')}</SelectItem>
+            <SelectItem value="updated-desc">{t('recipes.sortRecentlyUpdated')}</SelectItem>
+            <SelectItem value="created-desc">{t('recipes.sortNewest')}</SelectItem>
+            <SelectItem value="created-asc">{t('recipes.sortOldest')}</SelectItem>
+            <SelectItem value="type">{t('recipes.sortGroupByType')}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       {/* Type filter chips */}
       {typeOptions.length > 0 && (
         <div className="flex gap-1.5 flex-wrap mb-3">
@@ -262,15 +267,15 @@ function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: str
       {/* Result count */}
       <p className="text-xs text-muted-foreground mb-3">
         {isFiltering
-          ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''}`
-          : `${recipes.length} recipe${recipes.length !== 1 ? 's' : ''}`}
+          ? t('recipes.resultCount', { count: filtered.length })
+          : t('recipes.recipeCount', { count: recipes.length })}
       </p>
 
       {/* Empty state (filter miss) */}
       {filtered.length === 0 ? (
         <div className="pt-8 text-center px-4">
           <div className="text-5xl mb-4 opacity-35">🔍</div>
-          <p className="text-sm font-medium text-muted-foreground">No recipes match</p>
+          <p className="text-sm font-medium text-muted-foreground">{t('recipes.noMatch')}</p>
         </div>
       ) : sortBy === 'type' ? (
         (() => {
@@ -284,7 +289,7 @@ function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: str
           for (const [key, gr] of groupMap) {
             if (key !== '__other__') groups.push([key, gr])
           }
-          if (groupMap.has('__other__')) groups.push(['Other', groupMap.get('__other__')!])
+          if (groupMap.has('__other__')) groups.push([t('recipes.other'), groupMap.get('__other__')!])
           return (
             <div className="flex flex-col gap-6">
               {groups.map(([label, groupRecipes]) => (
@@ -434,6 +439,7 @@ function IngredientGroups({
 // ── Recipe detail ─────────────────────────────────────────────────────────────
 
 function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => void; setToolbar?: (node: ReactNode | null) => void }) {
+  const { t } = useTranslation()
   const { data: recipe, isLoading: recipeLoading } = useRecipe(id)
   const { data: ingredients, isLoading: ingredientsLoading } = useRecipeIngredients(id)
   const toggle = useToggleNeedsShopping(id)
@@ -449,7 +455,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
     shareRecipe.mutate(undefined, {
       onSuccess: ({ url }) => {
         navigator.clipboard.writeText(url).catch(() => {})
-        toast.success('Link copied!')
+        toast.success(t('recipes.linkCopied'))
       }
     })
   }
@@ -536,7 +542,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
                   className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <ExternalLink className="size-3.5" />
-                  View original
+                  {t('recipes.viewOriginal')}
                 </a>
               )}
             </div>
@@ -545,7 +551,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
           {/* Ingredients */}
           <div className="flex items-center gap-1 mb-3">
             <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground">
-              Ingredients
+              {t('recipes.ingredients')}
             </h2>
           </div>
 
@@ -554,7 +560,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
               <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
             </div>
           ) : (ingredients ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground py-3">No ingredients listed.</p>
+            <p className="text-sm text-muted-foreground py-3">{t('recipes.noIngredients')}</p>
           ) : (
             <IngredientGroups ingredients={ingredients ?? []} toggle={toggle} allItems={allItems} />
           )}
@@ -564,7 +570,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
             <>
               <div className="flex items-center gap-1 mb-3">
                 <h2 className="text-sm font-semibold tracking-widest uppercase text-muted-foreground">
-                  Instructions
+                  {t('recipes.instructions')}
                 </h2>
               </div>
               <div>

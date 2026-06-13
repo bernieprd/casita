@@ -23,12 +23,14 @@ import {
   initiateGoogleConnect,
 } from '../../api/google-calendar'
 import type { UserCalendar } from '../../api/types'
+import { useTranslation } from 'react-i18next'
 
 interface CalendarSettingsProps {
   setHeader: (node: ReactNode | null) => void
 }
 
 export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -51,15 +53,15 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
           size="icon"
           onClick={() => location.key === 'default' ? navigate('/settings') : navigate(-1)}
           className="-ml-2"
-          aria-label={location.key === 'default' ? 'Back to Settings' : 'Go back'}
+          aria-label={t('common.back')}
         >
           <ArrowLeft />
         </Button>
-        <h1 className="flex-1 text-lg font-bold">Calendar</h1>
+        <h1 className="flex-1 text-lg font-bold">{t('settings.calendar.title')}</h1>
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader])
+  }, [navigate, setHeader, t])
 
   const { data: googleStatus, isLoading: statusLoading } = useGoogleStatus()
   const isConnected = googleStatus?.connected ?? false
@@ -91,12 +93,12 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
       {/* OAuth result banners */}
       {oauthResult === 'connected' && (
         <div className="mb-4 rounded-md border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800">
-          Google Calendar connected successfully.
+          {t('settings.calendar.connectSuccess')}
         </div>
       )}
       {oauthResult === 'error' && (
         <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          Failed to connect Google Calendar. Please try again.
+          {t('settings.calendar.connectError')}
         </div>
       )}
 
@@ -117,7 +119,7 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
             </>
           ) : calendarsError ? (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive mb-2">
-              Failed to load calendars. Try reconnecting.
+              {t('settings.calendar.failedToLoad')}
             </div>
           ) : (
             <>
@@ -127,7 +129,7 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
                     <div
                       className="h-4 w-4 rounded flex-shrink-0"
                       style={{ backgroundColor: cal.colorHex }}
-                      aria-label={`${cal.name} calendar color`}
+                      aria-label={t('settings.calendar.calendarColor', { name: cal.name })}
                     />
                     <span className="text-sm flex-1">{cal.name}</span>
                     <Switch
@@ -146,9 +148,9 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="private">Private — only me</SelectItem>
-                          <SelectItem value="household">Household — full events</SelectItem>
-                          <SelectItem value="free-busy">Household — free/busy only</SelectItem>
+                          <SelectItem value="private">{t('settings.calendar.visibilityPrivate')}</SelectItem>
+                          <SelectItem value="household">{t('settings.calendar.visibilityHousehold')}</SelectItem>
+                          <SelectItem value="free-busy">{t('settings.calendar.visibilityFreeBusy')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -164,7 +166,7 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
             className="mt-8 text-destructive border-destructive/50 hover:bg-destructive/10 w-full"
             onClick={() => disconnectGoogle()}
           >
-            Disconnect
+            {t('common.disconnect')}
           </Button>
         </>
       ) : (
@@ -174,16 +176,15 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
             size="sm"
             onClick={() => setConnectGoogleOpen(true)}
           >
-            Connect Google Calendar
+            {t('settings.calendar.connectGoogleCalendar')}
           </Button>
 
           <AlertDialog open={connectGoogleOpen} onOpenChange={setConnectGoogleOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Connect Google Calendar</AlertDialogTitle>
+                <AlertDialogTitle>{t('settings.calendar.connectDialogTitle')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Casita will read your calendar events. You choose which calendars are visible to
-                  your household. View our{' '}
+                  {t('settings.calendar.connectDialogDescription')}{' '}
                   <a
                     href="https://mycasita.app/privacy"
                     target="_blank"
@@ -196,9 +197,9 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction onClick={() => initiateGoogleConnect()}>
-                  Connect
+                  {t('common.connect')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

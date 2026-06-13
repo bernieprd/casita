@@ -36,8 +36,8 @@ export async function listConcepts(
   ctx: RequestContext,
   type: string,
 ): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
-  if (!isValidType(type)) return Response.json({ error: 'Unknown concept type' }, { status: 400 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
+  if (!isValidType(type)) return Response.json({ error: 'ERR_UNKNOWN_CONCEPT_TYPE' }, { status: 400 })
 
   const table = TABLE[type]
   const usageSub = USAGE_SUBQUERY[type]
@@ -55,12 +55,12 @@ export async function createConcept(
   ctx: RequestContext,
   type: string,
 ): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
-  if (!isValidType(type)) return Response.json({ error: 'Unknown concept type' }, { status: 400 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
+  if (!isValidType(type)) return Response.json({ error: 'ERR_UNKNOWN_CONCEPT_TYPE' }, { status: 400 })
 
   const body = await req.json<{ name?: string; sort_order?: number }>()
   if (!body.name || typeof body.name !== 'string' || !body.name.trim()) {
-    return Response.json({ error: 'name is required' }, { status: 400 })
+    return Response.json({ error: 'ERR_NAME_REQUIRED' }, { status: 400 })
   }
 
   const table = TABLE[type]
@@ -74,7 +74,7 @@ export async function createConcept(
       .bind(id, ctx.householdId, name, sort_order)
       .run()
   } catch {
-    return Response.json({ error: 'A concept with that name already exists' }, { status: 409 })
+    return Response.json({ error: 'ERR_DUPLICATE_NAME' }, { status: 409 })
   }
 
   return Response.json({ id, name, sort_order }, { status: 201 })
@@ -87,8 +87,8 @@ export async function updateConcept(
   type: string,
   id: string,
 ): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
-  if (!isValidType(type)) return Response.json({ error: 'Unknown concept type' }, { status: 400 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
+  if (!isValidType(type)) return Response.json({ error: 'ERR_UNKNOWN_CONCEPT_TYPE' }, { status: 400 })
 
   const table = TABLE[type]
   const body = await req.json<{ name?: string; sort_order?: number }>()
@@ -105,7 +105,7 @@ export async function updateConcept(
     values.push(body.sort_order)
   }
 
-  if (fields.length === 0) return Response.json({ error: 'Nothing to update' }, { status: 400 })
+  if (fields.length === 0) return Response.json({ error: 'ERR_INVALID_REQUEST' }, { status: 400 })
 
   try {
     await env.DB
@@ -113,7 +113,7 @@ export async function updateConcept(
       .bind(...values, id, ctx.householdId)
       .run()
   } catch {
-    return Response.json({ error: 'A concept with that name already exists' }, { status: 409 })
+    return Response.json({ error: 'ERR_DUPLICATE_NAME' }, { status: 409 })
   }
 
   const row = await env.DB
@@ -121,7 +121,7 @@ export async function updateConcept(
     .bind(id, ctx.householdId)
     .first<Record<string, unknown>>()
 
-  if (!row) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!row) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
   return Response.json(rowToConcept(row))
 }
 
@@ -132,8 +132,8 @@ export async function deleteConcept(
   type: string,
   id: string,
 ): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
-  if (!isValidType(type)) return Response.json({ error: 'Unknown concept type' }, { status: 400 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
+  if (!isValidType(type)) return Response.json({ error: 'ERR_UNKNOWN_CONCEPT_TYPE' }, { status: 400 })
 
   const table = TABLE[type]
 
@@ -142,7 +142,7 @@ export async function deleteConcept(
     .bind(id, ctx.householdId)
     .first<Record<string, unknown>>()
 
-  if (!row) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!row) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
 
   const name = row.name as string
   const clearStmt = type === 'recipe-types'
@@ -228,7 +228,7 @@ export async function backfillConceptsRoute(
   env: Env,
   ctx: RequestContext,
 ): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
   const result = await backfillConcepts(env, ctx.householdId)
   return Response.json(result)
 }

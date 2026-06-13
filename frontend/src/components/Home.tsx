@@ -10,6 +10,10 @@ import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStat
 import type { Item } from '../api/types'
 import { useNavigate } from 'react-router-dom'
 import { ItemRow } from './ItemRow'
+import { SwipeAction } from './SwipeAction'
+import { useTranslation } from 'react-i18next'
+import { useLocale } from '@/hooks/useLocale'
+import { makeDayLabel } from '@/lib/dayLabel'
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
 
@@ -50,8 +54,14 @@ const COLLAPSE_DURATION_MS = 220
 // How long the toast stays up; mutation fires 100ms after this.
 const TOAST_DURATION_MS = 4000
 
-const formatShoppingRemoved = (name: string) => `Removed "${name}" from list`
-const formatTodoDone = (name: string) => `Marked "${name}" as done`
+// ── Date helpers ──────────────────────────────────────────────────────────────
+
+function makeTimeLabel(locale: string) {
+  return (dateStr: string): string | null => {
+    if (!dateStr.includes('T')) return null
+    return new Date(dateStr).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })
+  }
+}
 
 function useCollapsible() {
   const [collapsed, setCollapsed] = useState(false)
@@ -151,6 +161,7 @@ function CardHeader({
   seeAllLabel?: string
   onSeeAll?: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <div className={cn('flex items-center px-4 py-3', showBorder && 'border-b border-border')}>
       <span className="flex-1 text-xs font-medium tracking-widest uppercase text-muted-foreground leading-none">
@@ -162,14 +173,14 @@ function CardHeader({
           onClick={e => { e.stopPropagation(); onSeeAll() }}
           className="text-xs font-semibold text-primary cursor-pointer mr-3"
         >
-          {seeAllLabel ?? 'See all'}
+          {seeAllLabel ?? t('home.seeAll')}
         </button>
       )}
       <button
         type="button"
         onClick={e => { e.stopPropagation(); onToggle() }}
         className="text-muted-foreground/60 -mr-1"
-        aria-label={collapsed ? 'Expand section' : 'Collapse section'}
+        aria-label={collapsed ? t('home.expandSection') : t('home.collapseSection')}
       >
         {collapsed
           ? <ChevronDown className="size-4" />
@@ -181,23 +192,11 @@ function CardHeader({
 
 // ── Calendar preview ──────────────────────────────────────────────────────────
 
-function dayLabel(dateStr: string, includeDatePart = false): string {
-  const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00')
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
-  if (d.toDateString() === today.toDateString()) return 'Today'
-  if (d.toDateString() === tomorrow.toDateString()) return 'Tomorrow'
-  if (includeDatePart)
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-  return d.toLocaleDateString('en-US', { weekday: 'short' })
-}
-
-function timeLabel(dateStr: string): string | null {
-  if (!dateStr.includes('T')) return null
-  return new Date(dateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-}
-
 function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
+  const { t } = useTranslation()
+  const locale = useLocale()
+  const dayLabel = useMemo(() => makeDayLabel(locale, t('home.today'), t('home.tomorrow'), 'weekday'), [locale, t])
+  const timeLabel = useMemo(() => makeTimeLabel(locale), [locale])
   const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
   const { data: googleStatus } = useGoogleStatus()
   const timeMin = useMemo(() => new Date().toISOString(), [])
@@ -224,7 +223,7 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
     <div className="mb-6">
       <SectionCard>
         <CardHeader
-          label="Coming up"
+          label={t('home.comingUp')}
           showBorder={contentVisible}
           collapsed={collapsed}
           onToggle={handleToggle}
@@ -242,7 +241,7 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
               ))}
             </div>
           ) : upcoming.length === 0 ? (
-            <EmptyState text="No upcoming events" />
+            <EmptyState text={t('home.noUpcomingEvents')} />
           ) : (
             upcoming.map((event, i) => {
               const time = timeLabel(event.start)
@@ -278,12 +277,16 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
 const PRIORITY_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 }
 
 function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
+  const { t } = useTranslation()
+  const locale = useLocale()
+  const dayLabel = useMemo(() => makeDayLabel(locale, t('home.today'), t('home.tomorrow'), 'date'), [locale, t])
   const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
   const { data: todos, isLoading } = useTodos()
   const { data: settings } = useHouseholdSettings()
   const members = settings?.members ?? []
   const { data: categories = [] } = useConceptList('todo-categories')
   const updateTodo = useUpdateTodo()
+  const formatTodoDone = useCallback((name: string) => t('home.markedAsDone', { name }), [t])
   const { removingIds: removingTodoIds, trigger: handleDone } = useDeferredAction(
     (id) => updateTodo.mutate({ id, status: 'Done' }),
     formatTodoDone,
@@ -316,7 +319,7 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
     <div className="mb-6">
       <SectionCard>
         <CardHeader
-          label="To-Dos"
+          label={t('home.todos')}
           showBorder={contentVisible}
           collapsed={collapsed}
           onToggle={handleToggle}
@@ -333,15 +336,16 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
               ))}
             </div>
           ) : topTodos.length === 0 ? (
-            <EmptyState text="All caught up" />
+            <EmptyState text={t('home.allCaughtUp')} />
           ) : (
             <>
               {topTodos.map((todo, i) => {
                 const cat = categories.find(c => c.id === todo.categoryId) ?? null
                 const assignees = todo.assignedTo ?? []
-                const freqLabel = formatFrequency(todo.frequency, todo.frequencyInterval, todo.frequencyDays)
+                const freqLabel = formatFrequency(todo.frequency, todo.frequencyInterval, todo.frequencyDays, t)
                 return (
                   <div key={todo.id} className={cn(i > 0 && 'border-t border-border')}>
+                    <SwipeAction onAction={() => handleDone(todo.id, todo.name)}>
                     <ItemRow
                       variant="todo"
                       name={todo.name}
@@ -359,7 +363,7 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
                           )}
                           {todo.due && (
                             <span className="text-xs font-semibold text-primary whitespace-nowrap">
-                              {dayLabel(todo.due, true)}
+                              {dayLabel(todo.due)}
                             </span>
                           )}
                           {cat && (
@@ -402,6 +406,7 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
                         </>
                       }
                     />
+                    </SwipeAction>
                   </div>
                 )
               })}
@@ -410,7 +415,7 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
                   onClick={onSeeAll}
                   className="px-4 py-2.5 border-t border-border cursor-pointer"
                 >
-                  <span className="text-xs text-muted-foreground">+{remaining} more</span>
+                  <span className="text-xs text-muted-foreground">{t('home.moreItems', { count: remaining })}</span>
                 </div>
               )}
             </>
@@ -508,9 +513,11 @@ function useShoppingPlan(items: Item[] | undefined): ShoppingPlan {
 }
 
 function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
+  const { t } = useTranslation()
   const { collapsed, contentVisible, handleToggle, onCollapsed } = useCollapsible()
   const { data: items, isLoading } = useShoppingList()
   const toggle = useToggleShoppingList()
+  const formatShoppingRemoved = useCallback((name: string) => t('home.removedFromList', { name }), [t])
   const { removingIds, trigger: handleRemove } = useDeferredAction(
     (id) => toggle.mutate({ id, onShoppingList: false }),
     formatShoppingRemoved,
@@ -542,7 +549,7 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
 
     // If no item has a store, fall back to the plain "+N more" format
     if (storeCounts.size === 0) {
-      return `+${plan.remaining} more`
+      return t('home.moreItems', { count: plan.remaining })
     }
 
     // Sort stores by their total count across the full list, not just the remainder
@@ -555,9 +562,9 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
     const sortedStores = [...storeCounts.entries()].sort(
       (a, b) => (globalStoreTotals.get(b[0]) ?? 0) - (globalStoreTotals.get(a[0]) ?? 0)
     )
-    const parts = sortedStores.map(([store, count]) => `+${count} in ${store}`)
+    const parts = sortedStores.map(([store, count]) => t('home.moreInStore', { count, store }))
     if (noStoreCount > 0) {
-      parts.push(`+${noStoreCount} more`)
+      parts.push(t('home.moreItems', { count: noStoreCount }))
     }
     return parts.join(', ')
   }, [items, plan.topItems, removingIds, plan.remaining])
@@ -566,7 +573,7 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
     <div className="mb-6">
       <SectionCard>
         <CardHeader
-          label="Shopping list"
+          label={t('home.shoppingList')}
           showBorder={contentVisible}
           collapsed={collapsed}
           onToggle={handleToggle}
@@ -586,23 +593,25 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
               ))}
             </div>
           ) : plan.topItems.length === 0 ? (
-            <EmptyState text="Nothing on the list" />
+            <EmptyState text={t('home.nothingOnTheList')} />
           ) : (
             <>
               {plan.topItems.map((item, i) => (
                 <div key={item.id} className={cn(i > 0 && 'border-t border-border')}>
-                  <ItemRow
-                    variant="shopping"
-                    name={item.name}
-                    subtitle={item.supermarkets.length > 0 ? item.supermarkets.join(', ') : undefined}
-                    removing={removingIds.has(item.id)}
-                    onRemove={() => handleRemove(item.id, item.name)}
-                  />
+                  <SwipeAction onAction={() => handleRemove(item.id, item.name)}>
+                    <ItemRow
+                      variant="shopping"
+                      name={item.name}
+                      subtitle={item.supermarkets.length > 0 ? item.supermarkets.join(', ') : undefined}
+                      removing={removingIds.has(item.id)}
+                      onRemove={() => handleRemove(item.id, item.name)}
+                    />
+                  </SwipeAction>
                 </div>
               ))}
               {remainderLabel && (
                 <div onClick={onNavigate} className="px-4 py-2.5 border-t border-border cursor-pointer">
-                  <span className="text-xs text-muted-foreground">{remainderLabel}</span>
+                  <span className="text-xs text-muted-foreground truncate block">{remainderLabel}</span>
                 </div>
               )}
             </>
@@ -616,6 +625,7 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
 // ── Random recipe ─────────────────────────────────────────────────────────────
 
 function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
+  const { t } = useTranslation()
   const { data: recipes, isLoading } = useRecipes()
   const [seed, setSeed] = useState(() => Math.random())
   const [recentImgError, setRecentImgError] = useState(false)
@@ -628,7 +638,7 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
   return (
     <div className="mb-6">
       <SectionHeader
-        label="Cook this week"
+        label={t('home.cookThisWeek')}
         action={
           <Button
             variant="ghost"
@@ -652,7 +662,7 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
           </div>
         </div>
       ) : !recipe ? (
-        <SectionCard><EmptyState text="No recipes yet" /></SectionCard>
+        <SectionCard><EmptyState text={t('home.noRecipesYet')} /></SectionCard>
       ) : (
         <SectionCard onClick={() => onNavigate(recipe.id)}>
           <div className="relative w-full aspect-video">
@@ -694,7 +704,7 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
                     className="text-[11px] h-5 px-1.5 inline-flex items-center rounded-full border text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <ExternalLink className="size-2.5 mr-1" />
-                    Recipe
+                    {t('home.recipe')}
                   </a>
                 )}
             </div>

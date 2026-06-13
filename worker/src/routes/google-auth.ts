@@ -28,12 +28,12 @@ export async function handleGoogleOAuthCallback(req: Request, env: Env): Promise
   const state = url.searchParams.get('state')
 
   if (!code || !state) {
-    return Response.json({ error: 'Missing code or state' }, { status: 400 })
+    return Response.json({ error: 'ERR_OAUTH_MISSING_PARAMS' }, { status: 400 })
   }
 
   const stateRaw = await env.AUTH_KV.get(`oauth_state:${state}`)
   if (!stateRaw) {
-    return Response.json({ error: 'Invalid or expired state' }, { status: 400 })
+    return Response.json({ error: 'ERR_OAUTH_INVALID_STATE' }, { status: 400 })
   }
 
   await env.AUTH_KV.delete(`oauth_state:${state}`)
@@ -53,7 +53,7 @@ export async function handleGoogleOAuthCallback(req: Request, env: Env): Promise
   })
 
   if (!tokenRes.ok) {
-    return Response.json({ error: 'Failed to exchange code for tokens' }, { status: 502 })
+    return Response.json({ error: 'ERR_OAUTH_TOKEN_EXCHANGE' }, { status: 502 })
   }
 
   const tokens = await tokenRes.json() as {

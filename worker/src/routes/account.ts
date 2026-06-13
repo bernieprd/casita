@@ -2,8 +2,8 @@ import type { Env, RequestContext } from '../types'
 import { getClerkClient } from '../auth/clerk'
 import { rebuildSharedIndex } from './shared-calendar-index'
 
-function err(status: number, message: string): Response {
-  return Response.json({ error: message }, { status })
+function err(status: number, code: string): Response {
+  return Response.json({ error: code }, { status })
 }
 
 export async function deleteAccount(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
@@ -14,7 +14,7 @@ export async function deleteAccount(_req: Request, env: Env, ctx: RequestContext
       .all<{ clerk_user_id: string }>()
 
     if (others.results.length > 0) {
-      return err(400, 'Transfer ownership to another member before deleting your account')
+      return err(400, 'ERR_TRANSFER_OWNERSHIP_BEFORE_DELETE')
     }
   }
 

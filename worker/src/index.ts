@@ -9,6 +9,7 @@ import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
 import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold, transferOwnership, deleteHousehold, getTodoSettings, updateTodoSettings } from './routes/household'
 import { listConcepts, createConcept, updateConcept, deleteConcept, backfillConceptsRoute } from './routes/concepts-d1'
 import { deleteAccount, exportAccountData } from './routes/account'
+import { getMe, updateMe } from './routes/me'
 import { importData } from './routes/import-d1'
 import { verifyClerkToken, getClerkClient } from './auth/clerk'
 import { runMigrationItems, runMigrationRecipes, runMigrationIngredients, runMigrationTodos, runMigrationTokens } from './db/migrate-from-notion'
@@ -158,6 +159,8 @@ async function handleMigrateKvToEmail(req: Request, env: Env): Promise<Response>
 }
 
 const routes: Array<[string, URLPattern, AuthHandler]> = [
+  ['GET',    new URLPattern({ pathname: '/me',                          search: '*' }), getMe],
+  ['PATCH',  new URLPattern({ pathname: '/me',                          search: '*' }), updateMe],
   ['DELETE', new URLPattern({ pathname: '/account',                     search: '*' }), deleteAccount],
   ['GET',    new URLPattern({ pathname: '/account/export',              search: '*' }), exportAccountData],
   ['POST',   new URLPattern({ pathname: '/import',                      search: '*' }), importData],
@@ -242,11 +245,11 @@ export default {
 
       // 2. Auth check — required for all remaining routes
       const token = req.headers.get('Authorization')?.replace('Bearer ', '')
-      if (!token) return err(401, 'Unauthorized', origin)
+      if (!token) return err(401, 'ERR_UNAUTHORIZED', origin)
 
       // Verify Clerk JWT
       const verified = await verifyClerkToken(token, env)
-      if (!verified) return err(401, 'Unauthorized', origin)
+      if (!verified) return err(401, 'ERR_UNAUTHORIZED', origin)
       const { userId: clerkUserId, email } = verified
 
       // Resolve household membership from D1
@@ -295,16 +298,16 @@ export default {
       }
 
       console.log(`[ROUTE MISS] ${req.method} ${req.url}`)
-      return err(404, 'Not found', origin)
+      return err(404, 'ERR_NOT_FOUND', origin)
     } catch (e) {
       if (e instanceof NotionError) {
         const clientStatus = (e.status === 401 || e.status === 403)
           ? 502
           : (e.status >= 400 && e.status < 500 ? e.status : 502)
-        return err(clientStatus, e.message, origin)
+        return err(clientStatus, 'ERR_UPSTREAM', origin)
       }
       console.error(e)
-      return err(500, 'Internal server error', origin)
+      return err(500, 'ERR_INTERNAL', origin)
     }
   },
 } satisfies ExportedHandler<Env>

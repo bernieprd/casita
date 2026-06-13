@@ -43,7 +43,7 @@ export async function getTodos(
   env: Env,
   ctx: RequestContext,
 ): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const { results } = await env.DB.prepare(
     'SELECT * FROM todos WHERE household_id = ? ORDER BY sort_order ASC, created_at DESC',
@@ -53,7 +53,7 @@ export async function getTodos(
 }
 
 export async function createTodo(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const body = await req.json<{
     name: string
@@ -70,19 +70,19 @@ export async function createTodo(req: Request, env: Env, ctx: RequestContext): P
   }>()
 
   if (body.frequency != null && !VALID_FREQUENCIES.has(body.frequency)) {
-    return Response.json({ error: `Invalid frequency. Must be one of: ${[...VALID_FREQUENCIES].join(', ')}` }, { status: 400 })
+    return Response.json({ error: 'ERR_INVALID_FREQUENCY' }, { status: 400 })
   }
 
   if (body.frequencyInterval != null) {
     const interval = body.frequencyInterval
     if (!Number.isInteger(interval) || interval < 1 || interval > 12) {
-      return Response.json({ error: 'frequencyInterval must be an integer between 1 and 12' }, { status: 400 })
+      return Response.json({ error: 'ERR_INVALID_FREQUENCY_INTERVAL' }, { status: 400 })
     }
   }
 
   if (body.frequencyDays != null) {
     if (!Array.isArray(body.frequencyDays) || body.frequencyDays.some(d => !VALID_DAYS.has(d))) {
-      return Response.json({ error: `frequencyDays must be an array of valid day names: ${[...VALID_DAYS].join(', ')}` }, { status: 400 })
+      return Response.json({ error: 'ERR_INVALID_FREQUENCY_DAYS' }, { status: 400 })
     }
   }
 
@@ -115,7 +115,7 @@ export async function createTodo(req: Request, env: Env, ctx: RequestContext): P
 }
 
 export async function updateTodo(req: Request, env: Env, ctx: RequestContext, id: string): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const body = await req.json<{
     name?: string
@@ -133,19 +133,19 @@ export async function updateTodo(req: Request, env: Env, ctx: RequestContext, id
   }>()
 
   if (body.frequency != null && !VALID_FREQUENCIES.has(body.frequency)) {
-    return Response.json({ error: `Invalid frequency. Must be one of: ${[...VALID_FREQUENCIES].join(', ')}` }, { status: 400 })
+    return Response.json({ error: 'ERR_INVALID_FREQUENCY' }, { status: 400 })
   }
 
   if (body.frequencyInterval != null) {
     const interval = body.frequencyInterval
     if (!Number.isInteger(interval) || interval < 1 || interval > 12) {
-      return Response.json({ error: 'frequencyInterval must be an integer between 1 and 12' }, { status: 400 })
+      return Response.json({ error: 'ERR_INVALID_FREQUENCY_INTERVAL' }, { status: 400 })
     }
   }
 
   if (body.frequencyDays != null) {
     if (!Array.isArray(body.frequencyDays) || body.frequencyDays.some(d => !VALID_DAYS.has(d))) {
-      return Response.json({ error: `frequencyDays must be an array of valid day names: ${[...VALID_DAYS].join(', ')}` }, { status: 400 })
+      return Response.json({ error: 'ERR_INVALID_FREQUENCY_DAYS' }, { status: 400 })
     }
   }
 
@@ -170,7 +170,7 @@ export async function updateTodo(req: Request, env: Env, ctx: RequestContext, id
   ).bind(...values, id, ctx.householdId).run()
 
   const row = await env.DB.prepare('SELECT * FROM todos WHERE id = ?').bind(id).first<Record<string, unknown>>()
-  if (!row) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!row) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
   return Response.json(rowToTodo(row))
 }
 
@@ -180,7 +180,7 @@ export async function deleteTodo(
   ctx: RequestContext,
   id: string,
 ): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   await env.DB.prepare(
     'DELETE FROM todos WHERE id = ? AND household_id = ?',
@@ -190,11 +190,11 @@ export async function deleteTodo(
 }
 
 export async function reorderTodos(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const { ids } = await req.json<{ ids: string[] }>()
   if (!Array.isArray(ids) || ids.length === 0) {
-    return Response.json({ error: 'Invalid ids' }, { status: 400 })
+    return Response.json({ error: 'ERR_INVALID_IDS' }, { status: 400 })
   }
   const now = Date.now()
   const stmts = ids.map((id, i) =>

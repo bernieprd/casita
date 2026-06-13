@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS household_members (
   role          TEXT NOT NULL DEFAULT 'member',  -- 'owner' | 'member'
   email         TEXT,
   joined_at     INTEGER NOT NULL,
+  locale        TEXT NOT NULL DEFAULT 'en',
   PRIMARY KEY (household_id, clerk_user_id)
 );
 CREATE INDEX IF NOT EXISTS hm_clerk_user_id ON household_members(clerk_user_id);

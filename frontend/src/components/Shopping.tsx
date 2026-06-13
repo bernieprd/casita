@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useMatch } from 'react-router-dom'
 import { Search, X, PlusCircle } from 'lucide-react'
 import { toast } from 'sonner'
@@ -16,6 +17,7 @@ const EMPTY_ITEMS: Item[] = []
 type SubTab = 'list' | 'inventory'
 
 export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | null) => void }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const isInventory = useMatch('/shopping/inventory')
   const sub: SubTab = isInventory ? 'inventory' : 'list'
@@ -53,7 +55,7 @@ export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | 
       { name: queryRef.current.trim(), category: null, supermarkets: [], onShoppingList: true },
       {
         onSuccess: item => { setQuery(''); setEditItem(item) },
-        onError: () => toast.error('Could not create item. Check that the worker is running.'),
+        onError: () => toast.error(t('shopping.couldNotCreate')),
       },
     )
   }, [create.mutate])
@@ -65,7 +67,7 @@ export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | 
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             className="pl-9 pr-9"
-            placeholder="Search inventory…"
+            placeholder={t('shopping.searchInventory')}
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
@@ -89,7 +91,7 @@ export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | 
           >
             {filtered.length === 0 && !showCreate && (
               <p className="py-4 text-center text-sm text-muted-foreground">
-                No items match.
+                {t('shopping.noItemsMatch')}
               </p>
             )}
 
@@ -115,7 +117,7 @@ export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | 
                       className="shrink-0 min-w-[68px]"
                       onClick={e => { e.stopPropagation(); handleToggle(item) }}
                     >
-                      {item.onShoppingList ? 'Remove' : 'Add'}
+                      {item.onShoppingList ? t('common.remove') : t('common.add')}
                     </Button>
                   </div>
                 </li>
@@ -133,9 +135,9 @@ export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | 
                       <PlusCircle className="h-4 w-4 text-primary shrink-0" />
                       <div className="text-left">
                         <span className="block text-sm">
-                          Create <span className="font-semibold">"{query.trim()}"</span>
+                          {t('shopping.createItem', { name: query.trim() })}
                         </span>
-                        <span className="block text-xs text-muted-foreground">New item · added to shopping list</span>
+                        <span className="block text-xs text-muted-foreground">{t('shopping.itemAdded')}</span>
                       </div>
                     </button>
                   </li>
@@ -167,8 +169,8 @@ export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | 
         onValueChange={(v) => navigate(v === 'inventory' ? '/shopping/inventory' : '/shopping')}
       >
         <TabsList variant="line" className="sticky top-[57px] w-full border-b border-border rounded-none h-auto pb-0 bg-background z-10">
-          <TabsTrigger value="list">Shopping list</TabsTrigger>
-          <TabsTrigger value="inventory">Inventory</TabsTrigger>
+          <TabsTrigger value="list">{t('shopping.shoppingListTab')}</TabsTrigger>
+          <TabsTrigger value="inventory">{t('shopping.inventoryTab')}</TabsTrigger>
         </TabsList>
       </Tabs>
 

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export default function IncompleteItemsSheet({ open, items, onClose, onEdit }: Props) {
+  const { t } = useTranslation()
   return (
     <Drawer
       open={open}
@@ -29,9 +31,9 @@ export default function IncompleteItemsSheet({ open, items, onClose, onEdit }: P
         className="flex flex-col max-h-[80dvh]"
       >
         <DrawerHeader className="text-left pb-3">
-          <DrawerTitle>Items missing info</DrawerTitle>
+          <DrawerTitle>{t('incompleteItems.title')}</DrawerTitle>
           <DrawerDescription>
-            Tap an item to add its category or supermarket.
+            {t('incompleteItems.description')}
           </DrawerDescription>
         </DrawerHeader>
 
@@ -49,12 +51,12 @@ export default function IncompleteItemsSheet({ open, items, onClose, onEdit }: P
                 <div className="flex gap-1 mt-1 flex-wrap">
                   {item.category === null && (
                     <Badge variant="outline" className="text-[11px] h-5 border-amber-500 text-amber-600">
-                      No category
+                      {t('incompleteItems.noCategory')}
                     </Badge>
                   )}
                   {item.supermarkets.length === 0 && (
                     <Badge variant="outline" className="text-[11px] h-5 border-amber-500 text-amber-600">
-                      No supermarket
+                      {t('incompleteItems.noSupermarket')}
                     </Badge>
                   )}
                 </div>
@@ -67,7 +69,7 @@ export default function IncompleteItemsSheet({ open, items, onClose, onEdit }: P
 
         <DrawerFooter className="pb-6">
           <Button variant="ghost" onClick={onClose} className="w-full">
-            Close
+            {t('common.close')}
           </Button>
         </DrawerFooter>
       </DrawerContent>
