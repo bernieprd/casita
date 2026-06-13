@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
+import { BRAND_BG } from './src/lib/brand'
 
 // The custom GitHub Pages domain serves the app from the site root.
 export default defineConfig({
@@ -14,17 +15,18 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['favicon.ico', 'icon.svg', 'apple-touch-icon-180x180.png', 'pwa-64x64.png', 'pwa-192x192.png', 'pwa-512x512.png', 'maskable-icon-512x512.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'pwa-64x64.png', 'pwa-192x192.png', 'pwa-512x512.png', 'maskable-icon-512x512.png'],
       manifest: {
         name: 'Casita',
         short_name: 'Casita',
         description: 'Household management — shopping, recipes, todos & calendar',
-        theme_color: '#fef9c3',
-        background_color: '#fef9c3',
+        theme_color: BRAND_BG,
+        background_color: BRAND_BG,
         display: 'standalone',
         display_override: ['standalone', 'minimal-ui'],
         orientation: 'portrait',
         start_url: '/',
+        scope: '/',
         lang: 'en',
         dir: 'ltr',
         categories: ['lifestyle', 'utilities'],
@@ -56,7 +58,7 @@ export default defineConfig({
           },
         ],
       },
-      devOptions: { enabled: true },
+      devOptions: { enabled: false },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webp,ico,woff2}'],
         globIgnores: ['casita.png'], // original 3.4 MB file — kept as fallback, not precached

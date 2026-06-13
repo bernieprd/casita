@@ -1,4 +1,5 @@
 import type { CapacitorConfig } from '@capacitor/cli'
+import { BRAND_BG, BRAND_BG_DARK } from './src/lib/brand'
 
 const config: CapacitorConfig = {
   appId: 'com.casita.app',
@@ -11,13 +12,13 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 0,
       launchAutoHide: true,
-      backgroundColor: '#fef9c3',
+      backgroundColor: BRAND_BG,
       androidSplashResourceName: 'splash',
       showSpinner: false,
     },
     StatusBar: {
       style: 'Default',
-      backgroundColor: '#fef9c3',
+      backgroundColor: BRAND_BG,
     },
   },
 }

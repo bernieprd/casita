@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react'
 import { Settings, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
+import { BRAND_BG } from '@/lib/brand'
 import { useQueryClient } from '@tanstack/react-query'
 import { itemKeys, itemsApi, todoKeys, todosApi } from './api'
 import { useOnlineStatus } from './useOnlineStatus'
@@ -140,7 +141,7 @@ function AppShell() {
       ])
       await StatusBar.setStyle({ style: Style.Default })
       if (Capacitor.getPlatform() === 'android') {
-        await StatusBar.setBackgroundColor({ color: '#fef9c3' })
+        await StatusBar.setBackgroundColor({ color: BRAND_BG })
       }
       await SplashScreen.hide()
       backHandler = await CapApp.addListener('backButton', ({ canGoBack }) => {
