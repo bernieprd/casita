@@ -19,10 +19,12 @@ import type { Env, RequestContext } from './types'
 const DEFAULT_ORIGIN = 'https://dashboard.mycasita.app'
 const PROD_ORIGINS = ['https://dashboard.mycasita.app']
 const DEV_ORIGINS = ['http://localhost:5173', 'http://localhost:5174']
+// Capacitor native app origins: Android (androidScheme:'https') → https://localhost, iOS → capacitor://localhost
+const NATIVE_ORIGINS = ['https://localhost', 'capacitor://localhost']
 
 function resolveOrigin(req: Request, allowedOrigin: string): string {
   const reqOrigin = req.headers.get('Origin') ?? ''
-  if (DEV_ORIGINS.includes(reqOrigin) || PROD_ORIGINS.includes(reqOrigin)) return reqOrigin
+  if (DEV_ORIGINS.includes(reqOrigin) || PROD_ORIGINS.includes(reqOrigin) || NATIVE_ORIGINS.includes(reqOrigin)) return reqOrigin
   return allowedOrigin
 }
 
