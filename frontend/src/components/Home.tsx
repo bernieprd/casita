@@ -10,6 +10,7 @@ import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStat
 import type { Item } from '../api/types'
 import { useNavigate } from 'react-router-dom'
 import { ItemRow } from './ItemRow'
+import { SwipeAction } from './SwipeAction'
 import { useTranslation } from 'react-i18next'
 import { useLocale } from '@/hooks/useLocale'
 import { makeDayLabel } from '@/lib/dayLabel'
@@ -344,6 +345,7 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
                 const freqLabel = formatFrequency(todo.frequency, todo.frequencyInterval, todo.frequencyDays, t)
                 return (
                   <div key={todo.id} className={cn(i > 0 && 'border-t border-border')}>
+                    <SwipeAction onAction={() => handleDone(todo.id, todo.name)}>
                     <ItemRow
                       variant="todo"
                       name={todo.name}
@@ -404,6 +406,7 @@ function TodoSection({ onSeeAll }: { onSeeAll: () => void }) {
                         </>
                       }
                     />
+                    </SwipeAction>
                   </div>
                 )
               })}
@@ -595,13 +598,15 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
             <>
               {plan.topItems.map((item, i) => (
                 <div key={item.id} className={cn(i > 0 && 'border-t border-border')}>
-                  <ItemRow
-                    variant="shopping"
-                    name={item.name}
-                    subtitle={item.supermarkets.length > 0 ? item.supermarkets.join(', ') : undefined}
-                    removing={removingIds.has(item.id)}
-                    onRemove={() => handleRemove(item.id, item.name)}
-                  />
+                  <SwipeAction onAction={() => handleRemove(item.id, item.name)}>
+                    <ItemRow
+                      variant="shopping"
+                      name={item.name}
+                      subtitle={item.supermarkets.length > 0 ? item.supermarkets.join(', ') : undefined}
+                      removing={removingIds.has(item.id)}
+                      onRemove={() => handleRemove(item.id, item.name)}
+                    />
+                  </SwipeAction>
                 </div>
               ))}
               {remainderLabel && (
