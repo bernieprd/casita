@@ -325,7 +325,8 @@
       "dataDownloading": "I tuoi dati sono in fase di download",
       "deleteAccountFailed": "Impossibile eliminare l'account",
       "language": "Lingua",
-      "languageDescription": "Scegli la lingua per l'interfaccia dell'app"
+      "languageDescription": "Scegli la lingua per l'interfaccia dell'app",
+      "languageUpdateFailed": "Impossibile aggiornare la lingua"
     },
     "household": {
       "title": "Casa",

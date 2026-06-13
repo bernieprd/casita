@@ -325,7 +325,8 @@
       "dataDownloading": "Your data is downloading",
       "deleteAccountFailed": "Failed to delete account",
       "language": "Language",
-      "languageDescription": "Choose the language for the app interface"
+      "languageDescription": "Choose the language for the app interface",
+      "languageUpdateFailed": "Failed to update language"
     },
     "household": {
       "title": "Household",

@@ -122,8 +122,14 @@ export default function AccountSettings({ setHeader }: Props) {
       <Select
         value={meData?.locale ?? 'en'}
         onValueChange={(value) => {
+          const previous = meData?.locale ?? 'en'
           i18n.changeLanguage(value as LocaleCode)
-          updateLocale(value as LocaleCode)
+          updateLocale(value as LocaleCode, {
+            onError: () => {
+              i18n.changeLanguage(previous)
+              toast.error(t('settings.account.languageUpdateFailed'))
+            },
+          })
         }}
       >
         <SelectTrigger className="w-56">

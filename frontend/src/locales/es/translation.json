@@ -325,7 +325,8 @@
       "dataDownloading": "Tus datos se están descargando",
       "deleteAccountFailed": "Error al eliminar la cuenta",
       "language": "Idioma",
-      "languageDescription": "Elige el idioma de la interfaz de la aplicación"
+      "languageDescription": "Elige el idioma de la interfaz de la aplicación",
+      "languageUpdateFailed": "Error al actualizar el idioma"
     },
     "household": {
       "title": "Hogar",
