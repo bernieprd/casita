@@ -10,19 +10,30 @@ export function memberInitials(member: { displayName?: string | null; email?: st
   return name.split(' ').filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase()
 }
 
-export function formatFrequency(frequency: string | null, interval: number | null, days: string[] | null): string | null {
+type TranslateFn = (key: string, options?: Record<string, unknown>) => string
+
+export function formatFrequency(
+  frequency: string | null,
+  interval: number | null,
+  days: string[] | null,
+  t: TranslateFn,
+): string | null {
   if (!frequency) return null
   const n = interval ?? 1
-  const dayShort = (d: string) => d.slice(0, 3)
-  if (frequency === 'daily') return 'Daily'
+  if (frequency === 'daily') return t('frequency.daily')
   if (frequency === 'weekly') {
-    const daysStr = days && days.length > 0 ? ` · ${days.map(dayShort).join(', ')}` : ''
-    return n === 1 ? `Weekly${daysStr}` : `Every ${n}w${daysStr}`
+    const translatedDays = days && days.length > 0
+      ? days.map(d => t(`days.${d.slice(0, 3).toLowerCase()}`, { defaultValue: d.slice(0, 3) })).join(', ')
+      : ''
+    if (n === 1 && translatedDays) return t('frequency.weeklyWithDays', { days: translatedDays })
+    if (n === 1) return t('frequency.weekly')
+    if (translatedDays) return `${t('frequency.everyNWeeks', { n })} · ${translatedDays}`
+    return t('frequency.everyNWeeks', { n })
   }
-  if (frequency === 'biweekly') return 'Biweekly'
-  if (frequency === 'monthly') return n === 1 ? 'Monthly' : `Every ${n}mo`
-  if (frequency === 'quarterly') return 'Quarterly'
-  if (frequency === 'yearly') return 'Yearly'
+  if (frequency === 'biweekly') return t('frequency.biweekly')
+  if (frequency === 'monthly') return n === 1 ? t('frequency.monthly') : t('frequency.everyNMonths', { n })
+  if (frequency === 'quarterly') return t('frequency.quarterly')
+  if (frequency === 'yearly') return t('frequency.yearly')
   return frequency
 }
 

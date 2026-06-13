@@ -1,4 +1,5 @@
 import React from 'react'
+import i18next from 'i18next'
 import { Button } from '@/components/ui/button'
 
 interface State {
@@ -27,17 +28,17 @@ export class TabErrorBoundary extends React.Component<{ children: React.ReactNod
             className="w-20 mb-2 opacity-50 mx-auto"
           />
           <p className="text-sm font-medium text-muted-foreground mb-0.5">
-            Something went wrong
+            {i18next.t('nav.errorTitle')}
           </p>
           <p className="text-sm text-muted-foreground/60 mb-4">
-            {this.state.error?.message ?? 'Unexpected error'}
+            {this.state.error?.message ?? i18next.t('nav.errorUnexpected')}
           </p>
           <Button
             variant="outline"
             size="sm"
             onClick={() => this.setState({ hasError: false, error: null })}
           >
-            Try again
+            {i18next.t('nav.tryAgain')}
           </Button>
         </div>
       )

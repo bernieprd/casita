@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useCalendarEvents, useGoogleStatus, useUserCalendars } from '../api'
 import type { CalendarEvent } from '../api/types'
+import { useTranslation } from 'react-i18next'
+import { useLocale } from '@/hooks/useLocale'
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -33,30 +35,33 @@ function todayKey(): string {
   return dayKey(new Date().toISOString().slice(0, 10))
 }
 
-/** Human-readable day label. */
-function dayLabel(dateStr: string): string {
-  // Parse as local midnight to avoid UTC-offset shifting the date
-  const [y, m, d] = dateStr.split('-').map(Number)
-  const date = new Date(y, m - 1, d)
-  const today = new Date()
-  const tomorrow = new Date(today)
-  tomorrow.setDate(today.getDate() + 1)
+/** Human-readable day label factory — returns a function bound to locale and translations. */
+function makeDayLabel(locale: string, today: string, tomorrow: string) {
+  return (dateStr: string): string => {
+    const [y, m, d] = dateStr.split('-').map(Number)
+    const date = new Date(y, m - 1, d)
+    const todayDate = new Date()
+    const tomorrowDate = new Date(todayDate)
+    tomorrowDate.setDate(todayDate.getDate() + 1)
 
-  if (date.toDateString() === today.toDateString()) return 'Today'
-  if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow'
+    if (date.toDateString() === todayDate.toDateString()) return today
+    if (date.toDateString() === tomorrowDate.toDateString()) return tomorrow
 
-  const weekday = date.toLocaleDateString('en-GB', { weekday: 'short' }) // "Wed"
-  const day     = date.getDate()                                          // 2
-  const month   = date.toLocaleDateString('en-GB', { month: 'short' })   // "Apr"
-  return `${weekday}, ${day} ${month}`
+    const weekday = date.toLocaleDateString(locale, { weekday: 'short' })
+    const day     = date.getDate()
+    const month   = date.toLocaleDateString(locale, { month: 'short' })
+    return `${weekday}, ${day} ${month}`
+  }
 }
 
 /** "10:00 AM – 11:30 AM" or "All day". */
-function timeRange(event: CalendarEvent): string {
-  if (event.allDay) return 'All day'
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-  return `${fmt(event.start)} – ${fmt(event.end)}`
+function makeTimeRange(locale: string, allDayLabel: string) {
+  return (event: CalendarEvent): string => {
+    if (event.allDay) return allDayLabel
+    const fmt = (iso: string) =>
+      new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })
+    return `${fmt(event.start)} – ${fmt(event.end)}`
+  }
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -64,6 +69,9 @@ function timeRange(event: CalendarEvent): string {
 const DEFAULT_EVENT_COLOR = '#1976d2'
 
 function EventCard({ event }: { event: CalendarEvent }) {
+  const { t } = useTranslation()
+  const locale = useLocale()
+  const timeRange = useMemo(() => makeTimeRange(locale, t('calendar.allDay')), [locale, t])
   const color = event.color ?? DEFAULT_EVENT_COLOR
   const time  = timeRange(event)
 
@@ -84,6 +92,9 @@ function EventCard({ event }: { event: CalendarEvent }) {
 }
 
 function DaySection({ dateKey, events }: { dateKey: string; events: CalendarEvent[] }) {
+  const { t } = useTranslation()
+  const locale = useLocale()
+  const dayLabel = useMemo(() => makeDayLabel(locale, t('home.today'), t('home.tomorrow')), [locale, t])
   const isToday = dateKey === todayKey()
   return (
     <div className="mb-5">
@@ -121,6 +132,7 @@ function AgendaSkeleton() {
 // ── Calendar ──────────────────────────────────────────────────────────────────
 
 export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | null) => void }) {
+  const locale = useLocale()
   const today = new Date()
   const [viewYear, setViewYear]   = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
@@ -173,7 +185,7 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
   }, [viewMonth])
 
   const monthLabel = startOfMonth(viewYear, viewMonth)
-    .toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    .toLocaleDateString(locale, { month: 'long', year: 'numeric' })
 
   useEffect(() => {
     setHeader(

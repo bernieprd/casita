@@ -34,9 +34,17 @@ import { useTodos, useCreateTodo, useUpdateTodo, useDeleteTodo } from '../api'
 import type { Todo } from '../api'
 import { useHouseholdSettings, useTodoWorkflow } from '../api/household'
 import { useConceptList, useCreateConcept } from '../api/concepts'
+import { useTranslation } from 'react-i18next'
 
 const SIMPLE_STATUSES = ['Todo', 'Done'] as const
 const BOARD_STATUSES = ['Todo', 'In progress', 'Blocked', 'Done'] as const
+
+const STATUS_TRANSLATION_KEYS: Record<string, string> = {
+  'Todo':        'todos.status.todo',
+  'Done':        'todos.status.done',
+  'In progress': 'todos.status.inProgress',
+  'Blocked':     'todos.status.blocked',
+}
 
 const STATUS_SELECTED_CLASSES: Record<string, string> = {
   'Todo':        'bg-secondary text-secondary-foreground border-secondary',
@@ -78,6 +86,7 @@ const DAY_OPTIONS: { label: string; value: string }[] = [
 ]
 
 export default function TodoFormPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id?: string }>()
   const isEdit = !!id
   const navigate = useNavigate()
@@ -263,11 +272,11 @@ export default function TodoFormPage() {
           >
             <ArrowLeft />
           </Button>
-          <h1 className="flex-1 text-lg font-bold">{isEdit ? 'Edit To-Do' : 'New To-Do'}</h1>
+          <h1 className="flex-1 text-lg font-bold">{isEdit ? t('todos.editTitle') : t('todos.newTitle')}</h1>
           <Button size="sm" disabled={isPending || !name.trim()} onClick={handleSave}>
             {isPending
-              ? isEdit ? 'Saving…' : 'Creating…'
-              : isEdit ? 'Save' : 'Create'}
+              ? isEdit ? t('common.saving') : t('common.creating')
+              : isEdit ? t('common.save') : t('common.create')}
           </Button>
         </div>
       </header>
@@ -296,7 +305,7 @@ export default function TodoFormPage() {
                 className={nameError ? 'border-destructive' : ''}
                 autoFocus={!isEdit}
               />
-              {nameError && <p className="text-xs text-destructive">Name is required</p>}
+              {nameError && <p className="text-xs text-destructive">{t('todos.nameRequired')}</p>}
             </div>
 
             {/* Status */}
@@ -318,7 +327,7 @@ export default function TodoFormPage() {
                           : 'bg-background text-foreground border-border hover:bg-muted',
                       ].join(' ')}
                     >
-                      {s}
+                      {t(STATUS_TRANSLATION_KEYS[s] ?? s)}
                     </button>
                   )
                 })}
@@ -333,6 +342,9 @@ export default function TodoFormPage() {
                   const isSelected = priority === opt.value
                   const key = opt.value === null ? 'null' : opt.value
                   const selectedClass = PRIORITY_SELECTED_CLASSES[key] ?? 'bg-secondary text-secondary-foreground border-secondary'
+                  const priorityLabel = opt.value === null
+                    ? t('priority.none')
+                    : t(`priority.${opt.value.toLowerCase()}`, { defaultValue: opt.label })
                   return (
                     <button
                       key={key}
@@ -345,7 +357,7 @@ export default function TodoFormPage() {
                           : 'bg-background text-foreground border-border hover:bg-muted',
                       ].join(' ')}
                     >
-                      {opt.label}
+                      {priorityLabel}
                     </button>
                   )
                 })}
@@ -498,7 +510,7 @@ export default function TodoFormPage() {
                               : 'bg-background text-foreground border-border hover:bg-muted',
                           ].join(' ')}
                         >
-                          {day.label}
+                          {t(`days.${day.label.toLowerCase()}`, { defaultValue: day.label })}
                         </button>
                       )
                     })}
@@ -562,7 +574,7 @@ export default function TodoFormPage() {
               disabled={isPending || deleteTodo.isPending}
               className="text-destructive hover:text-destructive gap-1"
             >
-              <Trash2 className="size-4" /> Delete to-do
+              <Trash2 className="size-4" /> {t('todos.deleteTodo')}
             </Button>
           </div>
         )}
@@ -571,12 +583,12 @@ export default function TodoFormPage() {
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent showCloseButton={false}>
             <DialogHeader>
-              <DialogTitle>Delete to-do?</DialogTitle>
-              <DialogDescription>"{name}" will be permanently deleted.</DialogDescription>
+              <DialogTitle>{t('todos.deleteTodoTitle')}</DialogTitle>
+              <DialogDescription>{t('todos.deleteTodoDescription', { name })}</DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 variant="destructive"
@@ -586,7 +598,7 @@ export default function TodoFormPage() {
                   })
                 }}
               >
-                Delete
+                {t('common.delete')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -595,14 +607,14 @@ export default function TodoFormPage() {
         <AlertDialog open={blocker.state === 'blocked'}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+              <AlertDialogTitle>{t('todos.unsavedChanges')}</AlertDialogTitle>
               <AlertDialogDescription>
-                You have unsaved changes. Are you sure you want to leave?
+                {t('todos.unsavedDescription')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => blocker.reset?.()}>Keep Editing</AlertDialogCancel>
-              <AlertDialogAction onClick={() => blocker.proceed?.()}>Leave</AlertDialogAction>
+              <AlertDialogCancel onClick={() => blocker.reset?.()}>{t('todos.keepEditing')}</AlertDialogCancel>
+              <AlertDialogAction onClick={() => blocker.proceed?.()}>{t('common.leave')}</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

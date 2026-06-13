@@ -73,7 +73,7 @@ function textToBlock(line: string): { type: string; text: string } {
 }
 
 export async function createRecipe(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const body = await req.json<{
     name: string
@@ -109,7 +109,7 @@ export async function createRecipe(req: Request, env: Env, ctx: RequestContext):
 }
 
 export async function getRecipes(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const { results } = await env.DB.prepare(
     'SELECT * FROM recipes WHERE household_id = ?',
@@ -119,14 +119,14 @@ export async function getRecipes(_req: Request, env: Env, ctx: RequestContext): 
 }
 
 export async function getRecipe(_req: Request, env: Env, ctx: RequestContext, id: string): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const [row, blocks] = await Promise.all([
     env.DB.prepare('SELECT * FROM recipes WHERE id = ? AND household_id = ?').bind(id, ctx.householdId).first<RecipeRow>(),
     env.DB.prepare('SELECT * FROM recipe_blocks WHERE recipe_id = ? ORDER BY sort_order').bind(id).all<BlockRow>(),
   ])
 
-  if (!row) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!row) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
 
   const recipe: RecipeWithBlocks = {
     ...rowToRecipe(row),
@@ -136,7 +136,7 @@ export async function getRecipe(_req: Request, env: Env, ctx: RequestContext, id
 }
 
 export async function updateRecipe(req: Request, env: Env, ctx: RequestContext, id: string): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const body = await req.json<{
     name?: string
@@ -174,7 +174,7 @@ export async function updateRecipe(req: Request, env: Env, ctx: RequestContext, 
   }
 
   const row = await env.DB.prepare('SELECT * FROM recipes WHERE id = ?').bind(id).first<RecipeRow>()
-  if (!row) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!row) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
   return Response.json(rowToRecipe(row))
 }
 
@@ -184,7 +184,7 @@ export async function getRecipeIngredients(
   ctx: RequestContext,
   recipeId: string,
 ): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const { results } = await env.DB.prepare(`
     SELECT ri.*, i.name AS item_name
@@ -198,14 +198,14 @@ export async function getRecipeIngredients(
 }
 
 export async function shareRecipe(_req: Request, env: Env, ctx: RequestContext, recipeId: string): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   // Check for existing share token in D1
   const existing = await env.DB.prepare(
     'SELECT share_token FROM recipes WHERE id = ? AND household_id = ?',
   ).bind(recipeId, ctx.householdId).first<{ share_token: string | null }>()
 
-  if (!existing) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!existing) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
 
   const appUrl = getAppBaseUrl(env)
 
@@ -229,13 +229,13 @@ export async function shareRecipe(_req: Request, env: Env, ctx: RequestContext, 
 }
 
 export async function deleteRecipe(_req: Request, env: Env, ctx: RequestContext, id: string): Promise<Response> {
-  if (!ctx.householdId) return Response.json({ error: 'No household' }, { status: 403 })
+  if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   const existing = await env.DB.prepare(
     'SELECT id FROM recipes WHERE id = ? AND household_id = ?',
   ).bind(id, ctx.householdId).first<{ id: string }>()
 
-  if (!existing) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!existing) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
 
   await Promise.all([
     env.DB.prepare('DELETE FROM recipe_ingredients WHERE recipe_id = ?').bind(id).run(),
@@ -251,7 +251,7 @@ export async function getPublicRecipe(_req: Request, env: Env, token: string): P
     'SELECT * FROM recipes WHERE share_token = ?',
   ).bind(token).first<RecipeRow>()
 
-  if (!row) return Response.json({ error: 'Not found' }, { status: 404 })
+  if (!row) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
 
   const [blocks, ingredients] = await Promise.all([
     env.DB.prepare(

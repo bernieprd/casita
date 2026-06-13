@@ -10,8 +10,11 @@ import { api } from '../api/client'
 import { useHousehold } from '../context/AuthContext'
 import { useDeleteAccount } from '../api/account'
 import GuidedImport from './GuidedImport'
+import { useTranslation } from 'react-i18next'
+import { translateError } from '@/lib/errors'
 
 export default function HouseholdSetup() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { signOut } = useClerk()
   const { householdId, isLoading, refreshHousehold } = useHousehold()
@@ -45,7 +48,7 @@ export default function HouseholdSetup() {
       refreshHousehold()
       setShowImport(true)
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Failed to create household')
+      setCreateError(translateError(err instanceof Error ? err.message : 'ERR_INTERNAL', t))
     } finally {
       setCreateLoading(false)
     }
@@ -60,7 +63,7 @@ export default function HouseholdSetup() {
       refreshHousehold()
       navigate('/', { replace: true })
     } catch (err) {
-      setJoinError(err instanceof Error ? err.message : 'Failed to join household')
+      setJoinError(translateError(err instanceof Error ? err.message : 'ERR_INTERNAL', t))
     } finally {
       setJoinLoading(false)
     }
@@ -70,9 +73,9 @@ export default function HouseholdSetup() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="w-full max-w-sm">
-          <h1 className="text-xl font-bold mb-1 text-center">Welcome to Casita</h1>
+          <h1 className="text-xl font-bold mb-1 text-center">{t('household.setup.welcome')}</h1>
           <p className="text-sm text-muted-foreground text-center mb-6">
-            You're all set up. Want to import your existing data?
+            {t('household.setup.allSetUp')}
           </p>
           <div className="bg-card rounded-xl shadow-sm p-6">
             <GuidedImport
@@ -88,19 +91,19 @@ export default function HouseholdSetup() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-xl font-bold mb-1 text-center">Welcome to Casita</h1>
+        <h1 className="text-xl font-bold mb-1 text-center">{t('household.setup.welcome')}</h1>
         <p className="text-sm text-muted-foreground text-center mb-6">
-          Set up your household to get started
+          {t('household.setup.getStarted')}
         </p>
 
         <div className="bg-card rounded-xl shadow-sm overflow-hidden">
           <Tabs value={tab} onValueChange={v => setTab(v as 'create' | 'join')}>
             <TabsList className="w-full rounded-none border-b h-auto p-0 bg-transparent">
               <TabsTrigger value="create" className="flex-1 rounded-none py-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-                Create household
+                {t('household.setup.createTab')}
               </TabsTrigger>
               <TabsTrigger value="join" className="flex-1 rounded-none py-3 data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-                Join with code
+                {t('household.setup.joinTab')}
               </TabsTrigger>
             </TabsList>
 
@@ -108,10 +111,10 @@ export default function HouseholdSetup() {
               <TabsContent value="create">
                 <form onSubmit={handleCreate} className="flex flex-col gap-4">
                   <p className="text-sm text-muted-foreground">
-                    Start a new household and invite your housemates.
+                    {t('household.setup.createDescription')}
                   </p>
                   <Input
-                    placeholder="Household name (e.g. The Smith House)"
+                    placeholder={t('household.setup.householdNamePlaceholder')}
                     value={householdName}
                     onChange={e => setHouseholdName(e.target.value)}
                     required
@@ -131,7 +134,7 @@ export default function HouseholdSetup() {
                     {createLoading && (
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent mr-2" />
                     )}
-                    {createLoading ? 'Creating…' : 'Create household'}
+                    {createLoading ? t('common.creating') : t('household.setup.createButton')}
                   </Button>
                 </form>
               </TabsContent>
@@ -139,10 +142,10 @@ export default function HouseholdSetup() {
               <TabsContent value="join">
                 <form onSubmit={handleJoin} className="flex flex-col gap-4">
                   <p className="text-sm text-muted-foreground">
-                    Enter the invite code shared by a housemate.
+                    {t('household.setup.joinDescription')}
                   </p>
                   <Input
-                    placeholder="Invite code (e.g. ABC-123)"
+                    placeholder={t('household.setup.inviteCodePlaceholder')}
                     value={inviteCode}
                     onChange={e => setInviteCode(e.target.value)}
                     required
@@ -163,7 +166,7 @@ export default function HouseholdSetup() {
                     {joinLoading && (
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent mr-2" />
                     )}
-                    {joinLoading ? 'Joining…' : 'Join household'}
+                    {joinLoading ? t('common.joining') : t('household.setup.joinButton')}
                   </Button>
                 </form>
               </TabsContent>
@@ -177,27 +180,27 @@ export default function HouseholdSetup() {
               onClick={() => signOut(() => navigate('/sign-in', { replace: true }))}
               className="text-xs text-muted-foreground/60 cursor-pointer hover:text-muted-foreground transition-colors"
             >
-              Sign out
+              {t('common.signOut')}
             </button>
             <span className="text-xs text-muted-foreground/40">·</span>
             <button
               onClick={() => setDeleteOpen(true)}
               className="text-xs text-muted-foreground/60 cursor-pointer hover:text-muted-foreground transition-colors"
             >
-              Delete account
+              {t('settings.account.deleteAccount')}
             </button>
           </div>
 
           <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+                <AlertDialogTitle>{t('settings.account.deleteAccountTitle')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Your account and all associated data will be permanently deleted. This cannot be undone.
+                  {t('settings.account.deleteAccountMemberDescription')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction
                   className="bg-destructive text-white hover:bg-destructive/90"
                   disabled={deletingAccount}
@@ -206,12 +209,12 @@ export default function HouseholdSetup() {
                     deleteAccount(undefined, {
                       onSuccess: () => { setDeleteOpen(false); signOut(() => navigate('/sign-in', { replace: true })) },
                       onError: (err: unknown) => {
-                        toast.error((err as { message?: string })?.message ?? 'Failed to delete account')
+                        toast.error(translateError((err as { message?: string })?.message ?? 'ERR_INTERNAL', t))
                       },
                     })
                   }}
                 >
-                  Delete account
+                  {t('settings.account.deleteAccount')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

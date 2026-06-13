@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -74,6 +75,7 @@ interface DeleteConfirmProps {
 }
 
 function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
+  const { t } = useTranslation()
   const isMobile = useIsMobile()
 
   if (isMobile) {
@@ -81,14 +83,14 @@ function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
       <Drawer open={!!item} onOpenChange={open => { if (!open) onCancel() }}>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>Delete "{item?.name}"?</DrawerTitle>
+            <DrawerTitle>{t('shopping.deleteItemTitle', { name: item?.name })}</DrawerTitle>
             <DrawerDescription>
-              This will permanently remove the item from your inventory.
+              {t('shopping.deleteItemDescription')}
             </DrawerDescription>
           </DrawerHeader>
           <DrawerFooter>
-            <Button variant="destructive" onClick={onConfirm}>Delete</Button>
-            <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+            <Button variant="destructive" onClick={onConfirm}>{t('common.delete')}</Button>
+            <Button variant="ghost" onClick={onCancel}>{t('common.cancel')}</Button>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
@@ -99,14 +101,14 @@ function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
     <Dialog open={!!item} onOpenChange={open => { if (!open) onCancel() }}>
       <DialogContent showCloseButton={false} className="max-w-xs">
         <DialogHeader>
-          <DialogTitle>Delete "{item?.name}"?</DialogTitle>
+          <DialogTitle>{t('shopping.deleteItemTitle', { name: item?.name })}</DialogTitle>
           <DialogDescription>
-            This will permanently remove the item from your inventory.
+            {t('shopping.deleteItemDescription')}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-          <Button variant="destructive" onClick={onConfirm}>Delete</Button>
+          <Button variant="ghost" onClick={onCancel}>{t('common.cancel')}</Button>
+          <Button variant="destructive" onClick={onConfirm}>{t('common.delete')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -141,6 +143,7 @@ interface GroupSectionProps {
 }
 
 function GroupSection({ label, items, removingIds, onRemove, onEdit }: GroupSectionProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(true)
 
   const visibleCount = items.filter(i => !removingIds.has(i.id)).length
@@ -149,7 +152,7 @@ function GroupSection({ label, items, removingIds, onRemove, onEdit }: GroupSect
     <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] mb-2">
       <button
         onClick={() => setOpen(o => !o)}
-        aria-label={`${open ? 'Collapse' : 'Expand'} ${label}`}
+        aria-label={open ? t('todos.collapseStatus', { status: label }) : t('todos.expandStatus', { status: label })}
         aria-expanded={open}
         className={`flex items-center w-full px-4 py-3 sticky top-[57px] z-[8] bg-card hover:bg-background transition-colors ${open ? 'rounded-t-lg' : 'rounded-lg'}`}
       >
@@ -217,6 +220,7 @@ function ShoppingListSkeleton() {
 // ── ShoppingList ──────────────────────────────────────────────────────────────
 
 export default function ShoppingList() {
+  const { t } = useTranslation()
   const { data: items, isLoading, error } = useShoppingList()
   const toggle = useToggleShoppingList()
   const deleteItem = useDeleteItem()
@@ -258,7 +262,7 @@ export default function ShoppingList() {
   if (isLoading) return <ShoppingListSkeleton />
 
   if (error) {
-    return <p className="p-4 text-destructive text-sm">Failed to load shopping list.</p>
+    return <p className="p-4 text-destructive text-sm">{t('shopping.failedToLoadList')}</p>
   }
 
   const totalVisible = allItems.filter(i => !removingIds.has(i.id)).length
@@ -268,8 +272,8 @@ export default function ShoppingList() {
       <>
         <div className="pt-10 text-center px-8">
           <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
-          <p className="text-sm font-medium text-muted-foreground mb-1">Your list is empty</p>
-          <p className="text-sm text-muted-foreground/60">Use the search above to add items</p>
+          <p className="text-sm font-medium text-muted-foreground mb-1">{t('shopping.emptyList')}</p>
+          <p className="text-sm text-muted-foreground/60">{t('shopping.emptyListHelp')}</p>
         </div>
         <ItemFormDialog
           open={editItem !== null}
@@ -294,21 +298,19 @@ export default function ShoppingList() {
 
   const groupMap: Record<string, Item[]> = {}
   for (const item of visibleItems) {
-    const key = item.category ?? 'Other'
+    const key = item.category ?? '__other__'
     ;(groupMap[key] ??= []).push(item)
   }
   const groups: Array<[string, Item[]]> = Object.entries(groupMap)
-    .sort(([a], [b]) => a === 'Other' ? 1 : b === 'Other' ? -1 : a.localeCompare(b))
-    .map(([label, groupItems]) => [label, [...groupItems].sort(byName)])
+    .sort(([a], [b]) => a === '__other__' ? 1 : b === '__other__' ? -1 : a.localeCompare(b))
+    .map(([key, groupItems]) => [key === '__other__' ? t('shopping.other') : key, [...groupItems].sort(byName)])
 
   return (
     <div className="pb-10">
       {incompleteItems.length > 0 && (
         <div className="flex items-center justify-between bg-warning text-warning-foreground rounded-lg px-4 py-2 mb-3 opacity-90">
           <p className="text-sm font-medium">
-            {incompleteItems.length === 1
-              ? '1 item missing category or supermarket'
-              : `${incompleteItems.length} items missing category or supermarket`}
+            {t('shopping.missingInfo', { count: incompleteItems.length })}
           </p>
           <Button
             size="sm"
@@ -316,7 +318,7 @@ export default function ShoppingList() {
             className="text-warning-foreground font-semibold ml-2"
             onClick={() => setIncompleteSheetOpen(true)}
           >
-            Review
+            {t('common.review')}
           </Button>
         </div>
       )}
@@ -346,7 +348,7 @@ export default function ShoppingList() {
 
       {groups.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center mt-8">
-          No items for selected supermarket(s)
+          {t('shopping.noItemsForSupermarket')}
         </p>
       ) : (
         groups.map(([label, groupItems]) => (

@@ -47,6 +47,8 @@ import { useTodoWorkflow } from '../api/household'
 import { memberInitials, safeUrl, formatFrequency } from '@/lib/utils'
 import GuidedImport from './GuidedImport'
 import { ImportModal } from './ImportModal'
+import { useTranslation } from 'react-i18next'
+import { useLocale } from '@/hooks/useLocale'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -63,6 +65,13 @@ const BLOCKED_HEADER_CLASS = 'text-amber-600 dark:text-amber-400'
 
 const UNDO_DURATION_MS = 4000
 
+const STATUS_TRANSLATION_KEYS: Record<string, string> = {
+  'Todo':        'todos.status.todo',
+  'Done':        'todos.status.done',
+  'In progress': 'todos.status.inProgress',
+  'Blocked':     'todos.status.blocked',
+}
+
 interface PendingDelete {
   ids: string[]
   timeoutId: ReturnType<typeof setTimeout>
@@ -72,25 +81,27 @@ type Member = HouseholdSettings['members'][number]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatDue(due: string | null): string | null {
+function formatDue(due: string | null, locale: string, today: string, tomorrow: string): string | null {
   if (!due) return null
   const d = new Date(due + 'T00:00:00')
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const diff = Math.round((d.getTime() - today.getTime()) / 86400000)
-  if (diff === 0) return 'Today'
-  if (diff === 1) return 'Tomorrow'
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  const todayDate = new Date()
+  todayDate.setHours(0, 0, 0, 0)
+  const diff = Math.round((d.getTime() - todayDate.getTime()) / 86400000)
+  if (diff === 0) return today
+  if (diff === 1) return tomorrow
+  return d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 // ── Priority chip ─────────────────────────────────────────────────────────────
 
 function PriorityChip({ priority }: { priority: string | null }) {
+  const { t } = useTranslation()
   if (!priority) return null
   const cls = PRIORITY_CHIP_CLASSES[priority] ?? 'bg-secondary text-secondary-foreground'
+  const label = t(`priority.${priority.toLowerCase()}`, { defaultValue: priority })
   return (
     <span className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-[0.65rem] font-semibold leading-none border ${cls}`}>
-      {priority}
+      {label}
     </span>
   )
 }
@@ -116,11 +127,23 @@ function TodoCard({
   style,
   dragHandleProps,
 }: TodoCardProps) {
-  const dueLabel = formatDue(todo.due)
+  const { t } = useTranslation()
+  const locale = useLocale()
+  const isDueToday = useMemo(() => {
+    if (!todo.due) return false
+    const d = new Date(todo.due + 'T00:00:00')
+    const todayDate = new Date()
+    todayDate.setHours(0, 0, 0, 0)
+    return d.getTime() === todayDate.getTime()
+  }, [todo.due])
+  const dueLabel = useMemo(
+    () => formatDue(todo.due, locale, t('home.today'), t('home.tomorrow')),
+    [todo.due, locale, t],
+  )
   const isDone = todo.status === 'Done'
   const category = todo.categoryId ? categories.find(c => c.id === todo.categoryId) : null
   const assignees = todo.assignedTo ?? []
-  const freqLabel = formatFrequency(todo.frequency, todo.frequencyInterval, todo.frequencyDays)
+  const freqLabel = formatFrequency(todo.frequency, todo.frequencyInterval, todo.frequencyDays, t)
   const todoUrl = safeUrl(todo.url)
 
   return (
@@ -138,7 +161,7 @@ function TodoCard({
         <div className="mt-2 flex items-center gap-1.5 flex-wrap">
           <PriorityChip priority={todo.priority} />
           {dueLabel && (
-            <span className={`text-xs shrink-0 font-medium ${dueLabel === 'Today' ? 'text-destructive' : 'text-muted-foreground'}`}>
+            <span className={`text-xs shrink-0 font-medium ${isDueToday ? 'text-destructive' : 'text-muted-foreground'}`}>
               {dueLabel}
             </span>
           )}
@@ -173,7 +196,7 @@ function TodoCard({
               target="_blank"
               rel="noopener noreferrer"
               onClick={e => e.stopPropagation()}
-              aria-label="Open link"
+              aria-label={t('common.openLink')}
             >
               <Link2 className="size-3 text-muted-foreground shrink-0" />
             </a>
@@ -219,6 +242,7 @@ interface ClearDoneConfirmProps {
 }
 
 function ClearDoneConfirm({ open, onConfirm, onCancel }: ClearDoneConfirmProps) {
+  const { t } = useTranslation()
   const isMobile = useIsMobile()
 
   if (isMobile) {
@@ -226,14 +250,14 @@ function ClearDoneConfirm({ open, onConfirm, onCancel }: ClearDoneConfirmProps) 
       <Drawer open={open} onOpenChange={o => { if (!o) onCancel() }}>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>Clear all done to-dos?</DrawerTitle>
+            <DrawerTitle>{t('todos.clearAllDone')}</DrawerTitle>
             <p className="text-sm text-muted-foreground">
-              This will permanently delete all done to-dos and any data associated with them.
+              {t('todos.clearAllDescription')}
             </p>
           </DrawerHeader>
           <DrawerFooter>
-            <Button variant="destructive" onClick={onConfirm}>Clear all</Button>
-            <Button variant="outline" onClick={onCancel}>Cancel</Button>
+            <Button variant="destructive" onClick={onConfirm}>{t('todos.clearAll')}</Button>
+            <Button variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
@@ -244,14 +268,14 @@ function ClearDoneConfirm({ open, onConfirm, onCancel }: ClearDoneConfirmProps) 
     <Dialog open={open} onOpenChange={o => { if (!o) onCancel() }}>
       <DialogContent showCloseButton={false} className="max-w-xs">
         <DialogHeader>
-          <DialogTitle>Clear all done to-dos?</DialogTitle>
+          <DialogTitle>{t('todos.clearAllDone')}</DialogTitle>
         </DialogHeader>
         <DialogDescription className="text-sm text-muted-foreground">
-          This will permanently delete all done to-dos and any data associated with them.
+          {t('todos.clearAllDescription')}
         </DialogDescription>
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button variant="destructive" onClick={onConfirm}>Clear all</Button>
+          <Button variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
+          <Button variant="destructive" onClick={onConfirm}>{t('todos.clearAll')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -271,6 +295,7 @@ interface KanbanColumnProps {
 }
 
 function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone, isOver }: KanbanColumnProps) {
+  const { t } = useTranslation()
   // Primary droppable — lives on the card-list div inside CollapsibleContent.
   // This is the main drop target when the column is expanded.
   const { setNodeRef } = useDroppable({ id: status })
@@ -280,11 +305,12 @@ function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone,
   const isBlocked = status === 'Blocked'
   const isDone = status === 'Done'
   const [expanded, setExpanded] = useState(!isDone)
+  const statusLabel = t(STATUS_TRANSLATION_KEYS[status] ?? status)
 
   const headerContent = (
     <>
       <span className={`flex-1 text-left text-xs font-semibold uppercase tracking-widest leading-none ${isBlocked ? BLOCKED_HEADER_CLASS : 'text-muted-foreground'}`}>
-        {status}
+        {statusLabel}
       </span>
       <span className="text-xs text-muted-foreground mr-2">{todos.length}</span>
       {onClearDone && todos.length > 0 && (
@@ -293,7 +319,7 @@ function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone,
           onClick={e => { e.stopPropagation(); onClearDone() }}
           className="mr-1.5 text-xs text-destructive hover:text-destructive/80 px-2 py-0.5 rounded"
         >
-          Clear all
+          {t('todos.clearAll')}
         </button>
       )}
     </>
@@ -311,7 +337,7 @@ function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone,
         ))}
         {todos.length === 0 && (
           <div className="rounded-lg border-2 border-dashed border-border/50 h-16 flex items-center justify-center">
-            <span className="text-xs text-muted-foreground/40">Drop here</span>
+            <span className="text-xs text-muted-foreground/40">{t('todos.dropHere')}</span>
           </div>
         )}
       </div>
@@ -334,7 +360,7 @@ function KanbanColumn({ status, todos, members, categories, onOpen, onClearDone,
             ref={setHeaderDropRef}
             role="button"
             tabIndex={0}
-            aria-label={`${expanded ? 'Collapse' : 'Expand'} ${status}`}
+            aria-label={expanded ? t('todos.collapseStatus', { status: statusLabel }) : t('todos.expandStatus', { status: statusLabel })}
             aria-expanded={expanded}
             className="w-full flex items-center px-4 py-3 hover:bg-accent/50 transition-colors cursor-pointer"
             // Prevent the trigger from consuming pointer events during a drag so
@@ -408,6 +434,7 @@ function TodosSkeleton({ isMobile }: { isMobile: boolean }) {
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function Todos({ setHeader }: { setHeader: (node: ReactNode | null) => void }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
 
@@ -465,7 +492,7 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
     toast(message, {
       duration: UNDO_DURATION_MS,
       action: {
-        label: 'Undo',
+        label: t('common.undo'),
         onClick: () => {
           const cur = pendingDeleteRef.current
           if (!cur) return
@@ -495,18 +522,18 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
         <Input
           value={inputValue}
           onChange={e => setInputValue(e.target.value)}
-          placeholder="Add a to-do…"
+          placeholder={t('todos.addPlaceholder')}
           autoComplete="off"
-          aria-label="New to-do name"
+          aria-label={t('todos.newTodoName')}
           className="flex-1"
         />
         <Button type="submit" disabled={!inputValue.trim()} className="shrink-0">
-          Add
+          {t('todos.add')}
         </Button>
       </form>
     )
     return () => setHeader(null)
-  }, [inputValue, setHeader])
+  }, [inputValue, setHeader, handleAdd, t])
 
   // ── Derived data ────────────────────────────────────────────────────────────
 
@@ -644,7 +671,7 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
   function commitClearDone() {
     const doneIds = byStatus('Done').map(t => t.id)
     setShowClearConfirm(false)
-    startDelete(doneIds, 'Done to-dos cleared')
+    startDelete(doneIds, t('todos.clearedDone'))
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -657,20 +684,20 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
         {isLoading && <TodosSkeleton isMobile={isMobile} />}
 
         {error && (
-          <p className="text-destructive p-4">Failed to load to-dos.</p>
+          <p className="text-destructive p-4">{t('todos.failedToLoad')}</p>
         )}
 
         {isEmpty && (
           <div className="pt-10 text-center px-8">
             <img src="/casita.webp" alt="" className="w-20 mb-4 mx-auto opacity-70" />
-            <p className="text-sm font-medium text-muted-foreground mb-1">All caught up</p>
-            <p className="text-sm text-muted-foreground/60">Add a to-do above to get started</p>
+            <p className="text-sm font-medium text-muted-foreground mb-1">{t('todos.allCaughtUp')}</p>
+            <p className="text-sm text-muted-foreground/60">{t('todos.getStarted')}</p>
             <button
               type="button"
               onClick={() => setImportOpen(true)}
               className="mt-3 text-sm text-primary hover:underline underline-offset-4 transition-colors"
             >
-              Or import your to-dos →
+              {t('todos.orImport')}
             </button>
           </div>
         )}
@@ -751,7 +778,7 @@ export default function Todos({ setHeader }: { setHeader: (node: ReactNode | nul
         onCancel={() => setShowClearConfirm(false)}
       />
 
-      <ImportModal open={importOpen} onOpenChange={setImportOpen} description="Import your to-do list.">
+      <ImportModal open={importOpen} onOpenChange={setImportOpen} description={t('todos.importDescription')}>
         <GuidedImport onDone={() => setImportOpen(false)} onSkip={() => setImportOpen(false)} />
       </ImportModal>
     </>

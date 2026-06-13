@@ -16,6 +16,12 @@ interface ChangelogEntry {
 const CHANGELOG: ChangelogEntry[] = [
   {
     date: 'June 2026',
+    title: 'Localisation — Spanish, Portuguese & Italian',
+    description:
+      'The app is now available in English, Spanish, Portuguese (Portugal), and Italian. Change your language from Settings → Account. More languages coming soon.',
+  },
+  {
+    date: 'June 2026',
     title: 'To-Do reliability fixes',
     description:
       'Drag-and-drop reordering is now atomic (no more partial failures). Dropping a card onto a collapsed Done column now auto-expands it. Switching workflow from Board to Simple cleanly resets statuses in one step.',

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { format, parseISO } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -49,6 +50,7 @@ interface Props {
 }
 
 export default function PlanRecipeSheet({ open, recipeName, onClose }: Props) {
+  const { t } = useTranslation()
   const [date, setDate] = useState(tomorrow)
   const [calOpen, setCalOpen] = useState(false)
   const createTodo = useCreateTodo()
@@ -56,10 +58,10 @@ export default function PlanRecipeSheet({ open, recipeName, onClose }: Props) {
 
   function handleSubmit() {
     createTodo.mutate(
-      { name: `Cook ${recipeName}`, due: date },
+      { name: t('planRecipe.cookRecipe', { name: recipeName }), due: date },
       {
         onSuccess: () => {
-          toast.success('Added to to-dos')
+          toast.success(t('planRecipe.addedToTodos'))
           onClose()
         },
       },
@@ -70,7 +72,7 @@ export default function PlanRecipeSheet({ open, recipeName, onClose }: Props) {
 
   const formContent = (
     <div className="px-4 py-5">
-      <label className="text-sm font-medium mb-1.5 block">Date</label>
+      <label className="text-sm font-medium mb-1.5 block">{t('planRecipe.date')}</label>
       <Popover open={calOpen} onOpenChange={setCalOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -81,7 +83,7 @@ export default function PlanRecipeSheet({ open, recipeName, onClose }: Props) {
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(parseISO(date), 'PPP') : <span>Pick a date</span>}
+            {date ? format(parseISO(date), 'PPP') : <span>{t('planRecipe.pickDate')}</span>}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -106,10 +108,10 @@ export default function PlanRecipeSheet({ open, recipeName, onClose }: Props) {
         disabled={!date || createTodo.isPending}
         className="w-full"
       >
-        Add to To-Dos
+        {t('planRecipe.addToTodos')}
       </Button>
       <Button variant="ghost" onClick={onClose} className="w-full">
-        Cancel
+        {t('common.cancel')}
       </Button>
     </>
   )
@@ -119,8 +121,8 @@ export default function PlanRecipeSheet({ open, recipeName, onClose }: Props) {
       <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Plan recipe</DialogTitle>
-            <DialogDescription>Pick a date to add this recipe to your to-dos.</DialogDescription>
+            <DialogTitle>{t('planRecipe.title')}</DialogTitle>
+            <DialogDescription>{t('planRecipe.description')}</DialogDescription>
           </DialogHeader>
           <Separator />
           {formContent}
@@ -137,8 +139,8 @@ export default function PlanRecipeSheet({ open, recipeName, onClose }: Props) {
     <Drawer open={open} onOpenChange={o => { if (!o) onClose() }} disablePreventScroll>
       <DrawerContent className="flex flex-col">
         <DrawerHeader className="text-left pb-3">
-          <DrawerTitle>Plan recipe</DrawerTitle>
-          <DrawerDescription>Pick a date to add this recipe to your to-dos.</DrawerDescription>
+          <DrawerTitle>{t('planRecipe.title')}</DrawerTitle>
+          <DrawerDescription>{t('planRecipe.description')}</DrawerDescription>
         </DrawerHeader>
         <Separator />
         {formContent}

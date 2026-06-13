@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Settings, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
@@ -19,7 +20,17 @@ import { useRegisterSW } from 'virtual:pwa-register/react'
 import InstallBanner from './components/InstallBanner'
 import { useHouseholdTheme, useUpdateHouseholdTheme } from './api/household'
 import { useTheme } from '@/hooks/useTheme'
+import { useMe } from './api/me'
+import i18n from './i18n'
 
+
+function LocaleSync() {
+  const { data } = useMe()
+  useEffect(() => {
+    if (data?.locale) i18n.changeLanguage(data.locale)
+  }, [data?.locale])
+  return null
+}
 
 const RecipeFormPage  = lazy(() => import('./components/RecipeFormPage'))
 const TodoFormPage    = lazy(() => import('./components/TodoFormPage'))
@@ -104,6 +115,7 @@ function SignUpPage() {
 }
 
 function AppShell() {
+  const { t } = useTranslation()
   const [headerContent, setHeaderContent] = useState<ReactNode | null>(null)
   const { householdName } = useHousehold()
   const { data: householdTheme } = useHouseholdTheme()
@@ -128,6 +140,7 @@ function AppShell() {
 
   return (
     <div className="min-h-screen bg-background">
+      <LocaleSync />
       <header className="sticky top-0 z-50 bg-background border-b">
         <div className="max-w-xl mx-auto flex items-center px-2 h-14">
           {headerContent ?? (
@@ -136,7 +149,7 @@ function AppShell() {
                 <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="-ml-2">
                   <ArrowLeft />
                 </Button>
-                <h1 className="flex-1 text-lg font-bold">Settings</h1>
+                <h1 className="flex-1 text-lg font-bold">{t('nav.settings')}</h1>
               </>
             ) : (
               <>
@@ -156,9 +169,9 @@ function AppShell() {
         <div className="bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-200 text-sm border-b border-blue-200 dark:border-blue-800">
           <div className="flex items-center gap-2 px-4 py-3 max-w-xl mx-auto">
             <RefreshCw className="size-4 shrink-0" />
-            <span className="flex-1">Update available</span>
+            <span className="flex-1">{t('nav.updateAvailable')}</span>
             <button onClick={() => updateServiceWorker(true)} className="font-semibold underline">
-              Reload
+              {t('nav.reload')}
             </button>
           </div>
         </div>
@@ -168,7 +181,7 @@ function AppShell() {
         <div className="bg-yellow-50 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 text-sm border-b border-yellow-200 dark:border-yellow-800">
           <div className="flex items-center gap-2 px-4 py-3 max-w-xl mx-auto">
             <WifiOff className="size-4 shrink-0" />
-            Offline — showing cached data
+            {t('nav.offline')}
           </div>
         </div>
       )}
@@ -236,11 +249,11 @@ function AppShell() {
           <div className="max-w-xl mx-auto flex">
             {(
               [
-                { id: 'home'     as TabId, label: 'Home',     icon: <Home className="size-5" /> },
-                { id: 'calendar' as TabId, label: 'Calendar', icon: <CalendarDays className="size-5" /> },
-                { id: 'todos'    as TabId, label: 'To-Dos',   icon: <CheckSquare className="size-5" /> },
-                { id: 'shopping' as TabId, label: 'Shopping', icon: <ShoppingCart className="size-5" /> },
-                { id: 'recipes'  as TabId, label: 'Recipes',  icon: <BookOpen className="size-5" /> },
+                { id: 'home'     as TabId, label: t('nav.home'),     icon: <Home className="size-5" /> },
+                { id: 'calendar' as TabId, label: t('nav.calendar'), icon: <CalendarDays className="size-5" /> },
+                { id: 'todos'    as TabId, label: t('nav.todos'),    icon: <CheckSquare className="size-5" /> },
+                { id: 'shopping' as TabId, label: t('nav.shopping'), icon: <ShoppingCart className="size-5" /> },
+                { id: 'recipes'  as TabId, label: t('nav.recipes'),  icon: <BookOpen className="size-5" /> },
               ] satisfies { id: TabId; label: string; icon: ReactNode }[]
             ).map(({ id, label, icon }) => (
               <button
