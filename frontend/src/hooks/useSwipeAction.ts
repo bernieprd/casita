@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 
 const SWIPE_THRESHOLD = 80
 const HINT_OFFSET = 32
@@ -8,12 +8,23 @@ export function useSwipeAction(onAction: () => void) {
   const isDragging = useRef(false)
   const [offset, setOffset] = useState(0)
   const [isAnimating, setIsAnimating] = useState(false)
+  const timeoutIds = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  useEffect(() => {
+    return () => { timeoutIds.current.forEach(clearTimeout) }
+  }, [])
+
+  const schedule = useCallback((fn: () => void, ms: number) => {
+    const id = setTimeout(fn, ms)
+    timeoutIds.current.push(id)
+    return id
+  }, [])
 
   const snapBack = useCallback(() => {
     setIsAnimating(true)
     setOffset(0)
-    setTimeout(() => setIsAnimating(false), 300)
-  }, [])
+    schedule(() => setIsAnimating(false), 300)
+  }, [schedule])
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.pointerType !== 'touch') return
@@ -38,19 +49,19 @@ export function useSwipeAction(onAction: () => void) {
       // Tap — bounce left as hint then snap back
       setIsAnimating(true)
       setOffset(-HINT_OFFSET)
-      setTimeout(() => {
+      schedule(() => {
         setOffset(0)
-        setTimeout(() => setIsAnimating(false), 300)
+        schedule(() => setIsAnimating(false), 300)
       }, 200)
     } else if (dx <= -SWIPE_THRESHOLD) {
       onAction()
       setIsAnimating(true)
       setOffset(0)
-      setTimeout(() => setIsAnimating(false), 300)
+      schedule(() => setIsAnimating(false), 300)
     } else {
       snapBack()
     }
-  }, [onAction, snapBack])
+  }, [onAction, snapBack, schedule])
 
   const onPointerCancel = useCallback(() => {
     if (!isDragging.current) return

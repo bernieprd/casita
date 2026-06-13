@@ -111,7 +111,7 @@ function ItemCombobox({
                   </CommandItem>
                 ))}
               <CommandEmpty>{t('recipes.noItemsFound')}</CommandEmpty>
-              {search.trim() && (
+              {search.trim() && !allItems.some(i => i.name.toLowerCase() === search.trim().toLowerCase()) && (
                 <CommandItem
                   onSelect={() => {
                     const name = search.trim()

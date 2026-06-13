@@ -22,7 +22,7 @@ export function SwipeAction({ onAction, children }: SwipeActionProps) {
       {/* bg-card covers the green at rest; slides left on swipe */}
       <div
         {...handlers}
-        onClickCapture={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         className="bg-card"
         style={{
           position: 'relative',

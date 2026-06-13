@@ -611,7 +611,7 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
               ))}
               {remainderLabel && (
                 <div onClick={onNavigate} className="px-4 py-2.5 border-t border-border cursor-pointer">
-                  <span className="text-xs text-muted-foreground">{remainderLabel}</span>
+                  <span className="text-xs text-muted-foreground truncate block">{remainderLabel}</span>
                 </div>
               )}
             </>
