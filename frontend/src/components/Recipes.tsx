@@ -139,26 +139,13 @@ function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: str
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <Select value={sortBy} onValueChange={v => setSortBy(v as SortOption)}>
-          <SelectTrigger size="sm" className="w-auto shrink-0">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent align="end">
-            <SelectItem value="name-asc">{t('recipes.sortNameAsc')}</SelectItem>
-            <SelectItem value="name-desc">{t('recipes.sortNameDesc')}</SelectItem>
-            <SelectItem value="updated-desc">{t('recipes.sortRecentlyUpdated')}</SelectItem>
-            <SelectItem value="created-desc">{t('recipes.sortNewest')}</SelectItem>
-            <SelectItem value="created-asc">{t('recipes.sortOldest')}</SelectItem>
-            <SelectItem value="type">{t('recipes.sortGroupByType')}</SelectItem>
-          </SelectContent>
-        </Select>
         <Button size="sm" onClick={() => navigate('/recipes/new')}>
           <Plus className="h-4 w-4 mr-1" /> {t('recipes.new')}
         </Button>
       </div>
     )
     return () => setHeader(null)
-  }, [search, sortBy, setHeader])
+  }, [search, setHeader])
 
   const renderCard = (recipe: NonNullable<typeof recipes>[number]) => (
     <div
@@ -245,6 +232,22 @@ function RecipeGrid({ onSelect, setHeader, initialScroll }: { onSelect: (id: str
 
   return (
     <div>
+      {/* Sort control */}
+      <div className="mb-2">
+        <Select value={sortBy} onValueChange={v => setSortBy(v as SortOption)}>
+          <SelectTrigger size="sm" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name-asc">{t('recipes.sortNameAsc')}</SelectItem>
+            <SelectItem value="name-desc">{t('recipes.sortNameDesc')}</SelectItem>
+            <SelectItem value="updated-desc">{t('recipes.sortRecentlyUpdated')}</SelectItem>
+            <SelectItem value="created-desc">{t('recipes.sortNewest')}</SelectItem>
+            <SelectItem value="created-asc">{t('recipes.sortOldest')}</SelectItem>
+            <SelectItem value="type">{t('recipes.sortGroupByType')}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       {/* Type filter chips */}
       {typeOptions.length > 0 && (
         <div className="flex gap-1.5 flex-wrap mb-3">

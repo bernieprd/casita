@@ -254,7 +254,7 @@ export default function TodoFormPage() {
   }
 
   return (
-    <div className="h-dvh bg-background flex flex-col">
+    <div className="h-dvh bg-background flex flex-col overflow-x-hidden">
       <header className="sticky top-0 z-50 bg-background border-b shrink-0">
         <div className="max-w-xl mx-auto flex items-center px-2 h-14">
           <Button
