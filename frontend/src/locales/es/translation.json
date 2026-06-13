@@ -461,7 +461,9 @@
     "e16_title": "Sincronización con Google Calendar",
     "e16_desc": "Conecta tu Google Calendar para ver los eventos junto a las tareas del hogar.",
     "e17_title": "Rediseño de configuración",
-    "e17_desc": "Las páginas de configuración han sido reorganizadas con un diseño más limpio."
+    "e17_desc": "Las páginas de configuración han sido reorganizadas con un diseño más limpio.",
+    "e18_title": "App para Android e iOS",
+    "e18_desc": "Casita ahora puede empaquetarse como app nativa para Android e iOS mediante Capacitor. La PWA también recibió mejoras: color de tema consistente, mejores iconos (maskable, 64px), accesos directos en la pantalla de inicio para Compras, Tareas y Recetas, y barra de estado de borde a borde en iOS."
   },
   "nav": {
     "settings": "Configuración",

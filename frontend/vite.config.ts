@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
+import { BRAND_BG } from './src/lib/brand'
 
 // The custom GitHub Pages domain serves the app from the site root.
 export default defineConfig({
@@ -14,23 +15,50 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'pwa-64x64.png', 'pwa-192x192.png', 'pwa-512x512.png', 'maskable-icon-512x512.png'],
       manifest: {
         name: 'Casita',
         short_name: 'Casita',
-        description: 'Home shopping & recipes',
-        theme_color: '#fef9c3',
-        background_color: '#fef9c3',
+        description: 'Household management — shopping, recipes, todos & calendar',
+        theme_color: BRAND_BG,
+        background_color: BRAND_BG,
         display: 'standalone',
+        display_override: ['standalone', 'minimal-ui'],
         orientation: 'portrait',
-        start_url: '.',
+        start_url: '/',
+        scope: '/',
+        lang: 'en',
+        dir: 'ltr',
+        categories: ['lifestyle', 'utilities'],
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-          { src: 'apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+          { src: 'pwa-64x64.png',           sizes: '64x64',   type: 'image/png' },
+          { src: 'pwa-192x192.png',          sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png',          sizes: '512x512', type: 'image/png' },
+          { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'apple-touch-icon-180x180.png', sizes: '180x180', type: 'image/png' },
+        ],
+        shortcuts: [
+          {
+            name: 'Shopping List',
+            short_name: 'Shopping',
+            url: '/shopping',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'To-Dos',
+            short_name: 'To-Dos',
+            url: '/todos',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Recipes',
+            short_name: 'Recipes',
+            url: '/recipes',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
         ],
       },
-      devOptions: { enabled: true },
+      devOptions: { enabled: false },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webp,ico,woff2}'],
         globIgnores: ['casita.png'], // original 3.4 MB file — kept as fallback, not precached

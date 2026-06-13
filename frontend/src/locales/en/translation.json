@@ -461,7 +461,9 @@
     "e16_title": "Google Calendar sync",
     "e16_desc": "Connect your Google Calendar to see events alongside your household tasks.",
     "e17_title": "Settings redesign",
-    "e17_desc": "Settings pages have been reorganised with a cleaner layout."
+    "e17_desc": "Settings pages have been reorganised with a cleaner layout.",
+    "e18_title": "Android & iOS app",
+    "e18_desc": "Casita can now be packaged as a native Android and iOS app via Capacitor. The PWA also got improvements: consistent theme color, better icons (maskable, 64px), home-screen shortcuts for Shopping, To-Dos, and Recipes, and edge-to-edge status bar on iOS."
   },
   "nav": {
     "settings": "Settings",

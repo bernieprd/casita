@@ -461,7 +461,9 @@
     "e16_title": "Sincronização com o Google Calendar",
     "e16_desc": "Liga o teu Google Calendar para ver os eventos ao lado das tarefas da casa.",
     "e17_title": "Redesenho das definições",
-    "e17_desc": "As páginas de definições foram reorganizadas com um aspeto mais limpo."
+    "e17_desc": "As páginas de definições foram reorganizadas com um aspeto mais limpo.",
+    "e18_title": "App para Android e iOS",
+    "e18_desc": "O Casita pode agora ser instalado como app nativa para Android e iOS através do Capacitor. A PWA também recebeu melhorias: cor de tema consistente, ícones melhores (maskable, 64px), atalhos no ecrã inicial para Compras, Tarefas e Receitas, e barra de estado de ponta a ponta no iOS."
   },
   "nav": {
     "settings": "Definições",
