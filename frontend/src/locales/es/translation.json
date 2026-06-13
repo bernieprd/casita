@@ -1,6 +1,5 @@
 {
   "common": {
-    "add": "Añadir",
     "cancel": "Cancelar",
     "save": "Guardar",
     "delete": "Eliminar",
@@ -28,7 +27,8 @@
     "reset": "Restablecer",
     "import": "Importar",
     "openLink": "Abrir enlace",
-    "review": "Revisar"
+    "review": "Revisar",
+    "add": "Añadir"
   },
   "errors": {
     "ERR_NO_HOUSEHOLD": "No se encontró ningún hogar. Por favor, únete o crea uno.",
