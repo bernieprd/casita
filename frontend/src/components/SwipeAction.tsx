@@ -20,9 +20,9 @@ export function SwipeAction({ onAction, children }: SwipeActionProps) {
         <Check className="size-5 text-white" />
       </div>
       {/* bg-card covers the green at rest; slides left on swipe */}
+      {/* onClickCapture is intentional: on mobile all interactions go through the swipe gesture, so clicks must never reach children */}
       <div
         {...handlers}
-        {/* Capture-phase block is intentional: on mobile all interactions go through the swipe gesture, so clicks must never reach children */}
         onClickCapture={(e) => e.stopPropagation()}
         className="bg-card"
         style={{
