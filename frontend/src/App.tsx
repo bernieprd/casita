@@ -74,7 +74,7 @@ function SuspenseFallback() {
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user } = useAuth()
-  const { householdId, isLoading: isHouseholdLoading } = useHousehold()
+  const { householdId, isLoading: isHouseholdLoading, fetchError, refreshHousehold } = useHousehold()
   const { isSignedIn: isClerkSignedIn, isLoaded: isClerkLoaded } = useUser()
   const location = useLocation()
 
@@ -83,9 +83,24 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   // Not authenticated → sign-in
   if (!user) return <Navigate to="/sign-in" state={{ from: location }} replace />
 
-  // Clerk user: wait for household fetch, then redirect to setup if needed
+  // Clerk user: wait for household fetch, then handle result
   if (isClerkSignedIn) {
     if (isHouseholdLoading) return <Spinner />
+    // If the fetch failed (network error, 401, 500, etc.) show a retry screen.
+    // Don't redirect to /household/setup — that would be incorrect and confusing.
+    if (fetchError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-4">
+          <p className="text-sm text-muted-foreground text-center">
+            Could not load your household. Check your connection and try again.
+          </p>
+          <Button onClick={refreshHousehold} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      )
+    }
     if (householdId === null) return <Navigate to="/household/setup" replace />
   }
 

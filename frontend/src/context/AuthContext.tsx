@@ -25,10 +25,11 @@ export interface HouseholdState {
   householdName: string | null
   role: 'owner' | 'member' | null
   isLoading: boolean
+  fetchError: boolean
   refreshHousehold: () => void
 }
 
-const HouseholdContext = createContext<(HouseholdState & { refreshHousehold: () => void }) | null>(null)
+const HouseholdContext = createContext<HouseholdState | null>(null)
 
 // ---------------------------------------------------------------------------
 // AuthProvider — registers Clerk's getToken with the api client and provides
@@ -90,17 +91,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     householdName: null,
     role: null,
     isLoading: true,
+    fetchError: false,
   })
 
   useEffect(() => {
     if (!isClerkLoaded) return
     if (!clerkUser) {
-      setHouseholdState({ householdId: null, householdName: null, role: null, isLoading: false })
+      setHouseholdState({ householdId: null, householdName: null, role: null, isLoading: false, fetchError: false })
       return
     }
 
     let cancelled = false
-    setHouseholdState(prev => ({ ...prev, isLoading: true }))
+    setHouseholdState(prev => ({ ...prev, isLoading: true, fetchError: false }))
 
     api
       .get<{ householdId: string | null; householdName?: string | null; role?: 'owner' | 'member' | null }>('/household/me')
@@ -111,11 +113,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           householdName: data.householdName ?? null,
           role: data.role ?? null,
           isLoading: false,
+          fetchError: false,
         })
       })
       .catch(() => {
         if (cancelled) return
-        setHouseholdState({ householdId: null, householdName: null, role: null, isLoading: false })
+        // Keep householdId as null but flag the error so ProtectedRoute can show
+        // a retry UI instead of redirecting to the setup screen. Without this
+        // distinction a transient 401/500 looks identical to "user has no household".
+        setHouseholdState(prev => ({ ...prev, isLoading: false, fetchError: true }))
       })
 
     return () => { cancelled = true }
@@ -140,7 +146,7 @@ export function useAuth(): AuthContextValue {
   return ctx
 }
 
-export function useHousehold(): HouseholdState & { refreshHousehold: () => void } {
+export function useHousehold(): HouseholdState {
   const ctx = useContext(HouseholdContext)
   if (!ctx) throw new Error('useHousehold must be used inside AuthProvider')
   return ctx
