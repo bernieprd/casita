@@ -10,6 +10,7 @@ type RecipeRow = {
   url: string | null
   cover_photo_url: string | null
   share_token: string | null
+  share_token_expires_at: number | null
   created_at: number
   updated_at: number
 }
@@ -205,27 +206,36 @@ export async function getRecipeIngredients(
   return Response.json(results.map(rowToIngredient))
 }
 
+const SHARE_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
+
 export async function shareRecipe(_req: Request, env: Env, ctx: RequestContext, recipeId: string): Promise<Response> {
   if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
-  // Check for existing share token in D1
   const existing = await env.DB.prepare(
-    'SELECT share_token FROM recipes WHERE id = ? AND household_id = ?',
-  ).bind(recipeId, ctx.householdId).first<{ share_token: string | null }>()
+    'SELECT share_token, share_token_expires_at FROM recipes WHERE id = ? AND household_id = ?',
+  ).bind(recipeId, ctx.householdId).first<{ share_token: string | null; share_token_expires_at: number | null }>()
 
   if (!existing) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
 
   const appUrl = getAppBaseUrl(env)
+  const now = Date.now()
 
-  if (existing.share_token) {
-    return Response.json({ token: existing.share_token, url: `${appUrl}/share/${existing.share_token}` })
+  // Return existing token if it's still valid (null expiry = legacy token, treated as valid)
+  if (existing.share_token && (existing.share_token_expires_at === null || existing.share_token_expires_at > now)) {
+    return Response.json({
+      token: existing.share_token,
+      url: `${appUrl}/share/${existing.share_token}`,
+      expiresAt: existing.share_token_expires_at,
+    })
   }
 
+  // Generate new token (first share, or previous token expired)
   const token = crypto.randomUUID()
+  const expiresAt = now + SHARE_TOKEN_TTL_MS
 
   await env.DB.prepare(
-    'UPDATE recipes SET share_token = ? WHERE id = ? AND household_id = ?',
-  ).bind(token, recipeId, ctx.householdId).run()
+    'UPDATE recipes SET share_token = ?, share_token_expires_at = ? WHERE id = ? AND household_id = ?',
+  ).bind(token, expiresAt, recipeId, ctx.householdId).run()
 
   // Clean up legacy KV keys if they exist
   await Promise.all([
@@ -233,7 +243,7 @@ export async function shareRecipe(_req: Request, env: Env, ctx: RequestContext, 
     env.AUTH_KV.delete(`share-recipe:${recipeId}`),
   ])
 
-  return Response.json({ token, url: `${appUrl}/share/${token}` }, { status: 201 })
+  return Response.json({ token, url: `${appUrl}/share/${token}`, expiresAt }, { status: 201 })
 }
 
 export async function deleteRecipe(_req: Request, env: Env, ctx: RequestContext, id: string): Promise<Response> {
@@ -260,6 +270,11 @@ export async function getPublicRecipe(_req: Request, env: Env, token: string): P
   ).bind(token).first<RecipeRow>()
 
   if (!row) return Response.json({ error: 'ERR_NOT_FOUND' }, { status: 404 })
+
+  // Reject expired tokens; null expiry = legacy token, always valid
+  if (row.share_token_expires_at !== null && row.share_token_expires_at < Date.now()) {
+    return Response.json({ error: 'ERR_LINK_EXPIRED' }, { status: 410 })
+  }
 
   const [blocks, ingredients] = await Promise.all([
     env.DB.prepare(
