@@ -6,6 +6,57 @@ Enable users to opt into email notifications and deliver a small set of high-val
 
 ---
 
+## Email provider comparison
+
+All options below work from a Cloudflare Worker via the fetch API. "Workers compatibility" refers to how naturally the provider integrates without a heavy SDK.
+
+| Provider | Free tier | ~10k/mo cost | Workers fit | Best for |
+|---|---|---|---|---|
+| **Resend** | 3k/mo (100/day) | ~$20 | Excellent — REST-only, built for edge | V1 default |
+| **Brevo** | 9k/mo (300/day) | ~$22 | Good — REST API | Highest free headroom |
+| **SendGrid** | 3k/mo (100/day) | ~$20 | Good — REST API | Established deliverability |
+| **Mailgun** | 5k/mo (card req.) | ~$30 | Excellent — clean REST API | Flexibility at scale |
+| **Postmark** | 100/mo only | $15 (25k plan) | Excellent — simple REST | Best deliverability |
+| **AWS SES** | 62k/mo (yr 1) | ~$1 | Poor — heavy SDK, SigV4 auth | Cost at high volume |
+
+### Detail breakdown
+
+**Resend** *(recommended for V1)*
+- Pros: Designed for serverless/edge, minimal setup, simple REST API, good DX, fast domain verification
+- Cons: Newest entrant (less track record), 100/day free cap is tight if growth is fast
+- Notes: `RESEND_API_KEY` secret + a single `fetch` call — no SDK needed in the worker
+
+**Brevo** *(best free tier)*
+- Pros: 300 emails/day free is the highest of any provider, includes basic CRM features, GDPR-friendly EU infrastructure
+- Cons: Less developer-focused docs, slower API response times, EU-first means slightly higher latency from Cloudflare US PoPs
+- Notes: Good fallback if Resend's free tier becomes a constraint before V2 is ready
+
+**SendGrid** *(established choice)*
+- Pros: Industry standard, excellent deliverability reputation, large ecosystem, strong analytics dashboard
+- Cons: Twilio acquisition degraded DX somewhat, pricing tiers are confusing, legacy UI
+- Notes: REST API works fine from Workers; avoid the Node SDK
+
+**Mailgun** *(scale-friendly)*
+- Pros: Very flexible API, good developer docs, cost-effective at higher volumes
+- Cons: Requires a credit card even for the free tier, onboarding is less streamlined than Resend
+- Notes: Worth revisiting at V2/V3 if send volume grows
+
+**Postmark** *(deliverability-first)*
+- Pros: Laser-focused on transactional mail (no marketing bleed), exceptional inbox rates, transparent flat-rate pricing
+- Cons: Only 100 emails/month free — essentially no free tier; more expensive per email than others
+- Notes: Worth considering if deliverability issues arise with the chosen provider
+
+**AWS SES** *(cheapest at scale)*
+- Pros: ~$0.10 per 1k emails — unbeatable price at volume, rock-solid infrastructure
+- Cons: Requires SigV4 request signing (complex from a Worker without the AWS SDK), IAM setup overhead, not beginner-friendly
+- Notes: Only worth the complexity if sending hundreds of thousands of emails/month
+
+### Decision for this project
+
+**Resend** for V1. Reasons: zero-friction setup, native fetch API (no SDK bloat in the Worker bundle), sufficient free tier for early users, and straightforward domain verification. Revisit **Mailgun** or **AWS SES** if monthly volume exceeds ~50k emails.
+
+---
+
 ## Long-term roadmap
 
 | Phase | Scope |
