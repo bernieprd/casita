@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isClerkLoaded) return
     if (!clerkUser) {
-      setHouseholdState({ householdId: null, householdName: null, role: null, isLoading: false })
+      setHouseholdState({ householdId: null, householdName: null, role: null, isLoading: false, fetchError: false })
       return
     }
 

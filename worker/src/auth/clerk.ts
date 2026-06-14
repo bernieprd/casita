@@ -5,8 +5,12 @@ export function getClerkClient(env: Env) {
   return createClerkClient({ secretKey: env.CLERK_SECRET_KEY })
 }
 
-// Cache derived PEM keyed by (secretKey, kid) so we only pay the JWKS round-trip once
-// per isolate lifetime. Re-fetch after 24 h to handle key rotation.
+// ⚠️  DO NOT change the JWKS fetch strategy here and deploy directly to production for Android/iOS
+// testing. The production Clerk instance may use a custom frontend-API domain that won't match
+// any alternative trusted-issuer allowlist, which silently breaks authentication for everyone.
+// If you need to test a different JWKS approach, use a staging environment first.
+//
+// Cache PEM keyed by (secretKey, kid). Re-fetch after 24 h to handle key rotation.
 const _pemCache = new Map<string, { pem: string; expiry: number }>()
 
 async function getPemForKid(secretKey: string, kid: string): Promise<string> {
