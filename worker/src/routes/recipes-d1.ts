@@ -84,6 +84,10 @@ export async function createRecipe(req: Request, env: Env, ctx: RequestContext):
     instructions?: string
   }>()
 
+  if (!body.name || body.name.length > 200) return Response.json({ error: 'ERR_INVALID_NAME' }, { status: 400 })
+  if (body.instructions && body.instructions.length > 20_000) return Response.json({ error: 'ERR_INSTRUCTIONS_TOO_LONG' }, { status: 400 })
+  if (body.url && body.url.length > 2000) return Response.json({ error: 'ERR_URL_TOO_LONG' }, { status: 400 })
+
   const id = crypto.randomUUID()
   const now = Date.now()
 
@@ -146,6 +150,10 @@ export async function updateRecipe(req: Request, env: Env, ctx: RequestContext, 
     coverUrl?: string | null
     instructions?: string
   }>()
+
+  if ('name' in body && (!body.name || body.name.length > 200)) return Response.json({ error: 'ERR_INVALID_NAME' }, { status: 400 })
+  if ('instructions' in body && body.instructions && body.instructions.length > 20_000) return Response.json({ error: 'ERR_INSTRUCTIONS_TOO_LONG' }, { status: 400 })
+  if ('url' in body && body.url && body.url.length > 2000) return Response.json({ error: 'ERR_URL_TOO_LONG' }, { status: 400 })
 
   const fields: string[] = ['updated_at = ?']
   const values: unknown[] = [Date.now()]

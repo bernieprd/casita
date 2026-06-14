@@ -165,6 +165,8 @@ export interface Env {
   CLERK_SECRET_KEY: string
   CLERK_JWT_KEY?: string // PEM public key — enables local JWT verification (no network call)
   ADMIN_MIGRATE_SECRET?: string
+  RATE_LIMITER: RateLimit
+  ADMIN_RATE_LIMITER: RateLimit
 }
 
 export const DEFAULT_APP_URL = 'https://dashboard.mycasita.app'
