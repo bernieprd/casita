@@ -268,6 +268,7 @@ export async function updateHouseholdSettings(
   ctx: RequestContext,
 ): Promise<Response> {
   if (!ctx.householdId) return err(403, 'ERR_FORBIDDEN')
+  if (ctx.role !== 'owner') return err(403, 'ERR_FORBIDDEN')
 
   const body = await req.json<Record<string, unknown>>()
   const { colorScheme: _dropped, ...rest } = body

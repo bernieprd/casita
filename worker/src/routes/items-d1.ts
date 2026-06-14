@@ -61,6 +61,8 @@ export async function createItem(req: Request, env: Env, ctx: RequestContext): P
     onShoppingList?: boolean
   }>()
 
+  if (!body.name || body.name.trim().length === 0 || body.name.length > 500) return Response.json({ error: 'ERR_INVALID_NAME' }, { status: 400 })
+
   const id = crypto.randomUUID()
   const now = Date.now()
 
@@ -90,6 +92,8 @@ export async function updateItem(req: Request, env: Env, ctx: RequestContext, id
     supermarkets?: string[]
     onShoppingList?: boolean
   }>()
+
+  if ('name' in body && (!body.name || body.name.trim().length === 0 || body.name.length > 500)) return Response.json({ error: 'ERR_INVALID_NAME' }, { status: 400 })
 
   const fields: string[] = ['updated_at = ?']
   const values: unknown[] = [Date.now()]

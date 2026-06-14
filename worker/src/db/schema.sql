@@ -64,9 +64,10 @@ CREATE TABLE IF NOT EXISTS recipes (
   day             TEXT,
   url             TEXT,
   cover_photo_url TEXT,
-  share_token     TEXT UNIQUE,
-  created_at      INTEGER NOT NULL,
-  updated_at      INTEGER NOT NULL
+  share_token            TEXT UNIQUE,
+  share_token_expires_at INTEGER,         -- Unix ms; NULL = legacy token (no expiry)
+  created_at             INTEGER NOT NULL,
+  updated_at             INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS recipes_household   ON recipes(household_id);
 CREATE INDEX IF NOT EXISTS recipes_share_token ON recipes(share_token);

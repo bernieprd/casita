@@ -64,7 +64,17 @@ const publicRoutes: Array<[string, URLPattern, PublicHandler]> = [
   ['GET',    new URLPattern({ pathname: '/recipe-photos/:key',      search: '*' }), serveRecipePhoto],
 ]
 
+async function checkAdminRateLimit(req: Request, env: Env): Promise<Response | null> {
+  const ip = req.headers.get('CF-Connecting-IP') ?? 'unknown'
+  const { success } = await env.ADMIN_RATE_LIMITER.limit({ key: ip })
+  if (!success) return Response.json({ error: 'Too Many Requests' }, { status: 429 })
+  return null
+}
+
 async function handleAdminMigrate(req: Request, env: Env): Promise<Response> {
+  const limited = await checkAdminRateLimit(req, env)
+  if (limited) return limited
+  console.log(`[ADMIN] migrate from ${req.headers.get('CF-Connecting-IP') ?? 'unknown'}`)
   const secret = req.headers.get('X-Admin-Secret')
   if (!secret || secret !== env.ADMIN_MIGRATE_SECRET) {
     return Response.json({ error: 'Forbidden' }, { status: 403 })
@@ -94,6 +104,9 @@ async function handleAdminMigrate(req: Request, env: Env): Promise<Response> {
 }
 
 async function handleBackfillEmails(req: Request, env: Env): Promise<Response> {
+  const limited = await checkAdminRateLimit(req, env)
+  if (limited) return limited
+  console.log(`[ADMIN] backfill-emails from ${req.headers.get('CF-Connecting-IP') ?? 'unknown'}`)
   const secret = req.headers.get('X-Admin-Secret')
   if (!secret || secret !== env.ADMIN_MIGRATE_SECRET) {
     return Response.json({ error: 'Forbidden' }, { status: 403 })
@@ -124,6 +137,9 @@ async function handleBackfillEmails(req: Request, env: Env): Promise<Response> {
 }
 
 async function handleMigrateKvToEmail(req: Request, env: Env): Promise<Response> {
+  const limited = await checkAdminRateLimit(req, env)
+  if (limited) return limited
+  console.log(`[ADMIN] migrate-kv-to-email from ${req.headers.get('CF-Connecting-IP') ?? 'unknown'}`)
   const secret = req.headers.get('X-Admin-Secret')
   if (!secret || secret !== env.ADMIN_MIGRATE_SECRET) {
     return Response.json({ error: 'Forbidden' }, { status: 403 })
@@ -251,6 +267,10 @@ export default {
       const verified = await verifyClerkToken(token, env)
       if (!verified) return err(401, 'ERR_UNAUTHORIZED', origin)
       const { userId: clerkUserId, email } = verified
+
+      // Rate limit per authenticated user
+      const { success: withinLimit } = await env.RATE_LIMITER.limit({ key: clerkUserId })
+      if (!withinLimit) return err(429, 'ERR_RATE_LIMITED', origin)
 
       // Resolve household membership from D1
       let membership = await env.DB.prepare(
