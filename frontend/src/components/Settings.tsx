@@ -628,7 +628,7 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
             variant="outline"
             size="sm"
             className="mt-1 text-destructive border-destructive/50 hover:bg-destructive/10"
-            onClick={() => disconnectGoogle()}
+            onClick={() => disconnectGoogle(undefined)}
           >
             Disconnect
           </Button>
