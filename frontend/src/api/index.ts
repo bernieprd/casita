@@ -1,4 +1,4 @@
-export type { Item, Recipe, RecipeWithBlocks, Block, RecipeIngredient, Todo, CalendarEvent, UserCalendar } from './types'
+export type { Item, Recipe, RecipeWithBlocks, Block, RecipeIngredient, Todo, CalendarEvent, UserCalendar, ConnectedAccount } from './types'
 export { itemKeys, itemsApi, useItems, useShoppingList, useCreateItem, useUpdateItem, useDeleteItem, useToggleShoppingList, useMergeItems } from './items'
 export { recipeKeys, recipesApi, useRecipes, useRecipe, useCreateRecipe, useEditRecipe, useDeleteRecipe, useShareRecipe, usePublicRecipe } from './recipes'
 export type { RecipeBody, CreateRecipeVars, EditRecipeVars } from './recipes'

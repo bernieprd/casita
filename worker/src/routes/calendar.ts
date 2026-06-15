@@ -1,5 +1,5 @@
-import type { Env, CalendarEvent, UserCalendar, SharedCalendar, RequestContext } from '../types'
-import { getValidAccessToken } from './google-auth'
+import type { Env, CalendarEvent, UserCalendar, SharedCalendar, ConnectedAccount, RequestContext } from '../types'
+import { getValidAccessToken, ensureMigrated } from './google-auth'
 
 // ── Google Calendar color map ─────────────────────────────────────────────────
 
@@ -42,16 +42,17 @@ interface FreeBusyResponse {
   calendars: Record<string, { busy: Array<{ start: string; end: string }> }>
 }
 
-async function fetchUserOAuthEvents(
-  email: string,
+async function fetchGoogleAccountEvents(
+  userEmail: string,
+  accountEmail: string,
   env: Env,
   timeMin: string,
   timeMax: string,
 ): Promise<CalendarEvent[]> {
-  const accessToken = await getValidAccessToken(email, env)
+  const accessToken = await getValidAccessToken(userEmail, accountEmail, env)
   if (!accessToken) return []
 
-  const calendarsRaw = await env.AUTH_KV.get(`user_calendars:${email}`)
+  const calendarsRaw = await env.AUTH_KV.get(`user_calendars:${userEmail}:google:${accountEmail}`)
   if (!calendarsRaw) return []
 
   const allCalendars = JSON.parse(calendarsRaw) as UserCalendar[]
@@ -67,10 +68,9 @@ async function fetchUserOAuthEvents(
     ),
   )
 
-  // Check for 401 from any calendar — revoke tokens and bail out
   for (const result of results) {
     if (result.status === 'fulfilled' && result.value.res.status === 401) {
-      await env.AUTH_KV.delete(`google_tokens:${email}`)
+      await env.AUTH_KV.delete(`oauth_tokens:${userEmail}:google:${accountEmail}`)
       return []
     }
   }
@@ -158,6 +158,19 @@ async function fetchFreeBusyCalendar(
   }))
 }
 
+async function resolveSharedEntryToken(entry: SharedCalendar, env: Env): Promise<string | null> {
+  if (entry.accountEmail) {
+    return getValidAccessToken(entry.ownerEmail, entry.accountEmail, env)
+  }
+  // Fallback for legacy index entries without accountEmail
+  const accountsRaw = await env.AUTH_KV.get(`connected_accounts:${entry.ownerEmail}`)
+  if (!accountsRaw) return null
+  const accounts = JSON.parse(accountsRaw) as ConnectedAccount[]
+  const first = accounts[0]
+  if (!first) return null
+  return getValidAccessToken(entry.ownerEmail, first.accountEmail, env)
+}
+
 async function fetchSharedCalendarEvents(
   email: string,
   householdId: string | null,
@@ -171,15 +184,12 @@ async function fetchSharedCalendarEvents(
   if (!raw) return []
 
   const index = JSON.parse(raw) as SharedCalendar[]
-
-  // Skip entries owned by the requesting user — already fetched via fetchUserOAuthEvents
   const othersEntries = index.filter(e => e.ownerEmail !== email)
-
   if (othersEntries.length === 0) return []
 
   const results = await Promise.allSettled(
     othersEntries.map(async entry => {
-      const accessToken = await getValidAccessToken(entry.ownerEmail, env)
+      const accessToken = await resolveSharedEntryToken(entry, env)
       if (!accessToken) return [] as CalendarEvent[]
       if (entry.visibility === 'household') {
         return fetchFullSharedCalendar(entry, accessToken, timeMin, timeMax)
@@ -210,11 +220,19 @@ export async function getCalendarEvents(
   const email = ctx.email
 
   try {
-    const [userEvents, sharedEvents] = await Promise.all([
-      fetchUserOAuthEvents(email, env, timeMin, timeMax),
+    await ensureMigrated(email, env)
+
+    const accountsRaw = await env.AUTH_KV.get(`connected_accounts:${email}`)
+    const accounts: ConnectedAccount[] = accountsRaw ? JSON.parse(accountsRaw) : []
+
+    const [userEventsSettled, sharedEvents] = await Promise.all([
+      Promise.allSettled(
+        accounts.map(account => fetchGoogleAccountEvents(email, account.accountEmail, env, timeMin, timeMax)),
+      ),
       fetchSharedCalendarEvents(email, ctx.householdId, env, timeMin, timeMax),
     ])
 
+    const userEvents = userEventsSettled.flatMap(r => r.status === 'fulfilled' ? r.value : [])
     const events = [...userEvents, ...sharedEvents]
       .sort((a, b) => a.start.localeCompare(b.start))
 
