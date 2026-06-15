@@ -167,6 +167,8 @@ export interface Env {
   ADMIN_MIGRATE_SECRET?: string
   RATE_LIMITER: RateLimit
   ADMIN_RATE_LIMITER: RateLimit
+  RESEND_API_KEY: string
+  RESEND_FROM_EMAIL?: string
 }
 
 export const DEFAULT_APP_URL = 'https://dashboard.mycasita.app'
