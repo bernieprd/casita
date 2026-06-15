@@ -52,8 +52,10 @@ export function useUpdateUserCalendars() {
 export function useDisconnectGoogle() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (accountEmail: string) =>
-      api.delete(`/auth/google?account=${encodeURIComponent(accountEmail)}`),
+    mutationFn: (accountEmail?: string) =>
+      accountEmail
+        ? api.delete(`/auth/google?account=${encodeURIComponent(accountEmail)}`)
+        : api.delete('/auth/google'),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: googleCalendarKeys.status })
       qc.invalidateQueries({ queryKey: googleCalendarKeys.calendars })
