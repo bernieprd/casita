@@ -402,6 +402,33 @@
       "addType": "Añadir un tipo"
     }
   },
+  "onboarding": {
+    "next": "Siguiente",
+    "back": "Volver",
+    "letsGo": "¡Empecemos!",
+    "slides": {
+      "welcome": {
+        "title": "Bienvenido a {{name}}",
+        "description": "Aquí tienes un rápido recorrido por lo que Casita puede hacer por tu hogar."
+      },
+      "shopping": {
+        "title": "Lista de la compra inteligente",
+        "description": "Organiza artículos por categoría y tienda. Casita te indica la mejor tienda para tu próxima visita."
+      },
+      "recipes": {
+        "title": "Colección de recetas",
+        "description": "Guarda recetas con ingredientes que se añaden automáticamente a tu lista de la compra."
+      },
+      "todos": {
+        "title": "Tareas del hogar",
+        "description": "Asigna tareas a miembros, establece prioridades, fechas de vencimiento y horarios recurrentes."
+      },
+      "calendar": {
+        "title": "Sincronización de calendario",
+        "description": "Conecta Google Calendar para ver los eventos de todos junto a las tareas del hogar."
+      }
+    }
+  },
   "household": {
     "setup": {
       "welcome": "Bienvenido a Casita",
@@ -461,7 +488,9 @@
     "e16_title": "Sincronización con Google Calendar",
     "e16_desc": "Conecta tu Google Calendar para ver los eventos junto a las tareas del hogar.",
     "e17_title": "Rediseño de configuración",
-    "e17_desc": "Las páginas de configuración han sido reorganizadas con un diseño más limpio."
+    "e17_desc": "Las páginas de configuración han sido reorganizadas con un diseño más limpio.",
+    "e18_title": "Tour de bienvenida al hogar",
+    "e18_desc": "Los nuevos miembros y los que se unen ahora ven un rápido recorrido por las funciones al entrar por primera vez en un hogar, para que todos comiencen con el mismo conocimiento."
   },
   "nav": {
     "settings": "Configuración",

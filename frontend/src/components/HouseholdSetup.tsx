@@ -9,7 +9,6 @@ import { useClerk } from '@clerk/clerk-react'
 import { api } from '../api/client'
 import { useHousehold } from '../context/AuthContext'
 import { useDeleteAccount } from '../api/account'
-import GuidedImport from './GuidedImport'
 import { useTranslation } from 'react-i18next'
 import { translateError } from '@/lib/errors'
 
@@ -21,7 +20,6 @@ export default function HouseholdSetup() {
   const { mutate: deleteAccount, isPending: deletingAccount } = useDeleteAccount()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [tab, setTab] = useState<'create' | 'join'>('create')
-  const [showImport, setShowImport] = useState(false)
 
   // Create flow state
   const [householdName, setHouseholdName] = useState('')
@@ -34,8 +32,8 @@ export default function HouseholdSetup() {
   const [joinError, setJoinError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isLoading && householdId !== null && !showImport) navigate('/', { replace: true })
-  }, [householdId, isLoading, navigate, showImport])
+    if (!isLoading && householdId !== null) navigate('/', { replace: true })
+  }, [householdId, isLoading, navigate])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -45,8 +43,8 @@ export default function HouseholdSetup() {
       await api.post<{ id: string; name: string }>('/household', {
         name: householdName.trim(),
       })
+      localStorage.setItem('casita_onboarding_pending', 'created')
       refreshHousehold()
-      setShowImport(true)
     } catch (err) {
       setCreateError(translateError(err instanceof Error ? err.message : 'ERR_INTERNAL', t))
     } finally {
@@ -60,6 +58,7 @@ export default function HouseholdSetup() {
     setJoinLoading(true)
     try {
       await api.post<{ id: string; name: string }>('/household/join', { inviteCode: inviteCode.trim() })
+      localStorage.setItem('casita_onboarding_pending', 'joined')
       refreshHousehold()
       navigate('/', { replace: true })
     } catch (err) {
@@ -67,25 +66,6 @@ export default function HouseholdSetup() {
     } finally {
       setJoinLoading(false)
     }
-  }
-
-  if (showImport) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="w-full max-w-sm">
-          <h1 className="text-xl font-bold mb-1 text-center">{t('household.setup.welcome')}</h1>
-          <p className="text-sm text-muted-foreground text-center mb-6">
-            {t('household.setup.allSetUp')}
-          </p>
-          <div className="bg-card rounded-xl shadow-sm p-6">
-            <GuidedImport
-              onDone={() => navigate('/', { replace: true })}
-              onSkip={() => navigate('/', { replace: true })}
-            />
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (
