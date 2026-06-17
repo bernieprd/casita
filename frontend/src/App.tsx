@@ -1,7 +1,7 @@
-import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Settings, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { itemKeys, itemsApi, todoKeys, todosApi } from './api'
 import { useOnlineStatus } from './useOnlineStatus'
@@ -22,6 +22,7 @@ import { useHouseholdTheme, useUpdateHouseholdTheme } from './api/household'
 import { useTheme } from '@/hooks/useTheme'
 import { useMe } from './api/me'
 import i18n from './i18n'
+import { normalizeLocale } from './lib/clerkLocalizations'
 
 
 function LocaleSync() {
@@ -108,8 +109,30 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
+function useAuthLocale() {
+  const [searchParams] = useSearchParams()
+  const appliedRef = useRef(false)
+
+  useEffect(() => {
+    if (appliedRef.current) return
+    appliedRef.current = true
+
+    const queryLocale = searchParams.get('locale')
+    if (queryLocale) {
+      i18n.changeLanguage(normalizeLocale(queryLocale))
+      return
+    }
+    // Navigator fallback — only when no stored preference exists yet
+    if (i18n.language === 'en') {
+      const browserLocale = normalizeLocale(navigator.language)
+      if (browserLocale !== 'en') i18n.changeLanguage(browserLocale)
+    }
+  }, [searchParams])
+}
+
 function SignInPage() {
   const { isSignedIn, isLoaded } = useUser()
+  useAuthLocale()
   if (!isLoaded) return <Spinner />
   if (isSignedIn) return <Navigate to="/" replace />
   return (
@@ -121,6 +144,7 @@ function SignInPage() {
 
 function SignUpPage() {
   const { isSignedIn, isLoaded } = useUser()
+  useAuthLocale()
   if (!isLoaded) return <Spinner />
   if (isSignedIn) return <Navigate to="/household/setup" replace />
   return (

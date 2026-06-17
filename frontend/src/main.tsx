@@ -2,7 +2,7 @@ import './index.css'
 import './i18n'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { ClerkProvider } from '@clerk/clerk-react'
+import { LocalizedClerkProvider } from './components/LocalizedClerkProvider'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { createBrowserRouter, RouterProvider, Route, createRoutesFromElements } from 'react-router-dom'
@@ -24,18 +24,12 @@ applyTheme(loadTheme())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ClerkProvider
-      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string}
-      signInUrl="/sign-in"
-      signUpUrl="/sign-up"
-      signInFallbackRedirectUrl="/"
-      signUpFallbackRedirectUrl="/household/setup"
-    >
+    <LocalizedClerkProvider>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
         <Toaster richColors position="top-center" />
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
-    </ClerkProvider>
+    </LocalizedClerkProvider>
   </StrictMode>,
 )
