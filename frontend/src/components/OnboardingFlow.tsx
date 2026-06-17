@@ -19,14 +19,16 @@ import GuidedImport from './GuidedImport'
 
 // ── Preview components ────────────────────────────────────────────────────────
 
+// Static icon list for WelcomePreview — keys reuse existing nav.* translations
+const WELCOME_FEATURES: { Icon: LucideIcon; navKey: string }[] = [
+  { Icon: CalendarDays, navKey: 'nav.calendar' },
+  { Icon: CheckSquare,  navKey: 'nav.todos' },
+  { Icon: ShoppingCart, navKey: 'nav.shopping' },
+  { Icon: BookOpen,     navKey: 'nav.recipes' },
+]
+
 function WelcomePreview() {
-  // Icons in bottom-tab order: Calendar, Todos, Shopping, Recipes
-  const features: { Icon: LucideIcon; label: string }[] = [
-    { Icon: CalendarDays, label: 'Calendar' },
-    { Icon: CheckSquare,  label: 'To-Dos' },
-    { Icon: ShoppingCart, label: 'Shopping' },
-    { Icon: BookOpen,     label: 'Recipes' },
-  ]
+  const { t } = useTranslation()
 
   // phase: 'enter' | 'hold' | 'exit' | 'reset'
   const [phase, setPhase] = useState<'enter' | 'hold' | 'exit' | 'reset'>('enter')
@@ -39,26 +41,26 @@ function WelcomePreview() {
       // Phase A: stagger icons in
       setPhase('enter')
       setCount(0)
-      features.forEach((_, i) => {
+      WELCOME_FEATURES.forEach((_, i) => {
         timers.push(setTimeout(() => setCount(i + 1), i * 130))
       })
 
       // Phase B: hold
-      const holdStart = features.length * 130 + 200
+      const holdStart = WELCOME_FEATURES.length * 130 + 200
       timers.push(setTimeout(() => setPhase('hold'), holdStart))
 
       // Phase C: stagger icons out (upward)
       const exitStart = holdStart + 900
       timers.push(setTimeout(() => {
         setPhase('exit')
-        setCount(features.length)
-        features.forEach((_, i) => {
-          timers.push(setTimeout(() => setCount(features.length - i - 1), i * 100))
+        setCount(WELCOME_FEATURES.length)
+        WELCOME_FEATURES.forEach((_, i) => {
+          timers.push(setTimeout(() => setCount(WELCOME_FEATURES.length - i - 1), i * 100))
         })
       }, exitStart))
 
       // Phase D: reset, then loop
-      const resetStart = exitStart + features.length * 100 + 300
+      const resetStart = exitStart + WELCOME_FEATURES.length * 100 + 300
       timers.push(setTimeout(() => {
         setPhase('reset')
         setCount(0)
@@ -68,11 +70,11 @@ function WelcomePreview() {
 
     runCycle()
     return () => timers.forEach(clearTimeout)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="flex gap-5 justify-center items-center">
-      {features.map(({ Icon, label }, i) => {
+      {WELCOME_FEATURES.map(({ Icon, navKey }, i) => {
         let visible = false
         let exitUp = false
         if (phase === 'enter') visible = i < count
@@ -82,7 +84,7 @@ function WelcomePreview() {
 
         return (
           <div
-            key={label}
+            key={navKey}
             className={cn(
               'flex flex-col items-center gap-1.5 transition-all duration-400',
               phase === 'reset' && 'duration-0',
@@ -96,7 +98,7 @@ function WelcomePreview() {
             <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center">
               <Icon className="size-5 text-primary" />
             </div>
-            <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
+            <span className="text-[11px] font-medium text-muted-foreground">{t(navKey)}</span>
           </div>
         )
       })}
@@ -106,12 +108,15 @@ function WelcomePreview() {
 
 type ShoppingPhase = 'entering' | 'checking' | 'clearing' | 'reset'
 
+// Static item list for ShoppingPreview — nameKey resolves via t(), store is a proper noun
+const SHOPPING_ITEMS: { nameKey: string; store: string }[] = [
+  { nameKey: 'onboarding.preview.milkItem',  store: 'Lidl' },
+  { nameKey: 'onboarding.preview.eggsItem',  store: 'Lidl' },
+  { nameKey: 'onboarding.preview.breadItem', store: '' },
+]
+
 function ShoppingPreview() {
-  const items = [
-    { name: 'Milk',   store: 'Lidl' },
-    { name: 'Eggs',   store: 'Lidl' },
-    { name: 'Bread',  store: '' },
-  ]
+  const { t } = useTranslation()
   const [phase, setPhase] = useState<ShoppingPhase>('entering')
   const [enterCount, setEnterCount] = useState(0)
   const [checkCount, setCheckCount] = useState(0)
@@ -125,19 +130,19 @@ function ShoppingPreview() {
       setCheckCount(0)
 
       // Stagger items in
-      items.forEach((_, i) => {
+      SHOPPING_ITEMS.forEach((_, i) => {
         timers.push(setTimeout(() => setEnterCount(i + 1), 150 + i * 160))
       })
 
       // Start checking after all items visible
-      const checkStart = 150 + items.length * 160 + 400
+      const checkStart = 150 + SHOPPING_ITEMS.length * 160 + 400
       timers.push(setTimeout(() => setPhase('checking'), checkStart))
-      items.forEach((_, i) => {
+      SHOPPING_ITEMS.forEach((_, i) => {
         timers.push(setTimeout(() => setCheckCount(i + 1), checkStart + 80 + i * 220))
       })
 
       // Clear all rows
-      const clearStart = checkStart + 80 + items.length * 220 + 500
+      const clearStart = checkStart + 80 + SHOPPING_ITEMS.length * 220 + 500
       timers.push(setTimeout(() => setPhase('clearing'), clearStart))
 
       // Reset and loop
@@ -150,25 +155,25 @@ function ShoppingPreview() {
 
     runCycle()
     return () => timers.forEach(clearTimeout)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="w-full bg-card rounded-lg border border-border overflow-hidden shadow-sm">
-      {items.map(({ name, store }, i) => {
+      {SHOPPING_ITEMS.map(({ nameKey, store }, i) => {
         const entered = i < enterCount
         const checked = i < checkCount && phase !== 'entering'
         const clearing = phase === 'clearing' || phase === 'reset'
 
         return (
           <div
-            key={name}
+            key={nameKey}
             className={cn(
               'flex items-center px-4 py-2.5 gap-3 transition-all duration-300',
               i > 0 && 'border-t border-border',
               entered && !clearing ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
             )}
           >
-            <span className="text-sm flex-1">{name}</span>
+            <span className="text-sm flex-1">{t(nameKey)}</span>
             {store && (
               <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                 {store}
@@ -187,12 +192,15 @@ function ShoppingPreview() {
   )
 }
 
+// Static recipe list for RecipesPreview — names are internationally understood, tagKey is translated
+const RECIPE_ITEMS: { emoji: string; name: string; tagKey: string }[] = [
+  { emoji: '🍝', name: 'Spaghetti Carbonara', tagKey: 'onboarding.preview.tagDinner' },
+  { emoji: '🥗', name: 'Caesar Salad',         tagKey: 'onboarding.preview.tagLunch' },
+  { emoji: '🫐', name: 'Blueberry Pancakes',   tagKey: 'onboarding.preview.tagBreakfast' },
+]
+
 function RecipesPreview() {
-  const recipes = [
-    { emoji: '🍝', name: 'Spaghetti Carbonara', tag: 'Dinner' },
-    { emoji: '🥗', name: 'Caesar Salad',         tag: 'Lunch' },
-    { emoji: '🫐', name: 'Blueberry Pancakes',   tag: 'Breakfast' },
-  ]
+  const { t } = useTranslation()
   const [index, setIndex] = useState(0)
   const [visible, setVisible] = useState(false)
 
@@ -206,18 +214,18 @@ function RecipesPreview() {
         setVisible(false)
         // After fade out, advance to next recipe
         timers.push(setTimeout(() => {
-          setIndex(i => (i + 1) % recipes.length)
+          setIndex(i => (i + 1) % RECIPE_ITEMS.length)
           showRecipe()
         }, 320))
       }, 1800))
     }
 
-    const t = setTimeout(showRecipe, 100)
-    timers.push(t)
+    const timer = setTimeout(showRecipe, 100)
+    timers.push(timer)
     return () => timers.forEach(clearTimeout)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
-  const recipe = recipes[index]
+  const recipe = RECIPE_ITEMS[index]
 
   return (
     <div
@@ -231,42 +239,45 @@ function RecipesPreview() {
       </div>
       <div className="p-3">
         <p className="text-sm font-semibold mb-1.5">{recipe.name}</p>
-        <Badge variant="default" className="text-[10px] h-5">{recipe.tag}</Badge>
+        <Badge variant="default" className="text-[10px] h-5">{t(recipe.tagKey)}</Badge>
       </div>
     </div>
   )
 }
 
+// Static todo list for TodosPreview — nameKey is translated, priority/assignee are display-only
+const TODO_ITEMS: { nameKey: string; priority: string; assignee: string | null }[] = [
+  { nameKey: 'onboarding.preview.todoFixTap',       priority: 'High',   assignee: null },
+  { nameKey: 'onboarding.preview.todoBuyGroceries', priority: 'Medium', assignee: 'AJ' },
+  { nameKey: 'onboarding.preview.todoCallInsurance', priority: '',      assignee: null },
+]
+
 function TodosPreview() {
-  const todos = [
-    { name: 'Fix bathroom tap', priority: 'High',   assignee: null },
-    { name: 'Buy groceries',    priority: 'Medium', assignee: 'AJ' },
-    { name: 'Call insurance',   priority: '',       assignee: null },
-  ]
+  const { t } = useTranslation()
   const [count, setCount] = useState(0)
   const [done, setDone] = useState(false)
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = []
-    todos.forEach((_, i) => {
+    TODO_ITEMS.forEach((_, i) => {
       timers.push(setTimeout(() => setCount(i + 1), 150 + i * 150))
     })
     function cycle(next: boolean, delay: number) {
-      const t = setTimeout(() => {
+      const timer = setTimeout(() => {
         setDone(next)
         cycle(!next, next ? 1800 : 1400)
       }, delay)
-      timers.push(t)
+      timers.push(timer)
     }
     cycle(true, 1100)
     return () => timers.forEach(clearTimeout)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="w-full bg-card rounded-lg border border-border overflow-hidden shadow-sm">
-      {todos.map(({ name, priority, assignee }, i) => (
+      {TODO_ITEMS.map(({ nameKey, priority, assignee }, i) => (
         <div
-          key={name}
+          key={nameKey}
           className={cn(
             'flex items-center px-3 py-2.5 gap-3 transition-all duration-300',
             i > 0 && 'border-t border-border',
@@ -290,7 +301,7 @@ function TodosPreview() {
               i === 0 && done && 'line-through text-muted-foreground',
             )}
           >
-            {name}
+            {t(nameKey)}
           </span>
           {assignee && (
             <div className="size-5 rounded-full bg-primary/20 text-primary text-[9px] font-bold flex items-center justify-center shrink-0">
@@ -311,11 +322,14 @@ function TodosPreview() {
   )
 }
 
+// Static event list for CalendarPreview — nameKey and dayKey are translated via t()
+const CALENDAR_EVENTS: { nameKey: string; dayKey: string; time: string }[] = [
+  { nameKey: 'onboarding.preview.eventDoctor',      dayKey: 'home.today',    time: '10:00' },
+  { nameKey: 'onboarding.preview.eventFamilyDinner', dayKey: 'home.tomorrow', time: '7:00 PM' },
+]
+
 function CalendarPreview() {
-  const events = [
-    { name: 'Doctor appointment', day: 'Today',    time: '10:00' },
-    { name: 'Family dinner',      day: 'Tomorrow', time: '7:00 PM' },
-  ]
+  const { t } = useTranslation()
   // phase: 'entering' items slide in, 'exiting' items slide out downward, 'reset' instant hide
   const [phase, setPhase] = useState<'entering' | 'exiting' | 'reset'>('entering')
   const [count, setCount] = useState(0)
@@ -328,22 +342,22 @@ function CalendarPreview() {
       setCount(0)
 
       // Stagger items in
-      events.forEach((_, i) => {
+      CALENDAR_EVENTS.forEach((_, i) => {
         timers.push(setTimeout(() => setCount(i + 1), 150 + i * 200))
       })
 
       // Hold, then exit downward
-      const exitStart = 150 + events.length * 200 + 1000
+      const exitStart = 150 + CALENDAR_EVENTS.length * 200 + 1000
       timers.push(setTimeout(() => {
         setPhase('exiting')
         setCount(0)
-        events.forEach((_, i) => {
+        CALENDAR_EVENTS.forEach((_, i) => {
           timers.push(setTimeout(() => setCount(i + 1), i * 150))
         })
       }, exitStart))
 
       // Reset and loop
-      const resetStart = exitStart + events.length * 150 + 350
+      const resetStart = exitStart + CALENDAR_EVENTS.length * 150 + 350
       timers.push(setTimeout(() => {
         setPhase('reset')
         setCount(0)
@@ -353,11 +367,11 @@ function CalendarPreview() {
 
     runCycle()
     return () => timers.forEach(clearTimeout)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="w-full bg-card rounded-lg border border-border overflow-hidden shadow-sm">
-      {events.map(({ name, day, time }, i) => {
+      {CALENDAR_EVENTS.map(({ nameKey, dayKey, time }, i) => {
         const entered = phase === 'entering' && i < count
         const held = phase === 'exiting' && i >= count
         const exited = phase === 'exiting' && i < count
@@ -367,7 +381,7 @@ function CalendarPreview() {
 
         return (
           <div
-            key={name}
+            key={nameKey}
             className={cn(
               'flex items-center px-3 py-2.5 gap-3 transition-all duration-300',
               phase === 'reset' && 'duration-0',
@@ -379,9 +393,9 @@ function CalendarPreview() {
                   : 'opacity-0 -translate-y-2',
             )}
           >
-            <p className="text-sm flex-1 truncate">{name}</p>
+            <p className="text-sm flex-1 truncate">{t(nameKey)}</p>
             <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full whitespace-nowrap">
-              {day}
+              {t(dayKey)}
             </span>
             <span className="text-xs text-muted-foreground/60 whitespace-nowrap">{time}</span>
           </div>
