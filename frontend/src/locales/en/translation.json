@@ -402,33 +402,6 @@
       "addType": "Add a type"
     }
   },
-  "onboarding": {
-    "next": "Next",
-    "back": "Back",
-    "letsGo": "Let's go",
-    "slides": {
-      "welcome": {
-        "title": "Welcome to {{name}}",
-        "description": "Here's a quick tour of what Casita can do for your household."
-      },
-      "shopping": {
-        "title": "Shopping list",
-        "description": "Organise items by category and store. Casita shows you the best store for your next trip."
-      },
-      "recipes": {
-        "title": "Recipe collection",
-        "description": "Save recipes with ingredients that automatically populate your shopping list."
-      },
-      "todos": {
-        "title": "Household tasks",
-        "description": "Assign to-dos to members, set priorities, due dates and recurring schedules."
-      },
-      "calendar": {
-        "title": "Calendar sync",
-        "description": "Connect Google Calendar to see everyone's events alongside your household tasks."
-      }
-    }
-  },
   "household": {
     "setup": {
       "welcome": "Welcome to Casita",
@@ -488,9 +461,7 @@
     "e16_title": "Google Calendar sync",
     "e16_desc": "Connect your Google Calendar to see events alongside your household tasks.",
     "e17_title": "Settings redesign",
-    "e17_desc": "Settings pages have been reorganised with a cleaner layout.",
-    "e18_title": "Household onboarding tour",
-    "e18_desc": "New and joining members now see a quick feature tour when they first enter a household, so everyone starts on the same page."
+    "e17_desc": "Settings pages have been reorganised with a cleaner layout."
   },
   "nav": {
     "settings": "Settings",

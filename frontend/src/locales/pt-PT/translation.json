@@ -402,33 +402,6 @@
       "addType": "Adicionar um tipo"
     }
   },
-  "onboarding": {
-    "next": "Seguinte",
-    "back": "Voltar",
-    "letsGo": "Vamos lá!",
-    "slides": {
-      "welcome": {
-        "title": "Bem-vindo a {{name}}",
-        "description": "Aqui está uma visita rápida ao que o Casita pode fazer pela tua casa."
-      },
-      "shopping": {
-        "title": "Lista de compras",
-        "description": "Organiza artigos por categoria e loja. O Casita indica-te a melhor loja para a tua próxima visita."
-      },
-      "recipes": {
-        "title": "Coleção de receitas",
-        "description": "Guarda receitas com ingredientes que se adicionam automaticamente à tua lista de compras."
-      },
-      "todos": {
-        "title": "Tarefas da casa",
-        "description": "Atribui tarefas a membros, define prioridades, datas de entrega e horários recorrentes."
-      },
-      "calendar": {
-        "title": "Sincronização de calendário",
-        "description": "Liga o Google Calendar para ver os eventos de todos ao lado das tarefas da casa."
-      }
-    }
-  },
   "household": {
     "setup": {
       "welcome": "Bem-vindo ao Casita",
@@ -488,9 +461,7 @@
     "e16_title": "Sincronização com o Google Calendar",
     "e16_desc": "Liga o teu Google Calendar para ver os eventos ao lado das tarefas da casa.",
     "e17_title": "Redesenho das definições",
-    "e17_desc": "As páginas de definições foram reorganizadas com um aspeto mais limpo.",
-    "e18_title": "Tour de boas-vindas à casa",
-    "e18_desc": "Os novos membros e os que aderem veem agora um rápido tour pelas funcionalidades quando entram pela primeira vez numa casa, para que todos comecem com o mesmo conhecimento."
+    "e17_desc": "As páginas de definições foram reorganizadas com um aspeto mais limpo."
   },
   "nav": {
     "settings": "Definições",

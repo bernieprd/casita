@@ -402,33 +402,6 @@
       "addType": "Aggiungi un tipo"
     }
   },
-  "onboarding": {
-    "next": "Avanti",
-    "back": "Indietro",
-    "letsGo": "Iniziamo!",
-    "slides": {
-      "welcome": {
-        "title": "Benvenuto in {{name}}",
-        "description": "Ecco un rapido tour di ciò che Casita può fare per la tua casa."
-      },
-      "shopping": {
-        "title": "Lista della spesa",
-        "description": "Organizza gli articoli per categoria e negozio. Casita ti indica il negozio migliore per la prossima visita."
-      },
-      "recipes": {
-        "title": "Raccolta di ricette",
-        "description": "Salva ricette con ingredienti che si aggiungono automaticamente alla tua lista della spesa."
-      },
-      "todos": {
-        "title": "Attività domestiche",
-        "description": "Assegna attività ai membri, imposta priorità, scadenze e pianificazioni ricorrenti."
-      },
-      "calendar": {
-        "title": "Sincronizzazione del calendario",
-        "description": "Collega Google Calendar per vedere gli eventi di tutti insieme alle attività della casa."
-      }
-    }
-  },
   "household": {
     "setup": {
       "welcome": "Benvenuto in Casita",
@@ -488,9 +461,7 @@
     "e16_title": "Sincronizzazione con Google Calendar",
     "e16_desc": "Collega il tuo Google Calendar per vedere gli eventi insieme alle attività della casa.",
     "e17_title": "Ridisegno delle impostazioni",
-    "e17_desc": "Le pagine delle Impostazioni sono state riorganizzate con un aspetto più pulito.",
-    "e18_title": "Tour di benvenuto nella casa",
-    "e18_desc": "I nuovi membri e chi si unisce vedono ora un rapido tour delle funzionalità al primo accesso a una casa, così tutti iniziano con la stessa conoscenza."
+    "e17_desc": "Le pagine delle Impostazioni sono state riorganizzate con un aspetto più pulito."
   },
   "nav": {
     "settings": "Impostazioni",
