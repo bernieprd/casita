@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS household_members (
 CREATE INDEX IF NOT EXISTS hm_clerk_user_id ON household_members(clerk_user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS hm_unique_user ON household_members(clerk_user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS hm_email ON household_members(email);
+CREATE INDEX IF NOT EXISTS hm_household_id  ON household_members(household_id);
 
 -- Seed (run after both users log in once and you have their Clerk user IDs):
 -- INSERT INTO households VALUES ('hh-home', 'Home', NULL, unixepoch() * 1000);
@@ -43,6 +44,7 @@ CREATE TABLE IF NOT EXISTS item_supermarkets (
   supermarket TEXT NOT NULL,
   PRIMARY KEY (item_id, supermarket)
 );
+CREATE INDEX IF NOT EXISTS is_item_id ON item_supermarkets(item_id);
 
 -- ── Recipes ───────────────────────────────────────────────────────────────────
 
@@ -95,7 +97,8 @@ CREATE TABLE IF NOT EXISTS household_recipe_types (
   sort_order   INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (household_id, id)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS hrt_name ON household_recipe_types(household_id, name);
+CREATE UNIQUE INDEX IF NOT EXISTS hrt_name        ON household_recipe_types(household_id, name);
+CREATE INDEX IF NOT EXISTS hrt_household_id ON household_recipe_types(household_id);
 
 CREATE TABLE IF NOT EXISTS household_categories (
   id           TEXT NOT NULL,
@@ -113,7 +116,8 @@ CREATE TABLE IF NOT EXISTS household_supermarkets (
   sort_order   INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (household_id, id)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS hs_name ON household_supermarkets(household_id, name);
+CREATE UNIQUE INDEX IF NOT EXISTS hs_name        ON household_supermarkets(household_id, name);
+CREATE INDEX IF NOT EXISTS hs_household_id  ON household_supermarkets(household_id);
 
 -- ── Todos ─────────────────────────────────────────────────────────────────────
 

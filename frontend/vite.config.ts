@@ -60,6 +60,8 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom'],
           'vendor-query': ['@tanstack/react-query'],
           'vendor-shadcn': ['lucide-react', 'vaul', 'sonner'],
+          'vendor-dnd':   ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+          'vendor-clerk': ['@clerk/clerk-react'],
         },
       },
     },

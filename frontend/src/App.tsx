@@ -3,14 +3,14 @@ import { useTranslation } from 'react-i18next'
 import { Settings, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
 import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { itemKeys, itemsApi, todoKeys, todosApi } from './api'
+import { itemKeys, itemsApi, todoKeys, todosApi, recipeKeys, recipesApi } from './api'
 import { useOnlineStatus } from './useOnlineStatus'
 import { TabErrorBoundary } from './components/TabErrorBoundary'
-import HomeComponent from './components/Home'
-import Calendar from './components/Calendar'
-import Todos from './components/Todos'
-import Shopping from './components/Shopping'
-import Recipes from './components/Recipes'
+const HomeComponent = lazy(() => import('./components/Home'))
+const Calendar      = lazy(() => import('./components/Calendar'))
+const Todos         = lazy(() => import('./components/Todos'))
+const Shopping      = lazy(() => import('./components/Shopping'))
+const Recipes       = lazy(() => import('./components/Recipes'))
 import PublicRecipeView from './components/PublicRecipeView'
 import { SignIn, SignUp, SignedIn, useUser } from '@clerk/clerk-react'
 import { AuthProvider, useAuth, useHousehold } from './context/AuthContext'
@@ -220,6 +220,7 @@ function AppShell() {
   useEffect(() => {
     qc.prefetchQuery({ queryKey: itemKeys.shopping, queryFn: itemsApi.listShopping })
     qc.prefetchQuery({ queryKey: todoKeys.all,      queryFn: todosApi.list })
+    qc.prefetchQuery({ queryKey: recipeKeys.all,    queryFn: recipesApi.list })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -290,32 +291,44 @@ function AppShell() {
         <Routes>
           <Route path="/" element={
             <TabErrorBoundary key="home">
-              <HomeComponent />
+              <Suspense fallback={<SuspenseFallback />}>
+                <HomeComponent />
+              </Suspense>
             </TabErrorBoundary>
           } />
           <Route path="/calendar" element={
             <TabErrorBoundary key="calendar">
-              <Calendar setHeader={setHeaderContent} />
+              <Suspense fallback={<SuspenseFallback />}>
+                <Calendar setHeader={setHeaderContent} />
+              </Suspense>
             </TabErrorBoundary>
           } />
           <Route path="/todos" element={
             <TabErrorBoundary key="todos">
-              <Todos setHeader={setHeaderContent} />
+              <Suspense fallback={<SuspenseFallback />}>
+                <Todos setHeader={setHeaderContent} />
+              </Suspense>
             </TabErrorBoundary>
           } />
           <Route path="/shopping/*" element={
             <TabErrorBoundary key="shopping">
-              <Shopping setHeader={setHeaderContent} />
+              <Suspense fallback={<SuspenseFallback />}>
+                <Shopping setHeader={setHeaderContent} />
+              </Suspense>
             </TabErrorBoundary>
           } />
           <Route path="/recipes" element={
             <TabErrorBoundary key="recipes">
-              <Recipes setToolbar={setHeaderContent} />
+              <Suspense fallback={<SuspenseFallback />}>
+                <Recipes setToolbar={setHeaderContent} />
+              </Suspense>
             </TabErrorBoundary>
           } />
           <Route path="/recipes/:id" element={
             <TabErrorBoundary key="recipes">
-              <Recipes setToolbar={setHeaderContent} />
+              <Suspense fallback={<SuspenseFallback />}>
+                <Recipes setToolbar={setHeaderContent} />
+              </Suspense>
             </TabErrorBoundary>
           } />
           <Route path="/settings/*" element={

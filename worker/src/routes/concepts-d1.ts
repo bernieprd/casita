@@ -23,11 +23,37 @@ function isValidType(type: string): type is ConceptType {
 }
 
 
-const USAGE_SUBQUERY: Record<ConceptType, string> = {
-  'recipe-types':    `(SELECT COUNT(*) FROM recipes WHERE household_id = c.household_id AND type = c.name)`,
-  'categories':      `(SELECT COUNT(*) FROM items WHERE household_id = c.household_id AND category = c.name)`,
-  'supermarkets':    `(SELECT COUNT(*) FROM item_supermarkets WHERE item_id IN (SELECT id FROM items WHERE household_id = c.household_id) AND supermarket = c.name)`,
-  'todo-categories': `(SELECT COUNT(*) FROM todos WHERE todos.category_id = c.id AND todos.household_id = c.household_id)`,
+// JOIN-based queries compute usage_count in a single pass, replacing correlated subqueries.
+const JOIN_QUERY: Record<ConceptType, string> = {
+  'recipe-types':
+    `SELECT c.*, COUNT(r.id) AS usage_count
+     FROM household_recipe_types c
+     LEFT JOIN recipes r ON r.household_id = c.household_id AND r.type = c.name
+     WHERE c.household_id = ?
+     GROUP BY c.id
+     ORDER BY c.sort_order ASC, c.name ASC`,
+  'categories':
+    `SELECT c.*, COUNT(i.id) AS usage_count
+     FROM household_categories c
+     LEFT JOIN items i ON i.household_id = c.household_id AND i.category = c.name
+     WHERE c.household_id = ?
+     GROUP BY c.id
+     ORDER BY c.sort_order ASC, c.name ASC`,
+  'supermarkets':
+    `SELECT c.*, COUNT(sm.item_id) AS usage_count
+     FROM household_supermarkets c
+     LEFT JOIN items i ON i.household_id = c.household_id
+     LEFT JOIN item_supermarkets sm ON sm.item_id = i.id AND sm.supermarket = c.name
+     WHERE c.household_id = ?
+     GROUP BY c.id
+     ORDER BY c.sort_order ASC, c.name ASC`,
+  'todo-categories':
+    `SELECT c.*, COUNT(t.id) AS usage_count
+     FROM household_todo_categories c
+     LEFT JOIN todos t ON t.category_id = c.id AND t.household_id = c.household_id
+     WHERE c.household_id = ?
+     GROUP BY c.id
+     ORDER BY c.sort_order ASC, c.name ASC`,
 }
 
 export async function listConcepts(
@@ -39,14 +65,12 @@ export async function listConcepts(
   if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
   if (!isValidType(type)) return Response.json({ error: 'ERR_UNKNOWN_CONCEPT_TYPE' }, { status: 400 })
 
-  const table = TABLE[type]
-  const usageSub = USAGE_SUBQUERY[type]
   const { results } = await env.DB
-    .prepare(`SELECT c.*, ${usageSub} AS usage_count FROM ${table} c WHERE c.household_id = ? ORDER BY c.sort_order ASC, c.name ASC`)
+    .prepare(JOIN_QUERY[type])
     .bind(ctx.householdId)
     .all<Record<string, unknown>>()
 
-  return Response.json(results.map(rowToConcept))
+  return Response.json(results.map(rowToConcept), { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }
 
 export async function createConcept(
