@@ -1,12 +1,13 @@
 import { esES, itIT, ptPT } from '@clerk/localizations'
-import type { LocalizationResource } from '@clerk/shared/types'
 import { SUPPORTED_LOCALES, type LocaleCode } from '../i18n'
 
-const CLERK_LOCALIZATIONS: Partial<Record<LocaleCode, LocalizationResource>> = {
+// TypeScript infers the value type from the imported constants — no need to
+// reference @clerk/shared/types (a transitive dep not resolvable via tsc -b).
+const CLERK_LOCALIZATIONS = {
   es: esES,
   'pt-PT': ptPT,
   it: itIT,
-}
+} satisfies Partial<Record<LocaleCode, typeof ptPT>>
 
 /**
  * Maps any locale-like string to one of our supported LocaleCodes.
@@ -24,6 +25,6 @@ export function normalizeLocale(raw: string): LocaleCode {
   return 'en'
 }
 
-export function getClerkLocalization(locale: LocaleCode): LocalizationResource | undefined {
-  return CLERK_LOCALIZATIONS[locale]
+export function getClerkLocalization(locale: LocaleCode) {
+  return CLERK_LOCALIZATIONS[locale as keyof typeof CLERK_LOCALIZATIONS]
 }
