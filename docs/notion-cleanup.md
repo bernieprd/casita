@@ -1,5 +1,31 @@
 # Notion Integration Cleanup
 
+## ✅ Code changes — done (PR #47)
+
+All source files deleted, types cleaned up, migration file created. Two manual steps remain:
+
+### 1. Apply the DB migration to remote D1
+
+```bash
+cd worker && wrangler d1 execute casita --remote --file=src/db/migrations/010_drop_notion_config.sql
+```
+
+### 2. Delete the Cloudflare secret
+
+```bash
+wrangler secret delete NOTION_TOKEN
+```
+
+Also remove any `NOTION_TOKEN` line from `wrangler.toml` / `wrangler.jsonc` if present.
+
+### 3. Smoke test
+
+Deploy to staging and confirm recipe CRUD, todos, and shopping all work.
+
+---
+
+## Original plan (for reference)
+
 **Context:** Production runs entirely on D1. The Notion-backed route files are orphaned. The only Notion references remaining in `index.ts` are the migration endpoint and `NotionError`.
 
 ## Files to delete

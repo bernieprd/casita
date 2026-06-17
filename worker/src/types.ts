@@ -87,70 +87,9 @@ export interface SharedCalendar {
   visibility: 'household' | 'free-busy'
 }
 
-// ── Notion raw types ──────────────────────────────────────────────────────────
-
-export interface NotionPage {
-  id: string
-  object: 'page'
-  archived: boolean
-  cover: NotionCover | null
-  properties: Record<string, NotionProperty>
-}
-
-export type NotionProperty =
-  | { type: 'title'; title: NotionRichText[] }
-  | { type: 'rich_text'; rich_text: NotionRichText[] }
-  | { type: 'select'; select: NotionSelectOption | null }
-  | { type: 'multi_select'; multi_select: NotionSelectOption[] }
-  | { type: 'checkbox'; checkbox: boolean }
-  | { type: 'relation'; relation: Array<{ id: string }> }
-  | { type: 'number'; number: number | null }
-  | { type: 'files'; files: NotionFileRef[] }
-  | { type: 'url'; url: string | null }
-  | { type: 'date'; date: { start: string; end: string | null } | null }
-
-export interface NotionRichText {
-  plain_text: string
-}
-
-export interface NotionSelectOption {
-  name: string
-}
-
-export type NotionCover =
-  | { type: 'external'; external: { url: string } }
-  | { type: 'file'; file: { url: string } }
-
-export type NotionFileRef =
-  | { type: 'external'; name: string; external: { url: string } }
-  | { type: 'file'; name: string; file: { url: string; expiry_time: string } }
-
-export interface NotionQueryResponse {
-  results: NotionPage[]
-  has_more: boolean
-  next_cursor: string | null
-}
-
-export interface NotionBlock {
-  id: string
-  type: string
-  [key: string]: unknown
-}
-
-export interface NotionBlocksResponse {
-  results: NotionBlock[]
-  has_more: boolean
-  next_cursor: string | null
-}
-
 // ── Env ───────────────────────────────────────────────────────────────────────
 
 export interface Env {
-  NOTION_TOKEN: string
-  NOTION_SHOPPING_LIST_DB: string
-  NOTION_RECIPES_DB: string
-  NOTION_RECIPE_INGREDIENT_DB: string
-  NOTION_TODOS_DB: string
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   GOOGLE_REDIRECT_URI?: string
@@ -190,10 +129,3 @@ export interface RequestContext {
   role: 'owner' | 'member' | null
 }
 
-export interface HouseholdNotionConfig {
-  household_id: string
-  shopping_list_db: string
-  recipes_db: string
-  recipe_ingredient_db: string
-  todos_db: string
-}
