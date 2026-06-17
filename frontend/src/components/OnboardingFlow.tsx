@@ -8,9 +8,13 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Dialog, DialogContent, DialogClose, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog'
+import {
+  Drawer, DrawerContent, DrawerClose, DrawerTitle, DrawerDescription,
+} from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import GuidedImport from './GuidedImport'
 
 // ── Preview components ────────────────────────────────────────────────────────
@@ -412,7 +416,25 @@ interface Props {
   onClose: () => void
 }
 
-export default function OnboardingFlow({ householdName, onClose }: Props) {
+// Shared inner content — rendered identically inside both Dialog and Drawer.
+// CloseWrapper is the platform-appropriate close primitive (DialogClose or DrawerClose).
+interface InnerProps {
+  householdName: string | null
+  onClose: () => void
+  CloseWrapper: React.ComponentType<{ asChild?: boolean; children: React.ReactNode }>
+  TitleWrapper: React.ComponentType<{ className?: string; children: React.ReactNode }>
+  DescriptionWrapper: React.ComponentType<{ className?: string; children: React.ReactNode }>
+  previewHeightClass: string
+}
+
+function OnboardingInner({
+  householdName,
+  onClose,
+  CloseWrapper,
+  TitleWrapper,
+  DescriptionWrapper,
+  previewHeightClass,
+}: InnerProps) {
   const { t } = useTranslation()
   const [slideIndex, setSlideIndex] = useState(0)
   const [showImport, setShowImport] = useState(false)
@@ -448,78 +470,118 @@ export default function OnboardingFlow({ householdName, onClose }: Props) {
     </div>
   )
 
+  if (showImport) {
+    return (
+      <div className="flex flex-col">
+        <div className="p-5">
+          <GuidedImport onDone={onClose} onSkip={onClose} />
+        </div>
+        <div className="px-5 pb-5 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleBack}
+            className="gap-1 text-muted-foreground"
+          >
+            <ChevronLeft className="size-3.5" />
+            {t('onboarding.back')}
+          </Button>
+          <div className="invisible">
+            <Button size="sm">{t('onboarding.next')}</Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {/* Preview area */}
+      <div className={cn('relative bg-muted flex items-center justify-center overflow-hidden px-6', previewHeightClass)}>
+        <div key={slideIndex} className="w-full animate-in fade-in duration-300">
+          <slide.Preview />
+        </div>
+        <CloseWrapper asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 size-8 text-muted-foreground hover:text-foreground"
+            aria-label={t('common.close')}
+          >
+            <X className="size-4" />
+          </Button>
+        </CloseWrapper>
+      </div>
+
+      {/* Slide text + nav */}
+      <div className="p-5 flex flex-col gap-4">
+        <div
+          key={`text-${slideIndex}`}
+          className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-1"
+        >
+          <div className="flex items-center gap-2 mb-0.5">
+            <slide.Icon className="size-4 text-primary shrink-0" />
+            <TitleWrapper className="text-base font-bold leading-tight">
+              {slideTitle}
+            </TitleWrapper>
+          </div>
+          <DescriptionWrapper className="text-sm leading-relaxed">
+            {t(`onboarding.slides.${slide.key}.description`)}
+          </DescriptionWrapper>
+        </div>
+
+        {dots}
+
+        <div className="flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleBack}
+            className={cn('gap-1 text-muted-foreground', slideIndex === 0 && 'invisible')}
+          >
+            <ChevronLeft className="size-3.5" />
+            {t('onboarding.back')}
+          </Button>
+          <Button size="sm" onClick={handleNext}>
+            {isLastSlide ? t('onboarding.letsGo') : t('onboarding.next')}
+          </Button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+export default function OnboardingFlow({ householdName, onClose }: Props) {
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    return (
+      <Drawer open dismissible={false} onOpenChange={(open) => { if (!open) onClose() }}>
+        <DrawerContent className="p-0 gap-0 overflow-hidden">
+          <OnboardingInner
+            householdName={householdName}
+            onClose={onClose}
+            CloseWrapper={DrawerClose}
+            TitleWrapper={DrawerTitle}
+            DescriptionWrapper={DrawerDescription}
+            previewHeightClass="h-40"
+          />
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogContent className="sm:max-w-sm p-0 overflow-hidden gap-0" showCloseButton={false}>
-
-        {showImport ? (
-          /* ── Import step ── */
-          <div className="flex flex-col">
-            <div className="px-4 pt-4 pb-3 flex items-center border-b border-border shrink-0">
-              <Button variant="ghost" size="icon" className="-ml-1 size-8" onClick={handleBack}>
-                <ChevronLeft className="size-4" />
-              </Button>
-            </div>
-            <div className="p-5">
-              <GuidedImport onDone={onClose} onSkip={onClose} />
-            </div>
-          </div>
-        ) : (
-          /* ── Feature slides ── */
-          <>
-            {/* Preview area */}
-            <div className="relative h-48 bg-muted flex items-center justify-center overflow-hidden px-6">
-              <div key={slideIndex} className="w-full animate-in fade-in duration-300">
-                <slide.Preview />
-              </div>
-              <DialogClose asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 size-8 text-muted-foreground hover:text-foreground"
-                  aria-label={t('common.close')}
-                >
-                  <X className="size-4" />
-                </Button>
-              </DialogClose>
-            </div>
-
-            {/* Slide text + nav */}
-            <div className="p-5 flex flex-col gap-4">
-              <div
-                key={`text-${slideIndex}`}
-                className="animate-in fade-in slide-in-from-bottom-1 duration-300 flex flex-col gap-1"
-              >
-                <div className="flex items-center gap-2 mb-0.5">
-                  <slide.Icon className="size-4 text-primary shrink-0" />
-                  <DialogTitle className="text-base font-bold leading-tight">
-                    {slideTitle}
-                  </DialogTitle>
-                </div>
-                <DialogDescription className="text-sm leading-relaxed">
-                  {t(`onboarding.slides.${slide.key}.description`)}
-                </DialogDescription>
-              </div>
-
-              {dots}
-
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleBack}
-                  className={cn('gap-1 text-muted-foreground', slideIndex === 0 && 'invisible')}
-                >
-                  <ChevronLeft className="size-3.5" />
-                  {t('onboarding.back')}
-                </Button>
-                <Button size="sm" onClick={handleNext}>
-                  {isLastSlide ? t('onboarding.letsGo') : t('onboarding.next')}
-                </Button>
-              </div>
-            </div>
-          </>
-        )}
+        <OnboardingInner
+          householdName={householdName}
+          onClose={onClose}
+          CloseWrapper={DialogClose}
+          TitleWrapper={DialogTitle}
+          DescriptionWrapper={DialogDescription}
+          previewHeightClass="h-48"
+        />
       </DialogContent>
     </Dialog>
   )
