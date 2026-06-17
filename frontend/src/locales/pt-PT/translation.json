@@ -480,5 +480,45 @@
     "errorTitle": "Ocorreu um erro",
     "errorUnexpected": "Erro inesperado",
     "tryAgain": "Tentar novamente"
+  },
+  "onboarding": {
+    "back": "Voltar",
+    "next": "Seguinte",
+    "letsGo": "Vamos lá",
+    "slides": {
+      "welcome": {
+        "title": "Bem-vindo ao {{name}}",
+        "description": "O teu lar num só lugar — tarefas, compras, receitas e eventos, tudo partilhado com toda a gente em casa."
+      },
+      "calendar": {
+        "title": "Calendário",
+        "description": "Vê o que aí vem — adiciona eventos, liga o Google Calendar e mantém o teu lar sincronizado."
+      },
+      "todos": {
+        "title": "Tarefas",
+        "description": "Gere as tarefas domésticas, atribui-as aos membros e define prioridades e datas de entrega."
+      },
+      "shopping": {
+        "title": "Compras",
+        "description": "Cria uma lista de compras partilhada, organiza por loja e risca os artigos em conjunto."
+      },
+      "recipes": {
+        "title": "Receitas",
+        "description": "Guarda as tuas receitas favoritas, planeia o que cozinhar e transforma ingredientes em artigos da lista."
+      }
+    },
+    "preview": {
+      "milkItem": "Leite",
+      "eggsItem": "Ovos",
+      "breadItem": "Pão",
+      "tagDinner": "Jantar",
+      "tagLunch": "Almoço",
+      "tagBreakfast": "Pequeno-almoço",
+      "todoFixTap": "Arranjar a torneira da casa de banho",
+      "todoBuyGroceries": "Fazer as compras",
+      "todoCallInsurance": "Ligar ao seguro",
+      "eventDoctor": "Consulta médica",
+      "eventFamilyDinner": "Jantar em família"
+    }
   }
 }

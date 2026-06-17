@@ -480,5 +480,45 @@
     "errorTitle": "Qualcosa è andato storto",
     "errorUnexpected": "Errore imprevisto",
     "tryAgain": "Riprova"
+  },
+  "onboarding": {
+    "back": "Indietro",
+    "next": "Avanti",
+    "letsGo": "Iniziamo",
+    "slides": {
+      "welcome": {
+        "title": "Benvenuto in {{name}}",
+        "description": "La tua casa in un unico posto — attività, spesa, ricette ed eventi, tutto condiviso con chi vive con te."
+      },
+      "calendar": {
+        "title": "Calendario",
+        "description": "Scopri cosa sta arrivando — aggiungi eventi, collega Google Calendar e tieni la casa sincronizzata."
+      },
+      "todos": {
+        "title": "Attività",
+        "description": "Gestisci le attività domestiche, assegnale ai membri e imposta priorità e scadenze."
+      },
+      "shopping": {
+        "title": "Spesa",
+        "description": "Crea una lista della spesa condivisa, organizzala per negozio e spunta gli articoli insieme."
+      },
+      "recipes": {
+        "title": "Ricette",
+        "description": "Salva le tue ricette preferite, pianifica cosa cucinare e trasforma gli ingredienti in articoli della lista."
+      }
+    },
+    "preview": {
+      "milkItem": "Latte",
+      "eggsItem": "Uova",
+      "breadItem": "Pane",
+      "tagDinner": "Cena",
+      "tagLunch": "Pranzo",
+      "tagBreakfast": "Colazione",
+      "todoFixTap": "Riparare il rubinetto del bagno",
+      "todoBuyGroceries": "Fare la spesa",
+      "todoCallInsurance": "Chiamare l'assicurazione",
+      "eventDoctor": "Visita medica",
+      "eventFamilyDinner": "Cena in famiglia"
+    }
   }
 }

@@ -37,6 +37,7 @@ const TodoFormPage    = lazy(() => import('./components/TodoFormPage'))
 const SettingsLayout  = lazy(() => import('./components/settings/SettingsLayout'))
 const HouseholdSetup  = lazy(() => import('./components/HouseholdSetup'))
 const ThemePreview    = lazy(() => import('./components/ThemePreview'))
+const OnboardingFlow  = lazy(() => import('./components/OnboardingFlow'))
 
 export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
 
@@ -133,6 +134,13 @@ function AppShell() {
   const { t } = useTranslation()
   const [headerContent, setHeaderContent] = useState<ReactNode | null>(null)
   const { householdName } = useHousehold()
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => localStorage.getItem('casita_onboarding_pending') !== null,
+  )
+  function handleOnboardingClose() {
+    localStorage.removeItem('casita_onboarding_pending')
+    setShowOnboarding(false)
+  }
   const { data: householdTheme } = useHouseholdTheme()
   const { mutate: updateHouseholdTheme, isPending: themeSaving } = useUpdateHouseholdTheme()
   const { prefs: themePrefs, setPrefs: setThemePrefs } = useTheme(householdTheme, updateHouseholdTheme)
@@ -202,6 +210,15 @@ function AppShell() {
       )}
 
       <InstallBanner />
+
+      {showOnboarding && (
+        <Suspense fallback={null}>
+          <OnboardingFlow
+            householdName={householdName}
+            onClose={handleOnboardingClose}
+          />
+        </Suspense>
+      )}
 
       <div
         className={cn(
