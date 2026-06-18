@@ -250,8 +250,8 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
   return (
     <div>
 
-      {/* View switcher */}
-      <div className="mb-3">
+      {/* View switcher — sticky below the app header */}
+      <div className="sticky top-14 z-10 bg-background -mx-4 px-4 pt-2 pb-3 border-b border-border/50 mb-1">
         <ToggleGroup
           type="single"
           value={view}
