@@ -1,7 +1,7 @@
-import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Settings, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { itemKeys, itemsApi, todoKeys, todosApi } from './api'
 import { useOnlineStatus } from './useOnlineStatus'
@@ -21,7 +21,9 @@ import InstallBanner from './components/InstallBanner'
 import { useHouseholdTheme, useUpdateHouseholdTheme } from './api/household'
 import { useTheme } from '@/hooks/useTheme'
 import { useMe } from './api/me'
-import i18n from './i18n'
+import i18n, { SUPPORTED_LOCALES } from './i18n'
+import { normalizeLocale } from './lib/clerkLocalizations'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 
 function LocaleSync() {
@@ -108,24 +110,83 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
+function useAuthLocale() {
+  const [searchParams] = useSearchParams()
+  const appliedRef = useRef(false)
+
+  useEffect(() => {
+    if (appliedRef.current) return
+    appliedRef.current = true
+
+    const queryLocale = searchParams.get('locale')
+    if (queryLocale) {
+      i18n.changeLanguage(normalizeLocale(queryLocale))
+      return
+    }
+
+    if (i18n.language === 'en') {
+      // Check referrer from mycasita.app marketing pages (e.g. /es, /pt-pt, /it)
+      const refUrl = document.referrer
+        ? (() => { try { return new URL(document.referrer) } catch { return null } })()
+        : null
+      if (refUrl?.hostname === 'mycasita.app') {
+        const segment = refUrl.pathname.split('/').find(Boolean) ?? ''
+        const refLocale = normalizeLocale(segment || 'en')
+        if (refLocale !== 'en') { i18n.changeLanguage(refLocale); return }
+      }
+
+      // Navigator fallback — only when no stored preference exists yet
+      const browserLocale = normalizeLocale(navigator.language)
+      if (browserLocale !== 'en') i18n.changeLanguage(browserLocale)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- run-once on mount; searchParams read synchronously above
+}
+
+function LanguageSelector() {
+  const { i18n: i18nInstance } = useTranslation()
+  const current = normalizeLocale(i18nInstance.language)
+  return (
+    <div className="mt-4 flex justify-center">
+      <Select value={current} onValueChange={(v) => i18nInstance.changeLanguage(v)}>
+        <SelectTrigger className="w-44 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {SUPPORTED_LOCALES.map(({ code, label }) => (
+            <SelectItem key={code} value={code} className="text-xs">{label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
+
 function SignInPage() {
   const { isSignedIn, isLoaded } = useUser()
+  useAuthLocale()
   if (!isLoaded) return <Spinner />
   if (isSignedIn) return <Navigate to="/" replace />
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <SignIn routing="path" path="/sign-in" />
+      <div>
+        <SignIn routing="path" path="/sign-in" />
+        <LanguageSelector />
+      </div>
     </div>
   )
 }
 
 function SignUpPage() {
   const { isSignedIn, isLoaded } = useUser()
+  useAuthLocale()
   if (!isLoaded) return <Spinner />
   if (isSignedIn) return <Navigate to="/household/setup" replace />
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <SignUp routing="path" path="/sign-up" />
+      <div>
+        <SignUp routing="path" path="/sign-up" />
+        <LanguageSelector />
+      </div>
     </div>
   )
 }

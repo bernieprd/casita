@@ -429,7 +429,12 @@
     "viewAgenda": "Agenda",
     "viewWeek": "Settimana",
     "viewMonth": "Mese",
-    "moreEvents": "+{{count}} altri"
+    "moreEvents": "+{{count}} altri",
+    "emptyTitle": "Niente in arrivo",
+    "emptySubtitle": "Goditi la quiete",
+    "connectPromptSee": "Collega Google Calendar in <a>Impostazioni</a> per vedere i tuoi eventi",
+    "connectPromptAdd": "Collega Google Calendar in <a>Impostazioni</a> per aggiungere i tuoi eventi",
+    "noCalendarsSelected": "Nessun calendario selezionato — <a>scegli quali mostrare</a>"
   },
   "changelog": {
     "month_june_2026": "Giugno 2026",
