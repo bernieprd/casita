@@ -12,6 +12,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerFooter,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerClose,
+} from '@/components/ui/drawer'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -217,7 +226,7 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
 
       {/* Connect dialog */}
       <AlertDialog open={connectGoogleOpen} onOpenChange={setConnectGoogleOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-h-[90dvh] overflow-y-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('settings.calendar.connectDialogTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -242,27 +251,31 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Disconnect confirmation */}
-      <AlertDialog open={disconnectTarget !== null} onOpenChange={open => !open && setDisconnectTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('settings.calendar.disconnectTitle')}</AlertDialogTitle>
-            <AlertDialogDescription>
+      {/* Disconnect confirmation — bottom drawer avoids centering/width issues on mobile */}
+      <Drawer open={disconnectTarget !== null} onOpenChange={open => !open && setDisconnectTarget(null)}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>{t('settings.calendar.disconnectTitle')}</DrawerTitle>
+            <DrawerDescription>
               {t('settings.calendar.disconnectDescription', { email: disconnectTarget?.accountEmail ?? '' })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row justify-end">
-            <AlertDialogCancel disabled={isDisconnecting}>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
+            </DrawerDescription>
+          </DrawerHeader>
+          <DrawerFooter>
+            <Button
+              variant="destructive"
               onClick={handleDisconnect}
               disabled={isDisconnecting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDisconnecting ? t('common.disconnect') + '…' : t('common.disconnect')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline" disabled={isDisconnecting}>
+                {t('common.cancel')}
+              </Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
     </div>
   )
 }

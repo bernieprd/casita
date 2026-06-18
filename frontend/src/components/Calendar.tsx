@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { useMemo, useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -137,10 +137,8 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
     if (view === 'week') return getWeekStart(anchorDate).toISOString()
     const y = anchorDate.getFullYear()
     const m = anchorDate.getMonth()
-    if (view === 'month') return new Date(y, m, 1, 0, 0, 0, 0).toISOString()
-    // agenda: from now if current month, else start of month
-    const isCurrentMonth = y === today.getFullYear() && m === today.getMonth()
-    return isCurrentMonth ? today.toISOString() : new Date(y, m, 1).toISOString()
+    // agenda and month: always start from the beginning of the month
+    return new Date(y, m, 1, 0, 0, 0, 0).toISOString()
   }, [view, anchorDate])
 
   const timeMax = useMemo(() => {
@@ -160,11 +158,26 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
     userCalendars?.calendars !== undefined &&
     !userCalendars.calendars.some(c => c.enabled)
 
-  // Group events by day for agenda view
+  // Scroll agenda view to today after data loads (once per view/month change).
+  const agendaTodayRef = useRef<HTMLDivElement>(null)
+  const scrolledRef = useRef(false)
+  useEffect(() => { scrolledRef.current = false }, [view, anchorDate])
+  useEffect(() => {
+    if (view !== 'agenda' || isLoading || scrolledRef.current) return
+    scrolledRef.current = true
+    agendaTodayRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
+  }, [view, isLoading])
+
+  // Group events by day for agenda view.
+  // Always seeds today as an anchor when viewing the current month so the
+  // scroll-to-today ref always has a DOM node to target.
   const dayGroups = useMemo((): Array<{ dateKey: string; events: CalendarEvent[] }> => {
-    if (!events?.length) return []
     const map = new Map<string, CalendarEvent[]>()
-    for (const e of events) {
+    const y = anchorDate.getFullYear()
+    const m = anchorDate.getMonth()
+    const isCurrentMonth = y === today.getFullYear() && m === today.getMonth()
+    if (isCurrentMonth) map.set(todayKey(), [])
+    for (const e of events ?? []) {
       const key = dayKey(e.start)
       const bucket = map.get(key) ?? []
       bucket.push(e)
@@ -176,7 +189,7 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
         dateKey: dk,
         events: evs.slice().sort((a, b) => a.start.localeCompare(b.start)),
       }))
-  }, [events])
+  }, [events, anchorDate])
 
   // Navigation
   const isPrevDisabled = false
@@ -279,6 +292,7 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
         isLoading ? (
           <AgendaSkeleton />
         ) : dayGroups.length === 0 ? (
+          // Non-current month with no events
           <div className="pt-10 text-center px-8">
             <img src="/casita.webp" alt="" className="w-20 mb-4 mx-auto opacity-70" />
             <p className="text-sm font-medium text-muted-foreground mb-1">Nothing coming up</p>
@@ -293,9 +307,23 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
         ) : (
           <>
             {dayGroups.map(({ dateKey, events: evs }) => (
-              <DaySection key={dateKey} dateKey={dateKey} events={evs} />
+              <div key={dateKey} ref={dateKey === todayKey() ? agendaTodayRef : undefined}>
+                <DaySection dateKey={dateKey} events={evs} />
+              </div>
             ))}
-            {!isConnected && (
+            {/* No-events message inline, below the today anchor */}
+            {(events?.length ?? 0) === 0 && (
+              <div className="pt-2 pb-4 text-center px-8">
+                <p className="text-sm text-muted-foreground/60">
+                  {!isConnected
+                    ? <>Connect Google Calendar in{' '}<Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">Settings</Link>{' '}to see your events</>
+                    : noneEnabled
+                      ? <>No calendars selected —{' '}<Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">choose which ones to show</Link></>
+                      : 'Enjoy the quiet'}
+                </p>
+              </div>
+            )}
+            {!isConnected && (events?.length ?? 0) > 0 && (
               <div className="pt-4 text-center px-8 pb-4">
                 <p className="text-sm text-muted-foreground/60">
                   Connect Google Calendar in{' '}<Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">Settings</Link>{' '}to add your own events
