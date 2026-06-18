@@ -258,7 +258,8 @@ export async function updateHouseholdSettings(
   ctx: RequestContext,
 ): Promise<Response> {
   if (!ctx.householdId) return err(403, 'ERR_FORBIDDEN')
-  if (ctx.role !== 'owner') return err(403, 'ERR_FORBIDDEN')
+  // No role check — theme settings are intentionally editable by all members.
+  // If non-cosmetic settings are added here, gate them behind an owner check.
 
   const body = await req.json<Record<string, unknown>>()
   const { colorScheme: _dropped, ...rest } = body

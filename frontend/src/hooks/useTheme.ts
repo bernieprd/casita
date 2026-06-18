@@ -60,9 +60,19 @@ export function useTheme(
 
   const setPrefs = useCallback((next: ThemePrefs) => {
     const previous = prefs
+    const serverFieldChanged =
+      next.primaryHsl !== previous.primaryHsl ||
+      next.headingFont !== previous.headingFont ||
+      next.bodyFont !== previous.bodyFont ||
+      next.radius !== previous.radius
 
     applyTheme(next)
     setPrefsState(next)
+
+    if (!serverFieldChanged) {
+      saveTheme({ ...DEFAULT_THEME, colorScheme: next.colorScheme })
+      return
+    }
 
     const serverPrefsToSave: HouseholdThemePrefs = {
       primaryHsl: next.primaryHsl,
