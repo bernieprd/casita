@@ -169,7 +169,7 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
                             style={{ backgroundColor: cal.colorHex }}
                             aria-label={t('settings.calendar.calendarColor', { name: cal.name })}
                           />
-                          <span className="text-sm flex-1">{cal.name}</span>
+                          <span className="text-sm flex-1 truncate">{cal.name}</span>
                           <Switch
                             checked={cal.enabled}
                             onCheckedChange={() => handleToggle(cal)}
