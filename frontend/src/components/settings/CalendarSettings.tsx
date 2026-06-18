@@ -233,7 +233,7 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
               .
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row justify-end">
+          <AlertDialogFooter>
             <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => initiateGoogleConnect()}>
               {t('common.connect')}
@@ -251,7 +251,7 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
               {t('settings.calendar.disconnectDescription', { email: disconnectTarget?.accountEmail ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row justify-end">
+          <AlertDialogFooter>
             <AlertDialogCancel disabled={isDisconnecting}>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDisconnect}
