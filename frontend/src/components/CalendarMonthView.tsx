@@ -3,19 +3,12 @@ import type { CalendarEvent } from '../api/types'
 import { useLocale } from '@/hooks/useLocale'
 import { useTranslation } from 'react-i18next'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { dayKey } from '@/lib/calendar-utils'
 
 const DEFAULT_EVENT_COLOR = '#1976d2'
 const MAX_VISIBLE_EVENTS = 3
 
 // ── Grid helpers ───────────────────────────────────────────────────────────────
-
-function dayKey(date: Date): string {
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0'),
-  ].join('-')
-}
 
 interface GridCell {
   date: Date
@@ -97,7 +90,7 @@ function DayCell({ cell, events, isToday }: DayCellProps) {
 
   return (
     <div
-      className={`min-h-[72px] border-t border-l border-border/30 p-0.5 ${!cell.isCurrentMonth ? 'bg-muted/20' : ''}`}
+      className={`h-full min-h-[40px] border-t border-l border-border/30 p-0.5 ${!cell.isCurrentMonth ? 'bg-muted/20' : ''}`}
     >
       {/* Date number */}
       <div className="flex justify-center mb-0.5">
@@ -180,9 +173,9 @@ export default function CalendarMonthView({ events, year, month }: CalendarMonth
   }, [locale])
 
   return (
-    <div className="select-none">
+    <div className="flex flex-col select-none" style={{ height: 'calc(100dvh - 180px)' }}>
       {/* Day-of-week header */}
-      <div className="grid grid-cols-7 border-b border-border/30">
+      <div className="flex-shrink-0 grid grid-cols-7 border-b border-border/30">
         {weekDayLabels.map(label => (
           <div key={label} className="text-center text-[10px] text-muted-foreground py-1 font-medium">
             {label}
@@ -191,7 +184,7 @@ export default function CalendarMonthView({ events, year, month }: CalendarMonth
       </div>
 
       {/* Month grid */}
-      <div className="grid grid-cols-7 border-r border-border/30">
+      <div className="flex-1 overflow-hidden grid grid-cols-7 grid-rows-6 border-r border-border/30">
         {cells.map(cell => (
           <DayCell
             key={cell.dateKey}

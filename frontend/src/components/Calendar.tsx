@@ -9,6 +9,7 @@ import type { CalendarEvent } from '../api/types'
 import { useTranslation } from 'react-i18next'
 import { useLocale } from '@/hooks/useLocale'
 import { makeDayLabel } from '@/lib/dayLabel'
+import { getWeekStart } from '@/lib/calendar-utils'
 import CalendarWeekView from './CalendarWeekView'
 import CalendarMonthView from './CalendarMonthView'
 
@@ -17,15 +18,6 @@ import CalendarMonthView from './CalendarMonthView'
 type CalendarView = 'agenda' | 'week' | 'month'
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
-
-function getWeekStart(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  d.setDate(d.getDate() + diff)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
 
 function getWeekEnd(date: Date): Date {
   const start = getWeekStart(date)
@@ -187,15 +179,14 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
   }, [events])
 
   // Navigation
-  const isPrevDisabled = useMemo(() => {
-    if (view !== 'agenda') return false
-    return anchorDate.getFullYear() === today.getFullYear() && anchorDate.getMonth() === today.getMonth()
-  }, [view, anchorDate])
+  const isPrevDisabled = false
 
   const navigate = useCallback((dir: -1 | 1) => {
     setAnchorDate(d => {
       if (view === 'week') {
-        return new Date(d.getTime() + dir * 7 * 24 * 60 * 60 * 1000)
+        const next = new Date(d)
+        next.setDate(next.getDate() + dir * 7)
+        return next
       }
       return new Date(d.getFullYear(), d.getMonth() + dir, 1)
     })

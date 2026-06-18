@@ -173,7 +173,16 @@ export async function getValidAccessToken(userEmail: string, accountEmail: strin
   }
 
   if (refreshData.error === 'invalid_grant') {
-    await env.AUTH_KV.delete(`oauth_tokens:${userEmail}:google:${accountEmail}`)
+    await Promise.all([
+      env.AUTH_KV.delete(`oauth_tokens:${userEmail}:google:${accountEmail}`),
+      env.AUTH_KV.delete(`user_calendars:${userEmail}:google:${accountEmail}`),
+    ])
+    const accountsRaw = await env.AUTH_KV.get(`connected_accounts:${userEmail}`)
+    if (accountsRaw) {
+      const accounts: ConnectedAccount[] = JSON.parse(accountsRaw)
+      const remaining = accounts.filter(a => a.accountEmail !== accountEmail)
+      await env.AUTH_KV.put(`connected_accounts:${userEmail}`, JSON.stringify(remaining))
+    }
     return null
   }
 

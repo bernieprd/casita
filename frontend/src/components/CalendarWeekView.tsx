@@ -1,7 +1,8 @@
-import { useRef, useEffect, useMemo } from 'react'
+import { useRef, useEffect, useMemo, useState } from 'react'
 import type { CalendarEvent } from '../api/types'
 import { useLocale } from '@/hooks/useLocale'
 import { useTranslation } from 'react-i18next'
+import { dayKey, getWeekStart } from '@/lib/calendar-utils'
 
 const HOUR_PX = 48
 const GRID_HEIGHT = 24 * HOUR_PX
@@ -10,10 +11,6 @@ const DEFAULT_SCROLL_HOUR = 8
 const DEFAULT_EVENT_COLOR = '#1976d2'
 
 // ── Layout helpers ─────────────────────────────────────────────────────────────
-
-function dayKey(date: Date): string {
-  return date.toISOString().slice(0, 10)
-}
 
 function isoToMinutes(iso: string): number {
   const d = new Date(iso)
@@ -52,22 +49,11 @@ function layoutDayEvents(events: CalendarEvent[]): LayoutEvent[] {
   }))
 }
 
-function getWeekStart(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  d.setDate(d.getDate() + diff)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function formatHour(h: number): string {
+function formatHour(h: number, locale: string): string {
   if (h === 0) return ''
-  if (h < 12) return `${h} AM`
-  if (h === 12) return '12 PM'
-  return `${h - 12} PM`
+  return new Date(2024, 0, 1, h).toLocaleTimeString(locale, { hour: 'numeric' })
 }
 
 interface TimedEventBlockProps {
@@ -156,8 +142,20 @@ export default function CalendarWeekView({ events, anchorDate }: CalendarWeekVie
 
   const today = new Date()
   const todayKey = dayKey(today)
-  const currentMinutes = today.getHours() * 60 + today.getMinutes()
   const isCurrentWeek = weekDays.some(d => dayKey(d) === todayKey)
+
+  const [currentMinutes, setCurrentMinutes] = useState(() => {
+    const now = new Date()
+    return now.getHours() * 60 + now.getMinutes()
+  })
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = new Date()
+      setCurrentMinutes(now.getHours() * 60 + now.getMinutes())
+    }, 60_000)
+    return () => clearInterval(id)
+  }, [])
 
   const hours = Array.from({ length: 24 }, (_, i) => i)
 
@@ -223,7 +221,7 @@ export default function CalendarWeekView({ events, anchorDate }: CalendarWeekVie
                 className="absolute right-1 text-[10px] text-muted-foreground -translate-y-[6px] leading-none"
                 style={{ top: `${h * HOUR_PX}px` }}
               >
-                {formatHour(h)}
+                {formatHour(h, locale)}
               </div>
             ))}
           </div>
