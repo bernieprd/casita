@@ -6,10 +6,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useCalendarEvents, useGoogleStatus, useUserCalendars } from '../api'
 import type { CalendarEvent } from '../api/types'
-import { useTranslation } from 'react-i18next'
+import { useTranslation, Trans } from 'react-i18next'
 import { useLocale } from '@/hooks/useLocale'
 import { makeDayLabel } from '@/lib/dayLabel'
-import { getWeekStart } from '@/lib/calendar-utils'
+import { dayKey, dayKeyFromString, getWeekStart } from '@/lib/calendar-utils'
 import CalendarWeekView from './CalendarWeekView'
 import CalendarMonthView from './CalendarMonthView'
 
@@ -31,14 +31,9 @@ function endOfMonth(year: number, month: number): Date {
   return new Date(year, month + 1, 0, 23, 59, 59, 999)
 }
 
-/** Day key: "YYYY-MM-DD" extracted from an ISO or date-only string. */
-function dayKey(start: string): string {
-  return start.slice(0, 10)
-}
-
-/** Returns today as "YYYY-MM-DD". */
+/** Returns today as "YYYY-MM-DD" in local time. */
 function todayKey(): string {
-  return dayKey(new Date().toISOString().slice(0, 10))
+  return dayKey(new Date())
 }
 
 /** "10:00 AM – 11:30 AM" or "All day". */
@@ -178,7 +173,7 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
     const isCurrentMonth = y === today.getFullYear() && m === today.getMonth()
     if (isCurrentMonth) map.set(todayKey(), [])
     for (const e of events ?? []) {
-      const key = dayKey(e.start)
+      const key = dayKeyFromString(e.start)
       const bucket = map.get(key) ?? []
       bucket.push(e)
       map.set(key, bucket)
@@ -192,8 +187,6 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
   }, [events, anchorDate])
 
   // Navigation
-  const isPrevDisabled = false
-
   const navigate = useCallback((dir: -1 | 1) => {
     setAnchorDate(d => {
       if (view === 'week') {
@@ -228,7 +221,6 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
           variant="ghost"
           size="icon"
           onClick={prevCallback}
-          disabled={isPrevDisabled}
           className="-ml-2 text-muted-foreground"
         >
           <ChevronLeft className="size-5" />
@@ -245,7 +237,7 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
       </>
     )
     return () => setHeader(null)
-  }, [periodLabel, isPrevDisabled, prevCallback, nextCallback, setHeader])
+  }, [periodLabel, prevCallback, nextCallback, setHeader])
 
   return (
     <div>
@@ -295,13 +287,13 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
           // Non-current month with no events
           <div className="pt-10 text-center px-8">
             <img src="/casita.webp" alt="" className="w-20 mb-4 mx-auto opacity-70" />
-            <p className="text-sm font-medium text-muted-foreground mb-1">Nothing coming up</p>
+            <p className="text-sm font-medium text-muted-foreground mb-1">{t('calendar.emptyTitle')}</p>
             <p className="text-sm text-muted-foreground/60">
               {!isConnected
-                ? <>Connect Google Calendar in{' '}<Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">Settings</Link>{' '}to see your events</>
+                ? <Trans i18nKey="calendar.connectPromptSee" components={{ a: <Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors" /> }} />
                 : noneEnabled
-                  ? <>No calendars selected —{' '}<Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">choose which ones to show</Link></>
-                  : 'Enjoy the quiet'}
+                  ? <Trans i18nKey="calendar.noCalendarsSelected" components={{ a: <Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors" /> }} />
+                  : t('calendar.emptySubtitle')}
             </p>
           </div>
         ) : (
@@ -316,17 +308,17 @@ export default function Calendar({ setHeader }: { setHeader: (node: ReactNode | 
               <div className="pt-2 pb-4 text-center px-8">
                 <p className="text-sm text-muted-foreground/60">
                   {!isConnected
-                    ? <>Connect Google Calendar in{' '}<Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">Settings</Link>{' '}to see your events</>
+                    ? <Trans i18nKey="calendar.connectPromptSee" components={{ a: <Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors" /> }} />
                     : noneEnabled
-                      ? <>No calendars selected —{' '}<Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">choose which ones to show</Link></>
-                      : 'Enjoy the quiet'}
+                      ? <Trans i18nKey="calendar.noCalendarsSelected" components={{ a: <Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors" /> }} />
+                      : t('calendar.emptySubtitle')}
                 </p>
               </div>
             )}
             {!isConnected && (events?.length ?? 0) > 0 && (
               <div className="pt-4 text-center px-8 pb-4">
                 <p className="text-sm text-muted-foreground/60">
-                  Connect Google Calendar in{' '}<Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors">Settings</Link>{' '}to add your own events
+                  <Trans i18nKey="calendar.connectPromptAdd" components={{ a: <Link to="/settings/calendar" className="underline underline-offset-2 hover:text-muted-foreground transition-colors" /> }} />
                 </p>
               </div>
             )}

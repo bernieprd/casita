@@ -1,5 +1,12 @@
 export function dayKey(date: Date): string {
-  return date.toISOString().slice(0, 10)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+export function dayKeyFromString(s: string): string {
+  return s.slice(0, 10)
 }
 
 export function getWeekStart(date: Date): Date {
