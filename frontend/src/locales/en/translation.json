@@ -490,5 +490,45 @@
     "errorTitle": "Something went wrong",
     "errorUnexpected": "Unexpected error",
     "tryAgain": "Try again"
+  },
+  "onboarding": {
+    "back": "Back",
+    "next": "Next",
+    "letsGo": "Let's go",
+    "slides": {
+      "welcome": {
+        "title": "Welcome to {{name}}",
+        "description": "Your household in one place — tasks, shopping, recipes, and events, all shared with everyone at home."
+      },
+      "calendar": {
+        "title": "Calendar",
+        "description": "See what's coming up — add events, connect Google Calendar, and keep your household in sync."
+      },
+      "todos": {
+        "title": "To-Dos",
+        "description": "Track household tasks, assign them to members, set priorities and due dates."
+      },
+      "shopping": {
+        "title": "Shopping",
+        "description": "Build a shared shopping list, organise by store, and check items off together."
+      },
+      "recipes": {
+        "title": "Recipes",
+        "description": "Save your favourite recipes, plan what to cook, and turn ingredients into shopping list items."
+      }
+    },
+    "preview": {
+      "milkItem": "Milk",
+      "eggsItem": "Eggs",
+      "breadItem": "Bread",
+      "tagDinner": "Dinner",
+      "tagLunch": "Lunch",
+      "tagBreakfast": "Breakfast",
+      "todoFixTap": "Fix bathroom tap",
+      "todoBuyGroceries": "Buy groceries",
+      "todoCallInsurance": "Call insurance",
+      "eventDoctor": "Doctor appointment",
+      "eventFamilyDinner": "Family dinner"
+    }
   }
 }

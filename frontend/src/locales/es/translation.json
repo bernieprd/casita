@@ -490,5 +490,45 @@
     "errorTitle": "Algo salió mal",
     "errorUnexpected": "Error inesperado",
     "tryAgain": "Intentar de nuevo"
+  },
+  "onboarding": {
+    "back": "Atrás",
+    "next": "Siguiente",
+    "letsGo": "¡Empezamos!",
+    "slides": {
+      "welcome": {
+        "title": "Bienvenido a {{name}}",
+        "description": "Tu hogar en un solo lugar — tareas, compras, recetas y eventos, todo compartido con todos en casa."
+      },
+      "calendar": {
+        "title": "Calendario",
+        "description": "Ve lo que viene — añade eventos, conecta Google Calendar y mantén a tu hogar sincronizado."
+      },
+      "todos": {
+        "title": "Tareas",
+        "description": "Gestiona las tareas del hogar, asígnalas a los miembros y establece prioridades y fechas."
+      },
+      "shopping": {
+        "title": "Compras",
+        "description": "Crea una lista de la compra compartida, organízala por tienda y marca los artículos juntos."
+      },
+      "recipes": {
+        "title": "Recetas",
+        "description": "Guarda tus recetas favoritas, planifica qué cocinar y convierte los ingredientes en artículos de la lista."
+      }
+    },
+    "preview": {
+      "milkItem": "Leche",
+      "eggsItem": "Huevos",
+      "breadItem": "Pan",
+      "tagDinner": "Cena",
+      "tagLunch": "Almuerzo",
+      "tagBreakfast": "Desayuno",
+      "todoFixTap": "Arreglar el grifo del baño",
+      "todoBuyGroceries": "Hacer la compra",
+      "todoCallInsurance": "Llamar al seguro",
+      "eventDoctor": "Cita médica",
+      "eventFamilyDinner": "Cena familiar"
+    }
   }
 }

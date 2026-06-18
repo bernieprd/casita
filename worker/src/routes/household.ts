@@ -1,4 +1,4 @@
-import type { Env, RequestContext, HouseholdNotionConfig } from '../types'
+import type { Env, RequestContext } from '../types'
 import { seedHouseholdConcepts } from './concepts-d1'
 import { getClerkClient } from '../auth/clerk'
 import { rebuildSharedIndex } from './shared-calendar-index'
@@ -7,16 +7,6 @@ import { rebuildSharedIndex } from './shared-calendar-index'
 
 function err(status: number, code: string): Response {
   return Response.json({ error: code }, { status })
-}
-
-export async function getNotionConfig(
-  env: Env,
-  householdId: string,
-): Promise<HouseholdNotionConfig | null> {
-  return env.DB
-    .prepare('SELECT * FROM household_notion_config WHERE household_id = ?')
-    .bind(householdId)
-    .first<HouseholdNotionConfig>()
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
