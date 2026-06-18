@@ -12,15 +12,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerFooter,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerClose,
-} from '@/components/ui/drawer'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -251,31 +242,27 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Disconnect confirmation — bottom drawer avoids centering/width issues on mobile */}
-      <Drawer open={disconnectTarget !== null} onOpenChange={open => !open && setDisconnectTarget(null)}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>{t('settings.calendar.disconnectTitle')}</DrawerTitle>
-            <DrawerDescription>
+      {/* Disconnect confirmation */}
+      <AlertDialog open={disconnectTarget !== null} onOpenChange={open => !open && setDisconnectTarget(null)}>
+        <AlertDialogContent className="max-h-[90dvh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('settings.calendar.disconnectTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
               {t('settings.calendar.disconnectDescription', { email: disconnectTarget?.accountEmail ?? '' })}
-            </DrawerDescription>
-          </DrawerHeader>
-          <DrawerFooter>
-            <Button
-              variant="destructive"
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row justify-end">
+            <AlertDialogCancel disabled={isDisconnecting}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
               onClick={handleDisconnect}
               disabled={isDisconnecting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDisconnecting ? t('common.disconnect') + '…' : t('common.disconnect')}
-            </Button>
-            <DrawerClose asChild>
-              <Button variant="outline" disabled={isDisconnecting}>
-                {t('common.cancel')}
-              </Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
