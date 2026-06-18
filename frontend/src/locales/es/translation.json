@@ -367,8 +367,12 @@
       "connectSuccess": "Google Calendar conectado correctamente.",
       "connectError": "Error al conectar Google Calendar. Por favor, inténtalo de nuevo.",
       "connectGoogleCalendar": "Conectar Google Calendar",
+      "addGoogleAccount": "Añadir cuenta de Google",
+      "googleCalendar": "Google Calendar",
       "connectDialogTitle": "Conectar Google Calendar",
       "connectDialogDescription": "Casita leerá los eventos de tu calendario. Tú eliges qué calendarios son visibles para tu hogar.",
+      "disconnectTitle": "¿Desconectar cuenta?",
+      "disconnectDescription": "Los eventos de {{email}} ya no aparecerán en tu calendario.",
       "failedToLoad": "Error al cargar los calendarios. Intenta reconectar.",
       "visibilityPrivate": "Privado — solo yo",
       "visibilityHousehold": "Hogar — eventos completos",
@@ -421,7 +425,11 @@
     "couldNotDelete": "No se pudo eliminar «{{name}}»"
   },
   "calendar": {
-    "allDay": "Todo el día"
+    "allDay": "Todo el día",
+    "viewAgenda": "Agenda",
+    "viewWeek": "Semana",
+    "viewMonth": "Mes",
+    "moreEvents": "+{{count}} más"
   },
   "changelog": {
     "month_june_2026": "Junio 2026",
@@ -461,7 +469,9 @@
     "e16_title": "Sincronización con Google Calendar",
     "e16_desc": "Conecta tu Google Calendar para ver los eventos junto a las tareas del hogar.",
     "e17_title": "Rediseño de configuración",
-    "e17_desc": "Las páginas de configuración han sido reorganizadas con un diseño más limpio."
+    "e17_desc": "Las páginas de configuración han sido reorganizadas con un diseño más limpio.",
+    "e18_title": "Sincronización con múltiples cuentas y nuevas vistas",
+    "e18_desc": "Conecta varias cuentas de Google (personal + trabajo) desde Ajustes → Calendario. Las nuevas vistas de semana y mes te permiten ver tu agenda de un vistazo — cambia entre Agenda, Semana y Mes con el selector en la parte superior de la pestaña Calendario."
   },
   "nav": {
     "settings": "Configuración",

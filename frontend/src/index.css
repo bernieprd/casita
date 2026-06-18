@@ -101,6 +101,20 @@
   }
 }
 
+/*
+ * react-remove-scroll (used by Radix dialogs) injects:
+ *   body[data-scroll-locked] { margin-right: Xpx !important }
+ * to compensate for the scrollbar disappearing when a dialog opens.
+ * On real mobile (overlay scrollbars) Xpx = 0 so this is harmless,
+ * but in a narrow desktop browser the measured scrollbar width is non-zero,
+ * causing the page content to shift left and dialogs to look misaligned.
+ * The doubled attribute selector gives specificity [2,0,1] vs the library's
+ * [1,0,1], so our !important wins even though the library injects later.
+ */
+body[data-scroll-locked][data-scroll-locked] {
+  margin-right: 0 !important;
+}
+
 @media (max-width: 767px) {
   input:not([type="hidden"]):not([type="file"]),
   textarea,

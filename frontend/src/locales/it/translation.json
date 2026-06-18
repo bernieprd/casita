@@ -367,8 +367,12 @@
       "connectSuccess": "Google Calendar connesso con successo.",
       "connectError": "Impossibile connettere Google Calendar. Per favore, riprova.",
       "connectGoogleCalendar": "Connetti Google Calendar",
+      "addGoogleAccount": "Aggiungi account Google",
+      "googleCalendar": "Google Calendar",
       "connectDialogTitle": "Connetti Google Calendar",
       "connectDialogDescription": "Casita leggerà gli eventi del tuo calendario. Sei tu a scegliere quali calendari sono visibili alla tua casa.",
+      "disconnectTitle": "Disconnettere l'account?",
+      "disconnectDescription": "Gli eventi di {{email}} non appariranno più nel tuo calendario.",
       "failedToLoad": "Impossibile caricare i calendari. Prova a ricollegarti.",
       "visibilityPrivate": "Privato — solo io",
       "visibilityHousehold": "Casa — eventi completi",
@@ -421,7 +425,11 @@
     "couldNotDelete": "Impossibile eliminare «{{name}}»"
   },
   "calendar": {
-    "allDay": "Tutto il giorno"
+    "allDay": "Tutto il giorno",
+    "viewAgenda": "Agenda",
+    "viewWeek": "Settimana",
+    "viewMonth": "Mese",
+    "moreEvents": "+{{count}} altri"
   },
   "changelog": {
     "month_june_2026": "Giugno 2026",
@@ -461,7 +469,9 @@
     "e16_title": "Sincronizzazione con Google Calendar",
     "e16_desc": "Collega il tuo Google Calendar per vedere gli eventi insieme alle attività della casa.",
     "e17_title": "Ridisegno delle impostazioni",
-    "e17_desc": "Le pagine delle Impostazioni sono state riorganizzate con un aspetto più pulito."
+    "e17_desc": "Le pagine delle Impostazioni sono state riorganizzate con un aspetto più pulito.",
+    "e18_title": "Sincronizzazione multi-account e nuove viste",
+    "e18_desc": "Collega più account Google (personale + lavoro) da Impostazioni → Calendario. Le nuove viste settimana e mese ti permettono di vedere il programma a colpo d'occhio — passa tra Agenda, Settimana e Mese con il selettore in cima alla scheda Calendario."
   },
   "nav": {
     "settings": "Impostazioni",

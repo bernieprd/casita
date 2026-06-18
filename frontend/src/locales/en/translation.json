@@ -367,8 +367,12 @@
       "connectSuccess": "Google Calendar connected successfully.",
       "connectError": "Failed to connect Google Calendar. Please try again.",
       "connectGoogleCalendar": "Connect Google Calendar",
+      "addGoogleAccount": "Add Google account",
+      "googleCalendar": "Google Calendar",
       "connectDialogTitle": "Connect Google Calendar",
       "connectDialogDescription": "Casita will read your calendar events. You choose which calendars are visible to your household.",
+      "disconnectTitle": "Disconnect account?",
+      "disconnectDescription": "Events from {{email}} will no longer appear in your calendar.",
       "failedToLoad": "Failed to load calendars. Try reconnecting.",
       "visibilityPrivate": "Private — only me",
       "visibilityHousehold": "Household — full events",
@@ -421,7 +425,11 @@
     "couldNotDelete": "Could not delete \"{{name}}\""
   },
   "calendar": {
-    "allDay": "All day"
+    "allDay": "All day",
+    "viewAgenda": "Agenda",
+    "viewWeek": "Week",
+    "viewMonth": "Month",
+    "moreEvents": "+{{count}} more"
   },
   "changelog": {
     "month_june_2026": "June 2026",
@@ -461,7 +469,9 @@
     "e16_title": "Google Calendar sync",
     "e16_desc": "Connect your Google Calendar to see events alongside your household tasks.",
     "e17_title": "Settings redesign",
-    "e17_desc": "Settings pages have been reorganised with a cleaner layout."
+    "e17_desc": "Settings pages have been reorganised with a cleaner layout.",
+    "e18_title": "Multi-account calendar sync & new views",
+    "e18_desc": "Connect multiple Google accounts (personal + work) from Settings → Calendar. New week and month views let you see your schedule at a glance — switch between Agenda, Week, and Month with the toggle at the top of the Calendar tab."
   },
   "nav": {
     "settings": "Settings",

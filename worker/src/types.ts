@@ -71,20 +71,30 @@ export interface GoogleTokens {
   expiresAt: number
 }
 
+export interface ConnectedAccount {
+  provider: 'google'
+  accountEmail: string
+  connectedAt: number
+}
+
 export interface UserCalendar {
   id: string
   name: string
   colorHex: string
   enabled: boolean
   visibility: 'private' | 'household' | 'free-busy'
+  provider: 'google'
+  accountEmail: string
 }
 
 export interface SharedCalendar {
   calendarId: string
   ownerEmail: string
+  accountEmail?: string
   name: string
   colorHex: string
   visibility: 'household' | 'free-busy'
+  provider?: 'google'
 }
 
 // ── Env ───────────────────────────────────────────────────────────────────────
