@@ -11,10 +11,10 @@ import type { Item, RecipeIngredient } from '../types'
 const ITEM_OFF: Item = { id: 'item-1', name: 'Milk', category: null, supermarkets: [], onShoppingList: false }
 const ITEM_ON:  Item = { ...ITEM_OFF, onShoppingList: true }
 
-function setup() {
+function setup(initialState = false) {
   const queryClient = createTestQueryClient()
-  queryClient.setQueryData<Item[]>(itemKeys.all, [ITEM_OFF])
-  queryClient.setQueryData<Item[]>(itemKeys.shopping, [])
+  queryClient.setQueryData<Item[]>(itemKeys.all, [initialState ? ITEM_ON : ITEM_OFF])
+  queryClient.setQueryData<Item[]>(itemKeys.shopping, initialState ? [ITEM_ON] : [])
   const wrapper = createWrapper(queryClient)
   const { result } = renderHook(() => useToggleShoppingList(), { wrapper })
   return { queryClient, result }
@@ -43,11 +43,7 @@ describe('useToggleShoppingList', () => {
 
   describe('optimistic update — toggle OFF', () => {
     it('removes the item from itemKeys.shopping', async () => {
-      const queryClient = createTestQueryClient()
-      queryClient.setQueryData<Item[]>(itemKeys.all, [ITEM_ON])
-      queryClient.setQueryData<Item[]>(itemKeys.shopping, [ITEM_ON])
-      const wrapper = createWrapper(queryClient)
-      const { result } = renderHook(() => useToggleShoppingList(), { wrapper })
+      const { queryClient, result } = setup(true)
       server.use(
         http.patch('http://localhost:8787/items/:id', () =>
           HttpResponse.json({ ...ITEM_OFF }),
@@ -63,16 +59,12 @@ describe('useToggleShoppingList', () => {
 
   describe('recipe ingredient cache sync', () => {
     it('flips needsShopping on cached ingredients with the same itemId', async () => {
-      const queryClient = createTestQueryClient()
-      queryClient.setQueryData<Item[]>(itemKeys.all, [ITEM_OFF])
-      queryClient.setQueryData<Item[]>(itemKeys.shopping, [])
+      const { queryClient, result } = setup()
       const ingredient: RecipeIngredient = {
         id: 'ing-1', recipeId: 'recipe-1', itemId: 'item-1',
         itemName: 'Milk', quantity: null, section: null, needsShopping: false,
       }
       queryClient.setQueryData<RecipeIngredient[]>(recipeKeys.ingredients('recipe-1'), [ingredient])
-      const wrapper = createWrapper(queryClient)
-      const { result } = renderHook(() => useToggleShoppingList(), { wrapper })
       act(() => { result.current.mutate({ id: 'item-1', onShoppingList: true }) })
       await waitFor(() => {
         const ings = queryClient.getQueryData<RecipeIngredient[]>(recipeKeys.ingredients('recipe-1'))
@@ -81,16 +73,12 @@ describe('useToggleShoppingList', () => {
     })
 
     it('does not touch ingredients whose itemId differs', async () => {
-      const queryClient = createTestQueryClient()
-      queryClient.setQueryData<Item[]>(itemKeys.all, [ITEM_OFF])
-      queryClient.setQueryData<Item[]>(itemKeys.shopping, [])
+      const { queryClient, result } = setup()
       const unrelatedIngredient: RecipeIngredient = {
         id: 'ing-2', recipeId: 'recipe-1', itemId: 'item-99',
         itemName: 'Eggs', quantity: null, section: null, needsShopping: false,
       }
       queryClient.setQueryData<RecipeIngredient[]>(recipeKeys.ingredients('recipe-1'), [unrelatedIngredient])
-      const wrapper = createWrapper(queryClient)
-      const { result } = renderHook(() => useToggleShoppingList(), { wrapper })
       act(() => { result.current.mutate({ id: 'item-1', onShoppingList: true }) })
       await waitFor(() => expect(result.current.isSuccess).toBe(true))
       const ings = queryClient.getQueryData<RecipeIngredient[]>(recipeKeys.ingredients('recipe-1'))
@@ -124,16 +112,12 @@ describe('useToggleShoppingList', () => {
     })
 
     it('restores recipe ingredient caches on mutation failure', async () => {
-      const queryClient = createTestQueryClient()
-      queryClient.setQueryData<Item[]>(itemKeys.all, [ITEM_OFF])
-      queryClient.setQueryData<Item[]>(itemKeys.shopping, [])
+      const { queryClient, result } = setup()
       const ingredient: RecipeIngredient = {
         id: 'ing-1', recipeId: 'recipe-1', itemId: 'item-1',
         itemName: 'Milk', quantity: null, section: null, needsShopping: false,
       }
       queryClient.setQueryData<RecipeIngredient[]>(recipeKeys.ingredients('recipe-1'), [ingredient])
-      const wrapper = createWrapper(queryClient)
-      const { result } = renderHook(() => useToggleShoppingList(), { wrapper })
       act(() => { result.current.mutate({ id: 'item-1', onShoppingList: true }) })
       await waitFor(() => expect(result.current.isError).toBe(true))
       const ings = queryClient.getQueryData<RecipeIngredient[]>(recipeKeys.ingredients('recipe-1'))

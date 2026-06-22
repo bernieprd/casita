@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { makeDayLabel } from '../dayLabel'
 
 const TODAY = '2026-06-18'
-const TOMORROW = '2026-07-19'
+const TOMORROW = '2026-06-19'
 
 beforeEach(() => {
   vi.useFakeTimers()

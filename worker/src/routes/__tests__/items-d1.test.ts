@@ -154,7 +154,8 @@ describe('mergeItem', () => {
 
     const otherCtx = makeCtx({ householdId: 'other-hh' })
     const req = makeRequest('POST', `/items/item-discard/merge`, { keepId: 'item-keep' })
-    await mergeItem(req, makeEnv(), otherCtx, 'item-discard')
+    const res = await mergeItem(req, makeEnv(), otherCtx, 'item-discard')
+    expect(res.status).toBe(200)
 
     // item-discard belongs to hh-test, not other-hh — the DELETE is scoped so it is NOT deleted
     const row = await testEnv.DB.prepare('SELECT id FROM items WHERE id = ?')

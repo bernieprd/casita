@@ -141,7 +141,8 @@ describe('deleteRecipeIngredient', () => {
 
     const otherCtx = makeCtx({ householdId: 'other-hh' })
     const req = makeRequest('DELETE', '/recipe-ingredients/ing-1')
-    await deleteRecipeIngredient(req, makeEnv(), otherCtx, 'ing-1')
+    const res = await deleteRecipeIngredient(req, makeEnv(), otherCtx, 'ing-1')
+    expect(res.status).toBe(204)
 
     const row = await testEnv.DB.prepare('SELECT id FROM recipe_ingredients WHERE id = ?')
       .bind('ing-1').first()

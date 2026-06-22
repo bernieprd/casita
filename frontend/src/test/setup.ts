@@ -1,5 +1,6 @@
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom/vitest'
 import { afterAll, afterEach, beforeAll, vi } from 'vitest'
+import { cleanup } from '@testing-library/react'
 import { server } from './msw-server'
 
 // Node.js 22 declares `localStorage` as undefined unless --localstorage-file is provided.
@@ -18,5 +19,5 @@ if (typeof localStorage === 'undefined') {
 }
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
-afterEach(() => server.resetHandlers())
+afterEach(() => { server.resetHandlers(); cleanup() })
 afterAll(() => server.close())
