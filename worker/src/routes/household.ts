@@ -249,7 +249,7 @@ export async function getHouseholdSettings(
   if (row?.settings) {
     try { parsed = JSON.parse(row.settings) } catch { parsed = {} }
   }
-  return Response.json(parsed)
+  return Response.json(parsed, { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }
 
 export async function updateHouseholdSettings(
@@ -418,7 +418,7 @@ export async function getTodoSettings(
     .prepare('SELECT todo_workflow FROM households WHERE id = ?')
     .bind(ctx.householdId)
     .first<{ todo_workflow: string }>()
-  return Response.json({ workflow: row?.todo_workflow ?? 'simple' })
+  return Response.json({ workflow: row?.todo_workflow ?? 'simple' }, { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }
 
 export async function updateTodoSettings(

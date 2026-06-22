@@ -43,12 +43,27 @@ export async function getItems(req: Request, env: Env, ctx: RequestContext): Pro
 
   const { results } = await env.DB.prepare(query).bind(ctx.householdId).all<ItemRow>()
 
-  const items = await Promise.all(results.map(async row => {
-    const sm = await env.DB.prepare('SELECT supermarket FROM item_supermarkets WHERE item_id = ?').bind(row.id).all<{ supermarket: string }>()
-    return rowToItem(row, sm.results.map(r => r.supermarket))
-  }))
+  if (results.length === 0) {
+    return Response.json([], { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
+  }
 
-  return Response.json(items)
+  // Batch-fetch all supermarkets in a single query to avoid N+1
+  const ids = results.map(r => r.id)
+  const placeholders = ids.map(() => '?').join(', ')
+  const { results: smRows } = await env.DB
+    .prepare(`SELECT item_id, supermarket FROM item_supermarkets WHERE item_id IN (${placeholders})`)
+    .bind(...ids)
+    .all<{ item_id: string; supermarket: string }>()
+
+  const smByItem = new Map<string, string[]>()
+  for (const row of smRows) {
+    const arr = smByItem.get(row.item_id) ?? []
+    arr.push(row.supermarket)
+    smByItem.set(row.item_id, arr)
+  }
+
+  const items = results.map(row => rowToItem(row, smByItem.get(row.id) ?? []))
+  return Response.json(items, { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }
 
 export async function createItem(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
