@@ -37,6 +37,26 @@ describe('authorization guard', () => {
   })
 })
 
+describe('createRecipeIngredient', () => {
+  it('creates an ingredient and returns 201 with the ingredient body', async () => {
+    await insertItem('item-1', 'Milk')
+
+    const req = makeRequest('POST', '/recipe-ingredients', {
+      recipeId: 'recipe-1',
+      itemId: 'item-1',
+      quantity: '2 cups',
+    })
+    const res = await createRecipeIngredient(req, makeEnv(), makeCtx())
+    expect(res.status).toBe(201)
+    const body = await res.json<{ id: string; recipeId: string; itemId: string; itemName: string; needsShopping: boolean }>()
+    expect(typeof body.id).toBe('string')
+    expect(body.recipeId).toBe('recipe-1')
+    expect(body.itemId).toBe('item-1')
+    expect(body.itemName).toBe('Milk')
+    expect(body.needsShopping).toBe(false)
+  })
+})
+
 describe('updateRecipeIngredient — shopping list sync', () => {
   it('sets items.on_shopping_list = 1 when needsShopping is toggled on', async () => {
     await insertItem('item-1', 'Milk', false)

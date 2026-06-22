@@ -5,6 +5,7 @@ export const HH_ID  = 'hh-test'
 export const USER_ID = 'user-test'
 export const EMAIL   = 'test@example.com'
 
+// Minimal schema — only the tables used by the tested routes. Not the full schema.
 const SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS households (
     id TEXT PRIMARY KEY,

@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeAll, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
+import { createTestQueryClient } from '@/test/query-wrapper'
 import { http, HttpResponse, delay } from 'msw'
 import { server } from '@/test/msw-server'
 import '@/i18n/index'
@@ -27,12 +28,7 @@ beforeAll(() => {
 })
 
 function renderHome() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false, gcTime: Infinity },
-      mutations: { retry: false },
-    },
-  })
+  const queryClient = createTestQueryClient()
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>

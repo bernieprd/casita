@@ -90,6 +90,15 @@ describe('updateItem', () => {
     expect(res.status).toBe(400)
   })
 
+  it('updates name and returns 200 with new name', async () => {
+    await insertItem('item-1', 'Milk')
+    const req = makeRequest('PATCH', '/items/item-1', { name: 'Oat Milk' })
+    const res = await updateItem(req, makeEnv(), makeCtx(), 'item-1')
+    expect(res.status).toBe(200)
+    const body = await res.json<{ id: string; name: string }>()
+    expect(body.name).toBe('Oat Milk')
+  })
+
   it('updates onShoppingList in the DB', async () => {
     await insertItem('item-1', 'Milk', false)
     const req = makeRequest('PATCH', '/items/item-1', { onShoppingList: true })
