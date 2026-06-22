@@ -24,6 +24,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {}
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
+    cache: 'no-store',
     headers: { 'Content-Type': 'application/json', ...authHeader, ...init?.headers },
   })
 
