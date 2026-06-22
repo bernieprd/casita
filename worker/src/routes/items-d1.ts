@@ -37,32 +37,29 @@ export async function getItems(req: Request, env: Env, ctx: RequestContext): Pro
   const url = new URL(req.url)
   const shopping = url.searchParams.get('shopping')
 
-  const query = shopping === 'true'
-    ? 'SELECT * FROM items WHERE household_id = ? AND on_shopping_list = 1'
-    : 'SELECT * FROM items WHERE household_id = ?'
+  const baseFilter = shopping === 'true'
+    ? 'i.household_id = ? AND i.on_shopping_list = 1'
+    : 'i.household_id = ?'
 
-  const { results } = await env.DB.prepare(query).bind(ctx.householdId).all<ItemRow>()
+  // Single LEFT JOIN avoids a second round-trip and has no bound-parameter limit
+  // (the old IN (?, ?, ...) approach broke when households exceeded 100 items)
+  type JoinRow = ItemRow & { supermarket: string | null }
+  const { results } = await env.DB
+    .prepare(`SELECT i.*, sm.supermarket FROM items i LEFT JOIN item_supermarkets sm ON sm.item_id = i.id WHERE ${baseFilter}`)
+    .bind(ctx.householdId)
+    .all<JoinRow>()
 
-  if (results.length === 0) {
-    return Response.json([], { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
+  const itemMap = new Map<string, { row: ItemRow; supermarkets: string[] }>()
+  for (const row of results) {
+    if (!itemMap.has(row.id)) {
+      itemMap.set(row.id, { row, supermarkets: [] })
+    }
+    if (row.supermarket) {
+      itemMap.get(row.id)!.supermarkets.push(row.supermarket)
+    }
   }
 
-  // Batch-fetch all supermarkets in a single query to avoid N+1
-  const ids = results.map(r => r.id)
-  const placeholders = ids.map(() => '?').join(', ')
-  const { results: smRows } = await env.DB
-    .prepare(`SELECT item_id, supermarket FROM item_supermarkets WHERE item_id IN (${placeholders})`)
-    .bind(...ids)
-    .all<{ item_id: string; supermarket: string }>()
-
-  const smByItem = new Map<string, string[]>()
-  for (const row of smRows) {
-    const arr = smByItem.get(row.item_id) ?? []
-    arr.push(row.supermarket)
-    smByItem.set(row.item_id, arr)
-  }
-
-  const items = results.map(row => rowToItem(row, smByItem.get(row.id) ?? []))
+  const items = [...itemMap.values()].map(({ row, supermarkets }) => rowToItem(row, supermarkets))
   return Response.json(items, { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }
 
