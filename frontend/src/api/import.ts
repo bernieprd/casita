@@ -13,10 +13,21 @@ export interface ImportBody {
     ingredients?: Array<{ name: string; quantity?: string | null }>
   }>
   todos?: Array<{ name: string; priority?: string | null; due?: string | null }>
+  finance?: {
+    periods?: Array<{ name: string; startDate: string; endDate: string }>
+    income?: Array<{ source: string; tag?: string | null; amount: number; periodName: string }>
+    expenses?: Array<{ source: string; tag?: string | null; type?: 'shared' | 'personal'; amount: number; budget?: number; periodName: string }>
+    accounts?: Array<{ name: string; institution?: string | null; amount: number; date: string; periodName: string }>
+  }
 }
 
 export interface ImportResult {
-  imported: { items: number; recipes: number; todos: number }
+  imported: {
+    items: number
+    recipes: number
+    todos: number
+    finance: { periods: number; income: number; expenses: number; accounts: number }
+  }
   skipped?: { items: number }
   failed?: { recipes: number }
 }
@@ -31,6 +42,7 @@ export function useImport() {
       qc.invalidateQueries({ queryKey: ['items'] })
       qc.invalidateQueries({ queryKey: ['recipes'] })
       qc.invalidateQueries({ queryKey: ['todos'] })
+      qc.invalidateQueries({ queryKey: ['finance'] })
     },
   })
 }

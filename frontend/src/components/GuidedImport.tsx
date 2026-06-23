@@ -35,17 +35,39 @@ Use this exact structure (omit any key whose array is empty):
       "priority": "High, Medium, Low, or null",
       "due": "YYYY-MM-DD or null"
     }
-  ]
+  ],
+  "finance": {
+    "periods": [
+      { "name": "string (e.g. 'Jan 2026')", "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD" }
+    ],
+    "income": [
+      { "source": "string", "tag": "salary, food_allowance, freelance, or null", "amount": 0.00, "periodName": "must match a period name above" }
+    ],
+    "expenses": [
+      {
+        "source": "string",
+        "tag": "Rent, Utilities, Groceries, Restaurants, Healthcare, Transportation, Travel, Entertainment, Shopping, Transfers, Insurance, Services, Taxes, Cash, Donation, or null",
+        "type": "shared or personal",
+        "amount": 0.00,
+        "budget": 0.00,
+        "periodName": "must match a period name above"
+      }
+    ],
+    "accounts": [
+      { "name": "string (account name)", "institution": "string or null", "amount": 0.00, "date": "YYYY-MM-DD", "periodName": "must match a period name above" }
+    ]
+  }
 }
 
 Rules:
-- Every entry must have a non-empty "name".
+- Every entry must have a non-empty "name" (or "source" for income/expenses).
 - Set onShoppingList to true only if the item needs to be bought right now.
 - For recipes, preserve headings and steps using markdown format.
+- For finance, amounts are in euros (decimals ok). Periods must be defined before income/expenses/accounts can reference them.
 - Do not invent data — only convert what I give you below.
 
 My data:
-[PASTE YOUR GROCERY LIST, RECIPES, TO-DOS, CSV, OR SPREADSHEET DATA HERE]`
+[PASTE YOUR GROCERY LIST, RECIPES, TO-DOS, FINANCE DATA, CSV, OR SPREADSHEET DATA HERE]`
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -91,6 +113,20 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
         setParsed(null)
         return
       }
+      const fin = result.finance
+      if (fin) {
+        const hasInvalidSource = (arr: unknown[] | undefined) =>
+          (arr ?? []).some(
+            e =>
+              typeof (e as Record<string, unknown>).source !== 'string' ||
+              !(e as { source: string }).source.trim(),
+          )
+        if (hasInvalidSource(fin.income) || hasInvalidSource(fin.expenses)) {
+          setParseError('Finance income and expense entries must have a non-empty "source" field.')
+          setParsed(null)
+          return
+        }
+      }
       setParsed(result)
       setParseError(null)
     } catch (e) {
@@ -107,10 +143,15 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
 
   function hasData(p: ImportBody | null): boolean {
     if (!p) return false
+    const fin = p.finance
     return (
       (p.items?.length ?? 0) > 0 ||
       (p.recipes?.length ?? 0) > 0 ||
-      (p.todos?.length ?? 0) > 0
+      (p.todos?.length ?? 0) > 0 ||
+      (fin?.periods?.length ?? 0) > 0 ||
+      (fin?.income?.length ?? 0) > 0 ||
+      (fin?.expenses?.length ?? 0) > 0 ||
+      (fin?.accounts?.length ?? 0) > 0
     )
   }
 
@@ -119,11 +160,16 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
     setStep('importing')
     importMutation.mutate(parsed, {
       onSuccess: (result) => {
-        const { items, recipes, todos } = result.imported
+        const { items, recipes, todos, finance } = result.imported
         const parts: string[] = []
         if (items > 0) parts.push(`${items} item${items !== 1 ? 's' : ''}`)
         if (recipes > 0) parts.push(`${recipes} recipe${recipes !== 1 ? 's' : ''}`)
         if (todos > 0) parts.push(`${todos} to-do${todos !== 1 ? 's' : ''}`)
+        if (finance) {
+          const finTotal = finance.income + finance.expenses + finance.accounts
+          if (finance.periods > 0) parts.push(`${finance.periods} finance period${finance.periods !== 1 ? 's' : ''}`)
+          if (finTotal > 0) parts.push(`${finTotal} finance entr${finTotal !== 1 ? 'ies' : 'y'}`)
+        }
         let message = `Imported ${parts.join(', ')}`
         if ((result.skipped?.items ?? 0) > 0) {
           message += ` (${result.skipped!.items} item${result.skipped!.items !== 1 ? 's' : ''} already existed)`
@@ -155,6 +201,11 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
     const itemCount = parsed.items?.length ?? 0
     const recipeCount = parsed.recipes?.length ?? 0
     const todoCount = parsed.todos?.length ?? 0
+    const fin = parsed.finance
+    const periodCount = fin?.periods?.length ?? 0
+    const incomeCount = fin?.income?.length ?? 0
+    const expenseCount = fin?.expenses?.length ?? 0
+    const accountCount = fin?.accounts?.length ?? 0
 
     const categories: Array<{ label: string; count: number; names: string[] }> = []
     if (itemCount > 0)
@@ -163,6 +214,14 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
       categories.push({ label: 'recipes', count: recipeCount, names: (parsed.recipes ?? []).map(r => r.name) })
     if (todoCount > 0)
       categories.push({ label: 'to-dos', count: todoCount, names: (parsed.todos ?? []).map(t => t.name) })
+    if (periodCount > 0)
+      categories.push({ label: 'finance periods', count: periodCount, names: (fin?.periods ?? []).map(p => p.name) })
+    if (incomeCount > 0)
+      categories.push({ label: 'income entries', count: incomeCount, names: (fin?.income ?? []).map(e => e.source) })
+    if (expenseCount > 0)
+      categories.push({ label: 'expenses', count: expenseCount, names: (fin?.expenses ?? []).map(e => e.source) })
+    if (accountCount > 0)
+      categories.push({ label: 'accounts', count: accountCount, names: (fin?.accounts ?? []).map(a => a.name) })
 
     return (
       <div className="flex flex-col gap-5">
