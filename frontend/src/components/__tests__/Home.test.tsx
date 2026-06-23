@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeAll, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { createTestQueryClient } from '@/test/query-wrapper'
 import { http, HttpResponse, delay } from 'msw'
 import { server } from '@/test/msw-server'
+import { makeAreasConfig } from '@/test/fixtures/areasConfig'
+import type { HouseholdAreasConfig } from '@/api/areas'
 import '@/i18n/index'
 import Home from '../Home'
 
@@ -37,6 +39,63 @@ function renderHome() {
     </QueryClientProvider>,
   )
 }
+
+const BASE_URL = 'http://localhost:8787'
+
+function withAreasConfig(areasConfig: HouseholdAreasConfig | null) {
+  server.use(
+    http.get(`${BASE_URL}/household/me`, () =>
+      HttpResponse.json({
+        householdId: 'hh-test',
+        householdName: 'Test House',
+        role: 'owner',
+        inviteCode: null,
+        members: [],
+        areasConfig,
+      }),
+    ),
+  )
+}
+
+describe('area guards', () => {
+  it("'todos' disabled → TodoSection absent", async () => {
+    withAreasConfig(makeAreasConfig({ todos: { enabled: false } }))
+    renderHome()
+    await waitFor(() => {
+      expect(screen.queryByText('To-Dos')).not.toBeInTheDocument()
+    })
+  })
+
+  it("'todos' enabled → TodoSection present", async () => {
+    withAreasConfig(makeAreasConfig())
+    renderHome()
+    expect(await screen.findByText('To-Dos')).toBeInTheDocument()
+  })
+
+  it("'shopping' disabled → ShoppingSection absent", async () => {
+    withAreasConfig(makeAreasConfig({ shopping: { enabled: false } }))
+    renderHome()
+    await waitFor(() => {
+      expect(screen.queryByText('Shopping list')).not.toBeInTheDocument()
+    })
+  })
+
+  it("'calendar' disabled → CalendarSection absent", async () => {
+    withAreasConfig(makeAreasConfig({ calendar: { enabled: false } }))
+    renderHome()
+    await waitFor(() => {
+      expect(screen.queryByText('Coming up')).not.toBeInTheDocument()
+    })
+  })
+
+  it("'recipes' disabled → RecipesSection absent", async () => {
+    withAreasConfig(makeAreasConfig({ recipes: { enabled: false } }))
+    renderHome()
+    await waitFor(() => {
+      expect(screen.queryByText('Cook this week')).not.toBeInTheDocument()
+    })
+  })
+})
 
 describe('Home smoke test', () => {
   it('renders loading skeletons while all queries are in-flight', () => {
