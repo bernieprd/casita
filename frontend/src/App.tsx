@@ -36,6 +36,7 @@ function LocaleSync() {
 
 const RecipeFormPage  = lazy(() => import('./components/RecipeFormPage'))
 const TodoFormPage    = lazy(() => import('./components/TodoFormPage'))
+const ItemFormPage    = lazy(() => import('./components/ItemFormPage'))
 const SettingsLayout  = lazy(() => import('./components/settings/SettingsLayout'))
 const HouseholdSetup  = lazy(() => import('./components/HouseholdSetup'))
 const ThemePreview    = lazy(() => import('./components/ThemePreview'))
@@ -415,6 +416,16 @@ export default function App() {
         <Route path="/todos/:id/edit" element={
           <ProtectedRoute>
             <Suspense fallback={<SuspenseFallback />}><TodoFormPage /></Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/items/new" element={
+          <ProtectedRoute>
+            <Suspense fallback={<SuspenseFallback />}><ItemFormPage /></Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/items/:id/edit" element={
+          <ProtectedRoute>
+            <Suspense fallback={<SuspenseFallback />}><ItemFormPage /></Suspense>
           </ProtectedRoute>
         } />
         <Route path="/*" element={
