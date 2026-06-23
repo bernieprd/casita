@@ -413,6 +413,8 @@
       "title": "Areas & Tabs",
       "ownerSection": "Household areas",
       "ownerSectionDescription": "Disabled areas are hidden from all members.",
+      "tabPinSection": "Os teus separadores — apenas visíveis para ti",
+      "tabPinSectionDescription": "Escolhe até 3 separadores para fixar na tua barra de navegação.",
       "calendar": "Calendar",
       "todos": "To-Dos",
       "shopping": "Shopping",

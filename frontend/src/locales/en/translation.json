@@ -413,6 +413,8 @@
       "title": "Areas & Tabs",
       "ownerSection": "Household areas",
       "ownerSectionDescription": "Disabled areas are hidden from all members.",
+      "tabPinSection": "Your tabs — only visible to you",
+      "tabPinSectionDescription": "Choose up to 3 tabs to pin to your navigation bar.",
       "calendar": "Calendar",
       "todos": "To-Dos",
       "shopping": "Shopping",

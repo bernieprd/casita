@@ -37,12 +37,13 @@ import {
   useUpdateAreasConfig,
   householdThemeKeys,
 } from '../../api/household'
-import { isAreaEnabled, type AreaId } from '../../api/areas'
+import { isAreaEnabled, computePinnedTabs, type AreaId } from '../../api/areas'
 import { Switch } from '@/components/ui/switch'
 import { useUser } from '@clerk/clerk-react'
 import { useHousehold } from '../../context/AuthContext'
 import { useTranslation } from 'react-i18next'
 import { translateError } from '../../lib/errors'
+import { useMe, useUpdateTabConfig } from '../../api/me'
 
 interface Props {
   themePrefs: ThemePrefs
@@ -64,6 +65,11 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
   const areasConfig = householdData?.areasConfig ?? null
 
   const { mutate: updateAreasConfig } = useUpdateAreasConfig()
+
+  // Tab-pin state (per-user)
+  const { data: me } = useMe()
+  const { mutate: updateTabConfig } = useUpdateTabConfig()
+  const pinnedAreas = computePinnedTabs(me?.tabConfig, areasConfig)
 
   const AREA_IDS: AreaId[] = ['calendar', 'todos', 'shopping', 'recipes']
   const areaLabelKey: Record<AreaId, string> = {
@@ -316,6 +322,37 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
             />
           </div>
         ))}
+      </div>
+
+      {/* Your tabs — per-user tab pin options */}
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+        {t('settings.areas.tabPinSection')}
+      </p>
+      <p className="text-xs text-muted-foreground mb-3">
+        {t('settings.areas.tabPinSectionDescription')}
+      </p>
+      <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border mb-4">
+        {AREA_IDS.filter(areaId => isAreaEnabled(areasConfig, areaId)).map(areaId => {
+          const isPinned = pinnedAreas.includes(areaId)
+          const isDisabledByLimit = !isPinned && pinnedAreas.length >= 3
+          return (
+            <div key={areaId} className="flex items-center gap-3 px-4 py-3">
+              <span className="flex-1 text-sm font-medium">{t(areaLabelKey[areaId])}</span>
+              <Switch
+                data-testid={`areas-settings-tab-pin-${areaId}`}
+                checked={isPinned}
+                disabled={isDisabledByLimit}
+                onCheckedChange={() => {
+                  const current = me?.tabConfig?.pinned ?? pinnedAreas
+                  const next = isPinned
+                    ? current.filter(id => id !== areaId)
+                    : [...current, areaId]
+                  updateTabConfig({ pinned: next })
+                }}
+              />
+            </div>
+          )
+        })}
       </div>
 
       <Separator className="my-4" />

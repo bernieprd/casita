@@ -413,6 +413,8 @@
       "title": "Areas & Tabs",
       "ownerSection": "Household areas",
       "ownerSectionDescription": "Disabled areas are hidden from all members.",
+      "tabPinSection": "Tus pestañas — solo visibles para ti",
+      "tabPinSectionDescription": "Elige hasta 3 pestañas para fijar en tu barra de navegación.",
       "calendar": "Calendar",
       "todos": "To-Dos",
       "shopping": "Shopping",

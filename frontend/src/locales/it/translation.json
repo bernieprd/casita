@@ -413,6 +413,8 @@
       "title": "Areas & Tabs",
       "ownerSection": "Household areas",
       "ownerSectionDescription": "Disabled areas are hidden from all members.",
+      "tabPinSection": "Le tue schede — visibili solo a te",
+      "tabPinSectionDescription": "Scegli fino a 3 schede da fissare nella barra di navigazione.",
       "calendar": "Calendar",
       "todos": "To-Dos",
       "shopping": "Shopping",
