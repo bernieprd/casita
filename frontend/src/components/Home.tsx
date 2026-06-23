@@ -7,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { cn, memberInitials, safeUrl, formatFrequency } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus, useToggleShoppingList, useUpdateTodo, useHouseholdSettings, useConceptList } from '../api'
+import { isAreaEnabled } from '@/api/areas'
 import type { Item } from '../api/types'
 import { useNavigate } from 'react-router-dom'
 import { ItemRow } from './ItemRow'
@@ -719,12 +720,14 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
 
 export default function Home() {
   const navigate = useNavigate()
+  const { data: settings } = useHouseholdSettings()
+  const areasConfig = settings?.areasConfig ?? null
   return (
     <div className="pb-2">
-      <CalendarSection onNavigate={() => navigate('/calendar')} />
-      <TodoSection     onSeeAll={() => navigate('/todos')} />
-      <ShoppingSection onNavigate={() => navigate('/shopping')} />
-      <RecipeSection   onNavigate={id => navigate(`/recipes/${id}`)} />
+      {isAreaEnabled(areasConfig, 'calendar') && <CalendarSection onNavigate={() => navigate('/calendar')} />}
+      {isAreaEnabled(areasConfig, 'todos') && <TodoSection onSeeAll={() => navigate('/todos')} />}
+      {isAreaEnabled(areasConfig, 'shopping') && <ShoppingSection onNavigate={() => navigate('/shopping')} />}
+      {isAreaEnabled(areasConfig, 'recipes') && <RecipeSection onNavigate={id => navigate(`/recipes/${id}`)} />}
     </div>
   )
 }

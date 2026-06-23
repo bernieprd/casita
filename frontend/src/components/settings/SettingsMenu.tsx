@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Upload,
   ChevronRight,
+  LayoutGrid,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTranslation } from 'react-i18next'
@@ -75,6 +76,12 @@ export default function SettingsMenu() {
           label: t('settings.menu.recipes'),
           description: t('settings.menu.recipesDescription'),
           path: '/settings/recipes',
+        },
+        {
+          icon: <LayoutGrid className="size-5 shrink-0 text-muted-foreground" />,
+          label: t('settings.menu.areasAndTabs'),
+          description: t('settings.menu.areasAndTabsDescription'),
+          path: '/settings/areas',
         },
       ],
     },
