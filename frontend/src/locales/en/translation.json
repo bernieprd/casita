@@ -281,7 +281,8 @@
     "newDescription": "Add a new item to your inventory.",
     "namePlaceholder": "Name",
     "categoryPlaceholder": "Category",
-    "supermarketsPlaceholder": "Supermarkets (comma or Enter to add)"
+    "supermarketsPlaceholder": "Supermarkets (comma or Enter to add)",
+    "deleteItem": "Delete item"
   },
   "settings": {
     "menu": {

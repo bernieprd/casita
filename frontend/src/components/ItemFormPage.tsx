@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useNavigate, useBlocker } from 'react-router-dom'
-import { ArrowLeft, ChevronsUpDown, Check, X } from 'lucide-react'
+import { ArrowLeft, ChevronsUpDown, Check, X, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -221,18 +221,6 @@ export default function ItemFormPage() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium">{t('item.supermarketsLabel', { defaultValue: 'Supermarkets' })}</label>
               <div className="flex flex-col gap-2">
-                {supermarkets.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {supermarkets.map(s => (
-                      <Badge key={s} variant="secondary" className="gap-1 pr-1">
-                        {s}
-                        <button type="button" onClick={() => setSupermarkets(prev => prev.filter(x => x !== s))}>
-                          <X className="size-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
                 <Popover open={supermarketOpen} onOpenChange={setSupermarketOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
@@ -297,6 +285,18 @@ export default function ItemFormPage() {
                     </Command>
                   </PopoverContent>
                 </Popover>
+                {supermarkets.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {supermarkets.map(s => (
+                      <Badge key={s} variant="secondary" className="gap-1 pr-1">
+                        {s}
+                        <button type="button" onClick={() => setSupermarkets(prev => prev.filter(x => x !== s))} className="p-1 rounded-full hover:bg-muted-foreground/20">
+                          <X className="size-4" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -306,14 +306,15 @@ export default function ItemFormPage() {
             </div>
 
             {isEdit && initialized && (
-              <div className="pt-4 border-t">
+              <div className="mt-8 mb-4 flex justify-center">
                 <Button
                   variant="ghost"
-                  className="text-destructive hover:text-destructive w-full"
+                  size="sm"
                   onClick={() => setDeleteDialogOpen(true)}
                   disabled={isPending}
+                  className="text-destructive hover:text-destructive gap-1"
                 >
-                  {t('common.delete')}
+                  <Trash2 className="size-4" /> {t('item.deleteItem')}
                 </Button>
               </div>
             )}
