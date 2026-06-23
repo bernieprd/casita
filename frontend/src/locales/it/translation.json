@@ -315,7 +315,9 @@
       "privacyPolicy": "Informativa sulla privacy",
       "termsOfService": "Termini di servizio",
       "supportText": "Supporta lo sviluppo di Casita con un caffè! Hai una richiesta di funzionalità o feedback? Mandaceli — ci farebbe molto piacere sentirti e li terremo in considerazione.",
-      "buyACoffee": "Offrici un caffè ☕"
+      "buyACoffee": "Offrici un caffè ☕",
+      "areasAndTabs": "Areas & Tabs",
+      "areasAndTabsDescription": "Enable or disable household areas"
     },
     "account": {
       "title": "Account",
@@ -408,6 +410,15 @@
       "help": "I tipi ti aiutano a filtrare e navigare nella tua raccolta di ricette.",
       "types": "Tipi",
       "addType": "Aggiungi un tipo"
+    },
+    "areas": {
+      "title": "Areas & Tabs",
+      "ownerSection": "Household areas",
+      "ownerSectionDescription": "Disabled areas are hidden from all members.",
+      "calendar": "Calendar",
+      "todos": "To-Dos",
+      "shopping": "Shopping",
+      "recipes": "Recipes"
     }
   },
   "household": {

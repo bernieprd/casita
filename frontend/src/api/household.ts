@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import { todoKeys } from './queryKeys'
+import type { HouseholdAreasConfig } from './areas'
 
 export interface HouseholdSettings {
   householdId: string | null
@@ -14,6 +15,7 @@ export interface HouseholdSettings {
     email: string | null
     imageUrl: string | null
   }[]
+  areasConfig: HouseholdAreasConfig | null
 }
 
 export const householdKeys = {
@@ -151,6 +153,17 @@ export function useUpdateTodoWorkflow() {
     onSuccess: (data) => {
       qc.setQueryData(todoWorkflowKeys.settings, data)
       qc.invalidateQueries({ queryKey: todoKeys.all })
+    },
+  })
+}
+
+export function useUpdateAreasConfig() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (areasConfig: HouseholdAreasConfig) =>
+      api.patch<{ areasConfig: HouseholdAreasConfig }>('/household/areas', { areasConfig }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: householdKeys.settings })
     },
   })
 }
