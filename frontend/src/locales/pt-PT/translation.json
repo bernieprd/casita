@@ -281,7 +281,11 @@
     "newDescription": "Adiciona um novo artigo ao teu inventário.",
     "namePlaceholder": "Nome",
     "categoryPlaceholder": "Categoria",
-    "supermarketsPlaceholder": "Supermercados (separados por vírgula ou Enter)"
+    "supermarketsPlaceholder": "Supermercados (separados por vírgula ou Enter)",
+    "deleteItem": "Eliminar artigo",
+    "supermarketsSearch": "Pesquisar supermercados…",
+    "addSupermarket": "+ Adicionar \"{{name}}\"",
+    "noSupermarketsFound": "Nenhum supermercado encontrado."
   },
   "settings": {
     "menu": {

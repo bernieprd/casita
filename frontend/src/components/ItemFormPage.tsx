@@ -101,6 +101,7 @@ export default function ItemFormPage() {
 
   const isPending = (isEdit ? updateItem : createItem).isPending || deleteItem.isPending
 
+  // snapshot.current is written once on init and never mutated — safe to read in useMemo
   const isDirty = useMemo(() => {
     if (!snapshot.current) return false
     const s = snapshot.current
@@ -116,7 +117,7 @@ export default function ItemFormPage() {
     if (isEdit && id) {
       updateItem.mutate(
         { id, data: { name: name.trim(), category, supermarkets, onShoppingList } },
-        { onSuccess: () => { saveDoneRef.current = true; navigate(-1) } }
+        { onSuccess: () => { saveDoneRef.current = true; navigate('/shopping', { replace: true }) } }
       )
     } else {
       createItem.mutate(
@@ -137,7 +138,7 @@ export default function ItemFormPage() {
     <div className="h-dvh bg-background flex flex-col overflow-x-hidden">
       <header className="sticky top-0 z-50 bg-background border-b shrink-0">
         <div className="max-w-xl mx-auto flex items-center px-2 h-14">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} disabled={isPending} className="-ml-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate(window.history.state?.idx > 0 ? -1 : '/shopping')} disabled={isPending} className="-ml-2">
             <ArrowLeft />
           </Button>
           <h1 className="flex-1 text-lg font-bold">{isEdit ? t('item.editTitle') : t('item.newTitle')}</h1>
@@ -231,25 +232,12 @@ export default function ItemFormPage() {
                   <PopoverContent className="w-full p-0" align="start">
                     <Command>
                       <CommandInput
-                        placeholder="Search supermarkets…"
+                        placeholder={t('item.supermarketsSearch')}
                         value={supermarketSearch}
                         onValueChange={setSupermarketSearch}
                       />
                       <CommandList>
-                        <CommandEmpty>
-                          {supermarketSearch.trim() ? (
-                            <button
-                              className="w-full px-4 py-2 text-sm text-left hover:bg-accent"
-                              onClick={() => {
-                                const v = supermarketSearch.trim()
-                                if (v && !supermarkets.includes(v)) setSupermarkets(prev => [...prev, v])
-                                setSupermarketSearch('')
-                              }}
-                            >
-                              + Add "{supermarketSearch.trim()}"
-                            </button>
-                          ) : 'No supermarkets found.'}
-                        </CommandEmpty>
+                        <CommandEmpty>{t('item.noSupermarketsFound')}</CommandEmpty>
                         <CommandGroup>
                           {supermarketOptions.map(opt => {
                             const selected = supermarkets.includes(opt)
@@ -277,7 +265,7 @@ export default function ItemFormPage() {
                                 setSupermarketSearch('')
                               }}
                             >
-                              + Add "{supermarketSearch.trim()}"
+                              {t('item.addSupermarket', { name: supermarketSearch.trim() })}
                             </CommandItem>
                           )}
                         </CommandGroup>
@@ -290,7 +278,7 @@ export default function ItemFormPage() {
                     {supermarkets.map(s => (
                       <Badge key={s} variant="secondary" className="gap-1 pr-1">
                         {s}
-                        <button type="button" onClick={() => setSupermarkets(prev => prev.filter(x => x !== s))} className="p-1 rounded-full hover:bg-muted-foreground/20">
+                        <button type="button" aria-label={`${t('common.remove')} ${s}`} onClick={() => setSupermarkets(prev => prev.filter(x => x !== s))} className="p-1 rounded-full hover:bg-muted-foreground/20">
                           <X className="size-4" />
                         </button>
                       </Badge>

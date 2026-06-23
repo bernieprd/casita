@@ -281,7 +281,11 @@
     "newDescription": "Aggiungi un nuovo articolo al tuo inventario.",
     "namePlaceholder": "Nome",
     "categoryPlaceholder": "Categoria",
-    "supermarketsPlaceholder": "Supermercati (separati da virgola o Invio)"
+    "supermarketsPlaceholder": "Supermercati (separati da virgola o Invio)",
+    "deleteItem": "Elimina articolo",
+    "supermarketsSearch": "Cerca supermercati…",
+    "addSupermarket": "+ Aggiungi \"{{name}}\"",
+    "noSupermarketsFound": "Nessun supermercato trovato."
   },
   "settings": {
     "menu": {
