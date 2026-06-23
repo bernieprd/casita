@@ -1,17 +1,14 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useIsMobile } from '../hooks/useIsMobile'
+import { useNavigate } from 'react-router-dom'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter } from '@/components/ui/drawer'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { useItems, useDeleteItem, useToggleShoppingList } from '../api'
+import { useItems, useToggleShoppingList } from '../api'
 import type { Item } from '../api'
-import ItemFormDialog from './ItemFormDialog'
 import MergeDuplicatesSheet from './MergeDuplicatesSheet'
 import IncompleteItemsSheet from './IncompleteItemsSheet'
 import { ItemRow } from './ItemRow'
@@ -74,55 +71,6 @@ function GroupSection({ label, items, onEdit, onToggle }: GroupSectionProps) {
   )
 }
 
-// ── Delete confirmation ───────────────────────────────────────────────────────
-
-interface DeleteConfirmProps {
-  item: Item | null
-  onConfirm: () => void
-  onCancel: () => void
-}
-
-function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
-  const { t } = useTranslation()
-  const isMobile = useIsMobile()
-
-  if (isMobile) {
-    return (
-      <Drawer open={!!item} onOpenChange={open => { if (!open) onCancel() }}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>{t('shopping.deleteItemTitle', { name: item?.name })}</DrawerTitle>
-            <DrawerDescription>
-              {t('shopping.deleteItemDescription')}
-            </DrawerDescription>
-          </DrawerHeader>
-          <DrawerFooter>
-            <Button variant="destructive" onClick={onConfirm}>{t('common.delete')}</Button>
-            <Button variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    )
-  }
-
-  return (
-    <Dialog open={!!item} onOpenChange={open => { if (!open) onCancel() }}>
-      <DialogContent showCloseButton={false} className="max-w-xs">
-        <DialogHeader>
-          <DialogTitle>{t('shopping.deleteItemTitle', { name: item?.name })}</DialogTitle>
-        </DialogHeader>
-        <DialogDescription className="text-sm text-muted-foreground">
-          {t('shopping.deleteItemDescription')}
-        </DialogDescription>
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
-          <Button variant="destructive" onClick={onConfirm}>{t('common.delete')}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
 function ItemsSkeleton() {
@@ -159,12 +107,10 @@ function ItemsSkeleton() {
 
 export default function Items() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { data, isLoading, error } = useItems()
-  const deleteItem = useDeleteItem()
   const toggleShoppingList = useToggleShoppingList()
   const [importOpen, setImportOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<Item | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Item | null>(null)
   const [mergeSheetOpen, setMergeSheetOpen] = useState(false)
   const [selectedSupermarkets, setSelectedSupermarkets] = useState<Set<string>>(new Set())
   const [incompleteSheetOpen, setIncompleteSheetOpen] = useState(false)
@@ -233,19 +179,6 @@ export default function Items() {
     .sort(([a], [b]) => a === '__other__' ? 1 : b === '__other__' ? -1 : a.localeCompare(b))
     .map(([key, groupItems]) => [key === '__other__' ? t('shopping.other') : key, [...groupItems].sort(byName)])
 
-  function handleDeleteRequest() {
-    // Close edit first, then open confirm sheet
-    const target = editTarget
-    setEditTarget(null)
-    // Small delay so edit sheet finishes closing before confirm opens
-    setTimeout(() => setDeleteTarget(target), 150)
-  }
-
-  function handleDeleteConfirm() {
-    if (deleteTarget) deleteItem.mutate(deleteTarget.id)
-    setDeleteTarget(null)
-  }
-
   return (
     <div className="pb-10">
       {duplicateGroups.length > 0 && (
@@ -313,24 +246,11 @@ export default function Items() {
             key={label}
             label={label}
             items={groupItems}
-            onEdit={setEditTarget}
+            onEdit={item => navigate('/items/' + item.id + '/edit')}
             onToggle={item => toggleShoppingList.mutate({ id: item.id, onShoppingList: !item.onShoppingList })}
           />
         ))
       )}
-
-      <ItemFormDialog
-        open={editTarget !== null}
-        item={editTarget}
-        onClose={() => setEditTarget(null)}
-        onDeleteRequest={editTarget ? handleDeleteRequest : undefined}
-      />
-
-      <DeleteConfirm
-        item={deleteTarget}
-        onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeleteTarget(null)}
-      />
 
       <MergeDuplicatesSheet
         open={mergeSheetOpen}
@@ -342,7 +262,7 @@ export default function Items() {
         open={incompleteSheetOpen}
         items={incompleteItems}
         onClose={() => setIncompleteSheetOpen(false)}
-        onEdit={item => { setEditTarget(item) }}
+        onEdit={item => navigate('/items/' + item.id + '/edit')}
       />
     </div>
   )

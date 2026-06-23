@@ -1,30 +1,13 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useIsMobile } from '../hooks/useIsMobile'
+import { useNavigate } from 'react-router-dom'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-} from '@/components/ui/dialog'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-  DrawerFooter,
-} from '@/components/ui/drawer'
-import ItemFormDialog from './ItemFormDialog'
 import IncompleteItemsSheet from './IncompleteItemsSheet'
 import { ItemRow, EXIT_DURATION_MS } from './ItemRow'
-import { useShoppingList, useToggleShoppingList, useDeleteItem } from '../api'
+import { useShoppingList, useToggleShoppingList } from '../api'
 import type { Item } from '../api'
 
 // ── Long press hook ───────────────────────────────────────────────────────────
@@ -64,55 +47,6 @@ function useLongPress(onLongPress: () => void, delay = 500) {
     },
     didFire: () => fired.current,
   }
-}
-
-// ── Delete confirmation ───────────────────────────────────────────────────────
-
-interface DeleteConfirmProps {
-  item: Item | null
-  onConfirm: () => void
-  onCancel: () => void
-}
-
-function DeleteConfirm({ item, onConfirm, onCancel }: DeleteConfirmProps) {
-  const { t } = useTranslation()
-  const isMobile = useIsMobile()
-
-  if (isMobile) {
-    return (
-      <Drawer open={!!item} onOpenChange={open => { if (!open) onCancel() }}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>{t('shopping.deleteItemTitle', { name: item?.name })}</DrawerTitle>
-            <DrawerDescription>
-              {t('shopping.deleteItemDescription')}
-            </DrawerDescription>
-          </DrawerHeader>
-          <DrawerFooter>
-            <Button variant="destructive" onClick={onConfirm}>{t('common.delete')}</Button>
-            <Button variant="ghost" onClick={onCancel}>{t('common.cancel')}</Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-    )
-  }
-
-  return (
-    <Dialog open={!!item} onOpenChange={open => { if (!open) onCancel() }}>
-      <DialogContent showCloseButton={false} className="max-w-xs">
-        <DialogHeader>
-          <DialogTitle>{t('shopping.deleteItemTitle', { name: item?.name })}</DialogTitle>
-          <DialogDescription>
-            {t('shopping.deleteItemDescription')}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="ghost" onClick={onCancel}>{t('common.cancel')}</Button>
-          <Button variant="destructive" onClick={onConfirm}>{t('common.delete')}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
 }
 
 // ── Shopping row wrapper (handles per-item hook) ──────────────────────────────
@@ -221,12 +155,10 @@ function ShoppingListSkeleton() {
 
 export default function ShoppingList() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { data: items, isLoading, error } = useShoppingList()
   const toggle = useToggleShoppingList()
-  const deleteItem = useDeleteItem()
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
-  const [editItem, setEditItem] = useState<Item | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Item | null>(null)
   const [selectedSupermarkets, setSelectedSupermarkets] = useState<Set<string>>(new Set())
   const [incompleteSheetOpen, setIncompleteSheetOpen] = useState(false)
 
@@ -248,17 +180,6 @@ export default function ShoppingList() {
     }, EXIT_DURATION_MS + 50)
   }, [toggle.mutate])
 
-  function handleDeleteRequest() {
-    const target = editItem
-    setEditItem(null)
-    setTimeout(() => setDeleteTarget(target), 150)
-  }
-
-  function handleDeleteConfirm() {
-    if (deleteTarget) deleteItem.mutate(deleteTarget.id)
-    setDeleteTarget(null)
-  }
-
   if (isLoading) return <ShoppingListSkeleton />
 
   if (error) {
@@ -269,24 +190,11 @@ export default function ShoppingList() {
 
   if (totalVisible === 0) {
     return (
-      <>
-        <div className="pt-10 text-center px-8">
-          <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
-          <p className="text-sm font-medium text-muted-foreground mb-1">{t('shopping.emptyList')}</p>
-          <p className="text-sm text-muted-foreground/60">{t('shopping.emptyListHelp')}</p>
-        </div>
-        <ItemFormDialog
-          open={editItem !== null}
-          item={editItem}
-          onClose={() => setEditItem(null)}
-          onDeleteRequest={editItem ? handleDeleteRequest : undefined}
-        />
-        <DeleteConfirm
-          item={deleteTarget}
-          onConfirm={handleDeleteConfirm}
-          onCancel={() => setDeleteTarget(null)}
-        />
-      </>
+      <div className="pt-10 text-center px-8">
+        <img src="/casita.webp" alt="" className="w-20 mb-4 opacity-70 mx-auto" />
+        <p className="text-sm font-medium text-muted-foreground mb-1">{t('shopping.emptyList')}</p>
+        <p className="text-sm text-muted-foreground/60">{t('shopping.emptyListHelp')}</p>
+      </div>
     )
   }
 
@@ -358,27 +266,16 @@ export default function ShoppingList() {
             items={groupItems}
             removingIds={removingIds}
             onRemove={handleRemove}
-            onEdit={setEditItem}
+            onEdit={item => navigate('/items/' + item.id + '/edit')}
           />
         ))
       )}
 
-      <ItemFormDialog
-        open={editItem !== null}
-        item={editItem}
-        onClose={() => setEditItem(null)}
-        onDeleteRequest={editItem ? handleDeleteRequest : undefined}
-      />
-      <DeleteConfirm
-        item={deleteTarget}
-        onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeleteTarget(null)}
-      />
       <IncompleteItemsSheet
         open={incompleteSheetOpen}
         items={incompleteItems}
         onClose={() => setIncompleteSheetOpen(false)}
-        onEdit={item => setEditItem(item)}
+        onEdit={item => navigate('/items/' + item.id + '/edit')}
       />
     </div>
   )
