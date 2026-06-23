@@ -315,9 +315,7 @@
       "privacyPolicy": "Política de privacidad",
       "termsOfService": "Términos de servicio",
       "supportText": "¡Apoya el desarrollo de Casita con un café! ¿Tienes una solicitud de función o comentarios? Envíanoslos — nos encantaría escucharte y lo tendremos en cuenta.",
-      "buyACoffee": "Invítanos a un café ☕",
-      "areasAndTabs": "Areas & Tabs",
-      "areasAndTabsDescription": "Enable or disable household areas"
+      "buyACoffee": "Invítanos a un café ☕"
     },
     "account": {
       "title": "Cuenta",

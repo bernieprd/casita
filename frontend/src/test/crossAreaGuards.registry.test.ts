@@ -8,8 +8,6 @@ const COVERED_LOCATIONS = new Set([
   'Home.tsx / RecipesSection',
   'PlanRecipeSheet.tsx / schedule-as-task',
   'Recipes.tsx / shopping-toggle',
-  'AreasSettings.tsx / tab-pin options',
-  'App.tsx / computed tab array',
 ])
 
 describe('cross-area guard registry', () => {

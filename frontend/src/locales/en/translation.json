@@ -315,9 +315,7 @@
       "privacyPolicy": "Privacy Policy",
       "termsOfService": "Terms of Service",
       "supportText": "Support Casita's development with a coffee! Have a feature request or feedback? Send it our way — we'd love to hear from you and will take it into account.",
-      "buyACoffee": "Buy us a coffee ☕",
-      "areasAndTabs": "Areas & Tabs",
-      "areasAndTabsDescription": "Enable or disable household areas"
+      "buyACoffee": "Buy us a coffee ☕"
     },
     "account": {
       "title": "Account",

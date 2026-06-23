@@ -492,7 +492,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
     )
     return () => setToolbar?.(null)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipe?.name, areasConfig])
+  }, [recipe?.name, isAreaEnabled(areasConfig, 'todos')])
 
   return (
     <div className="pb-10">

@@ -7,6 +7,4 @@ export const CROSS_AREA_GUARDS = [
   { area: 'recipes',  location: 'Home.tsx / RecipesSection' },
   { area: 'todos',    location: 'PlanRecipeSheet.tsx / schedule-as-task' },
   { area: 'shopping', location: 'Recipes.tsx / shopping-toggle' },
-  { area: '*',        location: 'AreasSettings.tsx / tab-pin options' },
-  { area: '*',        location: 'App.tsx / computed tab array' },
 ] as const satisfies Array<{ area: AreaId | '*'; location: string }>
