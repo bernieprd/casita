@@ -25,3 +25,4 @@ dev-dist/
 # Native app projects (developed on separate branches)
 frontend/android/
 frontend/ios/
+docs/pr-review.md
