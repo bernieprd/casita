@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS household_members (
   email         TEXT,
   joined_at     INTEGER NOT NULL,
   locale        TEXT NOT NULL DEFAULT 'en',
+  tab_config    TEXT DEFAULT NULL,             -- JSON TabConfig; NULL → default pinned tabs
   PRIMARY KEY (household_id, clerk_user_id)
 );
 CREATE INDEX IF NOT EXISTS hm_clerk_user_id ON household_members(clerk_user_id);

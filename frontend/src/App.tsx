@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import InstallBanner from './components/InstallBanner'
 import { useHouseholdTheme, useUpdateHouseholdTheme, useHouseholdSettings } from './api/household'
-import { isAreaEnabled, type AreaId } from './api/areas'
+import { computePinnedTabs, type AreaId } from './api/areas'
 import { useTheme } from '@/hooks/useTheme'
 import { useMe } from './api/me'
 import i18n, { SUPPORTED_LOCALES } from './i18n'
@@ -59,6 +59,25 @@ function pathnameToTab(pathname: string): TabId {
   if (pathname.startsWith('/shopping')) return 'shopping'
   if (pathname.startsWith('/recipes'))  return 'recipes'
   return 'home'
+}
+
+function buildNavTabs(
+  t: (key: string) => string,
+  pinnedAreas: AreaId[],
+): { id: TabId; label: string; icon: ReactNode }[] {
+  const areaTab = (id: AreaId): { id: TabId; label: string; icon: ReactNode } => {
+    const meta: Record<AreaId, { label: string; icon: ReactNode }> = {
+      calendar: { label: t('nav.calendar'), icon: <CalendarDays className="size-5" /> },
+      todos:    { label: t('nav.todos'),    icon: <CheckSquare className="size-5" /> },
+      shopping: { label: t('nav.shopping'), icon: <ShoppingCart className="size-5" /> },
+      recipes:  { label: t('nav.recipes'),  icon: <BookOpen className="size-5" /> },
+    }
+    return { id: id as TabId, ...meta[id] }
+  }
+  return [
+    { id: 'home' as TabId, label: t('nav.home'), icon: <Home className="size-5" /> },
+    ...pinnedAreas.map(areaTab),
+  ]
 }
 
 function Spinner() {
@@ -206,6 +225,7 @@ function AppShell() {
   }
   const { data: householdSettings } = useHouseholdSettings()
   const areasConfig = householdSettings?.areasConfig
+  const { data: me } = useMe()
   const { data: householdTheme } = useHouseholdTheme()
   const { mutate: updateHouseholdTheme, isPending: themeSaving } = useUpdateHouseholdTheme()
   const { prefs: themePrefs, setPrefs: setThemePrefs } = useTheme(householdTheme, updateHouseholdTheme)
@@ -357,18 +377,10 @@ function AppShell() {
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <div className="max-w-xl mx-auto flex">
-            {(
-              [
-                { id: 'home'     as TabId, label: t('nav.home'),     icon: <Home className="size-5" /> },
-                { id: 'calendar' as TabId, label: t('nav.calendar'), icon: <CalendarDays className="size-5" /> },
-                { id: 'todos'    as TabId, label: t('nav.todos'),    icon: <CheckSquare className="size-5" /> },
-                { id: 'shopping' as TabId, label: t('nav.shopping'), icon: <ShoppingCart className="size-5" /> },
-                { id: 'recipes'  as TabId, label: t('nav.recipes'),  icon: <BookOpen className="size-5" /> },
-              ] satisfies { id: TabId; label: string; icon: ReactNode }[]
-            ).filter(({ id }) => id === 'home' || isAreaEnabled(areasConfig, id as AreaId))
-             .map(({ id, label, icon }) => (
+            {buildNavTabs(t, computePinnedTabs(me?.tabConfig, areasConfig)).map(({ id, label, icon }) => (
               <button
                 key={id}
+                data-testid={`nav-tab-${id}`}
                 onClick={() => navigate(TAB_PATHS[id])}
                 aria-current={activeTab === id ? 'page' : undefined}
                 className={cn(

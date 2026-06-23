@@ -10,6 +10,7 @@ import RecipesSettings from './RecipesSettings'
 import TodosSettings from './TodosSettings'
 import ChangelogSettings from './ChangelogSettings'
 import ImportSettings from './ImportSettings'
+import AreasSettings from './AreasSettings'
 
 interface Props {
   themePrefs: ThemePrefs
@@ -24,6 +25,7 @@ export default function SettingsLayout({ themePrefs, setThemePrefs, themeSaving,
       <Route index element={<SettingsMenu />} />
       <Route path="account"   element={<AccountSettings setHeader={setHeader} />} />
       <Route path="household" element={<HouseholdSettings themePrefs={themePrefs} setThemePrefs={setThemePrefs} themeSaving={themeSaving} setHeader={setHeader} />} />
+      <Route path="areas"     element={<AreasSettings     setHeader={setHeader} />} />
       <Route path="calendar"  element={<CalendarSettings  setHeader={setHeader} />} />
       <Route path="shopping"  element={<ShoppingSettings  setHeader={setHeader} />} />
       <Route path="recipes"   element={<RecipesSettings   setHeader={setHeader} />} />

@@ -8,6 +8,7 @@ import {
   ShoppingCart,
   BookOpen,
   CheckSquare,
+  LayoutGrid,
   Sparkles,
   MessageSquare,
   Upload,
@@ -56,6 +57,12 @@ export default function SettingsMenu() {
           label: t('settings.menu.household'),
           description: t('settings.menu.householdDescription'),
           path: '/settings/household',
+        },
+        {
+          icon: <LayoutGrid className="size-5 shrink-0 text-muted-foreground" />,
+          label: t('settings.menu.areasAndTabs'),
+          description: t('settings.menu.areasAndTabsDescription'),
+          path: '/settings/areas',
         },
         {
           icon: <CalendarDays className="size-5 shrink-0 text-muted-foreground" />,
