@@ -1,6 +1,6 @@
 export type AreaId = 'calendar' | 'todos' | 'shopping' | 'recipes'
 
-export interface HouseholdAreasConfig {
+export type HouseholdAreasConfig = {
   [key in AreaId]?: { enabled: boolean }
 }
 
