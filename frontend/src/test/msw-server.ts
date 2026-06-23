@@ -22,10 +22,21 @@ export const server = setupServer(
     }),
   ),
   http.get(`${BASE}/concepts/todo-categories`, () => HttpResponse.json([])),
+  http.get(`${BASE}/me`, () =>
+    HttpResponse.json({
+      clerkUserId: 'user-test',
+      email: 'test@example.com',
+      locale: 'en',
+      tabConfig: null,
+    }),
+  ),
 
   // ── Default mutation handlers ─────────────────────────────────────────────
   http.patch(`${BASE}/household/areas`, () =>
     HttpResponse.json({ areasConfig: null }),
+  ),
+  http.patch(`${BASE}/me`, () =>
+    HttpResponse.json({ tabConfig: null }),
   ),
   http.patch(`${BASE}/items/:id`, () =>
     HttpResponse.json({
