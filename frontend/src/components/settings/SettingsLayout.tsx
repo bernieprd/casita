@@ -10,7 +10,6 @@ import RecipesSettings from './RecipesSettings'
 import TodosSettings from './TodosSettings'
 import ChangelogSettings from './ChangelogSettings'
 import ImportSettings from './ImportSettings'
-import AreasSettings from './AreasSettings'
 
 interface Props {
   themePrefs: ThemePrefs
@@ -31,8 +30,7 @@ export default function SettingsLayout({ themePrefs, setThemePrefs, themeSaving,
       <Route path="todos"     element={<TodosSettings     setHeader={setHeader} />} />
       <Route path="changelog"  element={<ChangelogSettings  setHeader={setHeader} />} />
       <Route path="import"    element={<ImportSettings     setHeader={setHeader} />} />
-      <Route path="areas"     element={<AreasSettings      setHeader={setHeader} />} />
-      <Route path="*"         element={<Navigate to="/settings" replace />} />
+<Route path="*"         element={<Navigate to="/settings" replace />} />
     </Routes>
   )
 }

@@ -10,9 +10,25 @@ import { server } from '@/test/msw-server'
 import { makeAreasConfig } from '@/test/fixtures/areasConfig'
 import type { ReactNode } from 'react'
 import '@/i18n/index'
-import AreasSettings from '../settings/AreasSettings'
+
+vi.mock('@clerk/clerk-react', () => ({
+  useUser: () => ({ user: { id: 'user-test' } }),
+}))
+vi.mock('../../context/AuthContext', () => ({
+  useHousehold: () => ({ refreshHousehold: vi.fn(), householdId: 'hh-test', householdName: 'Test House' }),
+}))
+
+import HouseholdSettings from '../settings/HouseholdSettings'
 
 const BASE = 'http://localhost:8787'
+
+const STUB_THEME_PREFS = {
+  colorScheme: 'system' as const,
+  primaryHsl: '0 0% 0%',
+  headingFont: 'sans',
+  bodyFont: 'sans',
+  radius: '0.5rem',
+}
 
 beforeAll(() => {
   Object.defineProperty(window, 'matchMedia', {
@@ -28,13 +44,23 @@ beforeAll(() => {
       dispatchEvent: vi.fn(),
     })),
   })
+  global.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
 })
 
-function TestAreasSettings() {
+function TestHouseholdSettings() {
   const [, setHeader] = useState<ReactNode | null>(null)
   return (
     <MemoryRouter>
-      <AreasSettings setHeader={setHeader} />
+      <HouseholdSettings
+        themePrefs={STUB_THEME_PREFS}
+        setThemePrefs={() => {}}
+        themeSaving={false}
+        setHeader={setHeader}
+      />
     </MemoryRouter>
   )
 }
@@ -43,7 +69,7 @@ function renderAreasSettings() {
   const queryClient = createTestQueryClient()
   return render(
     <QueryClientProvider client={queryClient}>
-      <TestAreasSettings />
+      <TestHouseholdSettings />
     </QueryClientProvider>,
   )
 }
