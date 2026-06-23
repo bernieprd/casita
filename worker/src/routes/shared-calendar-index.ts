@@ -18,9 +18,11 @@ export async function rebuildSharedIndex(
     .map(cal => ({
       calendarId: cal.id,
       ownerEmail: updatedEmail,
+      accountEmail: cal.accountEmail,
       name: cal.name,
       colorHex: cal.colorHex,
       visibility: cal.visibility as 'household' | 'free-busy',
+      provider: cal.provider,
     }))
 
   await env.AUTH_KV.put(key, JSON.stringify([...others, ...newEntries]))

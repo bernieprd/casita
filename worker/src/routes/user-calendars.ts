@@ -1,39 +1,80 @@
-import type { Env, UserCalendar, RequestContext } from '../types'
-import { getValidAccessToken } from './google-auth'
+import type { Env, UserCalendar, ConnectedAccount, RequestContext } from '../types'
+import { getValidAccessToken, ensureMigrated } from './google-auth'
 import { rebuildSharedIndex } from './shared-calendar-index'
 
 export async function listUserCalendars(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  const accessToken = await getValidAccessToken(ctx.email, env)
-  if (!accessToken) {
+  await ensureMigrated(ctx.email, env)
+
+  const accountsRaw = await env.AUTH_KV.get(`connected_accounts:${ctx.email}`)
+  if (!accountsRaw) {
     return Response.json({ calendars: [], connected: false })
   }
 
-  const googleRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
-  const googleData = await googleRes.json() as { items: Array<{ id: string; summary: string; backgroundColor?: string }> }
+  const accounts: ConnectedAccount[] = JSON.parse(accountsRaw)
+  if (accounts.length === 0) {
+    return Response.json({ calendars: [], connected: false })
+  }
 
-  const storedRaw = await env.AUTH_KV.get(`user_calendars:${ctx.email}`)
-  const stored: UserCalendar[] = storedRaw ? JSON.parse(storedRaw) : []
+  const results = await Promise.allSettled(
+    accounts.map(async (account) => {
+      const accessToken = await getValidAccessToken(ctx.email, account.accountEmail, env)
+      if (!accessToken) return []
 
-  const calendars: UserCalendar[] = (googleData.items ?? []).map(item => {
-    const match = stored.find(c => c.id === item.id)
-    return {
-      id: item.id,
-      name: item.summary,
-      colorHex: item.backgroundColor ?? '#4285F4',
-      enabled: match ? match.enabled : false,
-      visibility: match?.visibility ?? 'private',
-    }
-  })
+      const googleRes = await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      if (!googleRes.ok) return []
 
-  return Response.json({ calendars, connected: true })
+      const googleData = await googleRes.json() as {
+        items: Array<{ id: string; summary: string; backgroundColor?: string }>
+      }
+
+      const storedRaw = await env.AUTH_KV.get(`user_calendars:${ctx.email}:google:${account.accountEmail}`)
+      const stored: UserCalendar[] = storedRaw ? JSON.parse(storedRaw) : []
+
+      return (googleData.items ?? []).map(item => {
+        const match = stored.find(c => c.id === item.id)
+        return {
+          id: item.id,
+          name: item.summary,
+          colorHex: item.backgroundColor ?? '#4285F4',
+          enabled: match ? match.enabled : false,
+          visibility: match?.visibility ?? 'private',
+          provider: 'google' as const,
+          accountEmail: account.accountEmail,
+        } satisfies UserCalendar
+      })
+    })
+  )
+
+  const allCalendars = results
+    .filter((r): r is PromiseFulfilledResult<UserCalendar[]> => r.status === 'fulfilled')
+    .flatMap(r => r.value)
+
+  return Response.json({ calendars: allCalendars, connected: true })
 }
 
 export async function updateUserCalendars(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
   const calendars = await req.json() as UserCalendar[]
-  await env.AUTH_KV.put(`user_calendars:${ctx.email}`, JSON.stringify(calendars), { expirationTtl: 7_776_000 })
-  await rebuildSharedIndex(ctx.email, calendars, ctx.householdId, env)
 
+  // Group by (provider, accountEmail) and write each group to its own KV key
+  const groups = new Map<string, UserCalendar[]>()
+  for (const cal of calendars) {
+    const key = `${cal.provider}:${cal.accountEmail}`
+    const group = groups.get(key) ?? []
+    group.push(cal)
+    groups.set(key, group)
+  }
+
+  for (const [, group] of groups) {
+    const { provider, accountEmail } = group[0]
+    await env.AUTH_KV.put(
+      `user_calendars:${ctx.email}:${provider}:${accountEmail}`,
+      JSON.stringify(group),
+      { expirationTtl: 7_776_000 },
+    )
+  }
+
+  await rebuildSharedIndex(ctx.email, calendars, ctx.householdId, env)
   return Response.json({ ok: true })
 }

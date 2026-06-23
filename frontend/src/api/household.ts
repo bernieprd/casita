@@ -24,7 +24,7 @@ export function useHouseholdSettings() {
   return useQuery({
     queryKey: householdKeys.settings,
     queryFn: () => api.get<HouseholdSettings>('/household/me'),
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
   })
 }
 

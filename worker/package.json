@@ -6,14 +6,18 @@
     "dev": "wrangler dev --port 8787",
     "build": "tsc --noEmit",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@clerk/backend": "^1.27.0"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.71",
     "@cloudflare/workers-types": "^4.20240909.0",
     "typescript": "^5.5.3",
+    "vitest": "^3.2.6",
     "wrangler": "^4.98.0"
   }
 }

@@ -12,6 +12,7 @@
     "deploy:frontend": "pnpm --filter frontend run deploy",
     "deploy:worker": "pnpm --filter worker run deploy",
     "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
     "check": "pnpm typecheck && pnpm build:frontend"
   },
   "engines": {

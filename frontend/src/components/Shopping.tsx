@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import ShoppingList from './ShoppingList'
 import Items from './Items'
-import ItemFormDialog from './ItemFormDialog'
 import { useItems, useToggleShoppingList, useCreateItem } from '../api'
 import type { Item } from '../api'
 
@@ -22,7 +21,6 @@ export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | 
   const isInventory = useMatch('/shopping/inventory')
   const sub: SubTab = isInventory ? 'inventory' : 'list'
   const [query, setQuery] = useState('')
-  const [editItem, setEditItem] = useState<Item | null>(null)
 
   const { data: allItems = EMPTY_ITEMS } = useItems()
   const toggle = useToggleShoppingList()
@@ -54,7 +52,7 @@ export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | 
     create.mutate(
       { name: queryRef.current.trim(), category: null, supermarkets: [], onShoppingList: true },
       {
-        onSuccess: item => { setQuery(''); setEditItem(item) },
+        onSuccess: item => { setQuery(''); navigate('/items/' + item.id + '/edit', { state: { fromApp: true } }) },
         onError: () => toast.error(t('shopping.couldNotCreate')),
       },
     )
@@ -176,12 +174,6 @@ export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | 
 
       {sub === 'list'      && <ShoppingList />}
       {sub === 'inventory' && <Items />}
-
-      <ItemFormDialog
-        open={editItem !== null}
-        item={editItem}
-        onClose={() => setEditItem(null)}
-      />
     </div>
   )
 }
