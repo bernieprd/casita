@@ -408,6 +408,15 @@
       "help": "Types help you filter and browse your recipe collection.",
       "types": "Types",
       "addType": "Add a type"
+    },
+    "areas": {
+      "title": "Areas & Tabs",
+      "ownerSection": "Household areas",
+      "ownerSectionDescription": "Disabled areas are hidden from all members.",
+      "calendar": "Calendar",
+      "todos": "To-Dos",
+      "shopping": "Shopping",
+      "recipes": "Recipes"
     }
   },
   "household": {

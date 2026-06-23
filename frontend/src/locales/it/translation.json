@@ -408,6 +408,15 @@
       "help": "I tipi ti aiutano a filtrare e navigare nella tua raccolta di ricette.",
       "types": "Tipi",
       "addType": "Aggiungi un tipo"
+    },
+    "areas": {
+      "title": "Areas & Tabs",
+      "ownerSection": "Household areas",
+      "ownerSectionDescription": "Disabled areas are hidden from all members.",
+      "calendar": "Calendar",
+      "todos": "To-Dos",
+      "shopping": "Shopping",
+      "recipes": "Recipes"
     }
   },
   "household": {

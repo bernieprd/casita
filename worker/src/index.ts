@@ -6,7 +6,7 @@ import { getTodos, createTodo, updateTodo, deleteTodo, reorderTodos } from './ro
 import { getCalendarEvents } from './routes/calendar'
 import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, disconnectGoogle } from './routes/google-auth'
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
-import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold, transferOwnership, deleteHousehold, getTodoSettings, updateTodoSettings } from './routes/household'
+import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold, transferOwnership, deleteHousehold, getTodoSettings, updateTodoSettings, updateAreasConfig } from './routes/household'
 import { listConcepts, createConcept, updateConcept, deleteConcept, backfillConceptsRoute } from './routes/concepts-d1'
 import { deleteAccount, exportAccountData } from './routes/account'
 import { getMe, updateMe } from './routes/me'
@@ -158,6 +158,7 @@ const routes: Array<[string, URLPattern, AuthHandler]> = [
   ['PATCH',  new URLPattern({ pathname: '/household/settings',          search: '*' }), updateHouseholdSettings],
   ['GET',    new URLPattern({ pathname: '/household/todo-settings',    search: '*' }), getTodoSettings],
   ['PATCH',  new URLPattern({ pathname: '/household/todo-settings',    search: '*' }), updateTodoSettings],
+  ['PATCH',  new URLPattern({ pathname: '/household/areas',            search: '*' }), updateAreasConfig],
   ['GET',    new URLPattern({ pathname: '/items',                       search: '*' }), getItems],
   ['POST',   new URLPattern({ pathname: '/items',                       search: '*' }), createItem],
   ['PATCH',  new URLPattern({ pathname: '/items/:id',                   search: '*' }), updateItem],

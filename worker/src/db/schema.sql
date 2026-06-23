@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS households (
   name        TEXT NOT NULL,
   invite_code   TEXT UNIQUE,         -- nullable = invites disabled
   created_at    INTEGER NOT NULL,    -- Unix ms
-  todo_workflow TEXT NOT NULL DEFAULT 'simple'
+  todo_workflow TEXT NOT NULL DEFAULT 'simple',
+  areas_config  TEXT DEFAULT NULL    -- JSON; NULL means all areas enabled (backwards-compatible)
 );
 
 CREATE TABLE IF NOT EXISTS household_members (

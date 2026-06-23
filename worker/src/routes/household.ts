@@ -26,9 +26,9 @@ export async function getHousehold(
 
   const [household, members] = await Promise.all([
     env.DB
-      .prepare('SELECT id, name, invite_code FROM households WHERE id = ?')
+      .prepare('SELECT id, name, invite_code, areas_config FROM households WHERE id = ?')
       .bind(ctx.householdId)
-      .first<{ id: string; name: string; invite_code: string | null }>(),
+      .first<{ id: string; name: string; invite_code: string | null; areas_config: string | null }>(),
     env.DB
       .prepare('SELECT clerk_user_id, role FROM household_members WHERE household_id = ?')
       .bind(ctx.householdId)
@@ -61,6 +61,7 @@ export async function getHousehold(
     householdName: household.name,
     role: ctx.role,
     inviteCode: household.invite_code ?? null,
+    areasConfig: household.areas_config ? JSON.parse(household.areas_config) : null,
     members: members.results.map(m => {
       const profile = profileMap.get(m.clerk_user_id)
       return {
@@ -445,4 +446,38 @@ export async function updateTodoSettings(
     await householdStmt.run()
   }
   return Response.json({ workflow: body.workflow })
+}
+
+/**
+ * PATCH /household/areas
+ * Body: { areasConfig: Record<string, { enabled: boolean }> }
+ * Updates which areas are enabled for the household.
+ * Requires caller to be an owner.
+ */
+export async function updateAreasConfig(
+  req: Request,
+  env: Env,
+  ctx: RequestContext,
+): Promise<Response> {
+  if (!ctx.householdId) return err(403, 'ERR_FORBIDDEN')
+  if (ctx.role !== 'owner') return err(403, 'ERR_FORBIDDEN')
+
+  const body = await req.json<{ areasConfig?: unknown }>()
+  const VALID_AREAS = ['calendar', 'todos', 'shopping', 'recipes'] as const
+
+  if (!body.areasConfig || typeof body.areasConfig !== 'object' || Array.isArray(body.areasConfig))
+    return err(400, 'ERR_INVALID_REQUEST')
+
+  for (const [key, val] of Object.entries(body.areasConfig as Record<string, unknown>)) {
+    if (!VALID_AREAS.includes(key as (typeof VALID_AREAS)[number])) return err(400, 'ERR_INVALID_AREA')
+    if (typeof val !== 'object' || val === null || typeof (val as { enabled?: unknown }).enabled !== 'boolean')
+      return err(400, 'ERR_INVALID_AREA_CONFIG')
+  }
+
+  await env.DB
+    .prepare('UPDATE households SET areas_config = ? WHERE id = ?')
+    .bind(JSON.stringify(body.areasConfig), ctx.householdId)
+    .run()
+
+  return Response.json({ areasConfig: body.areasConfig })
 }

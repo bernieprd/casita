@@ -18,11 +18,15 @@ export const server = setupServer(
       role: 'owner',
       inviteCode: null,
       members: [],
+      areasConfig: null,
     }),
   ),
   http.get(`${BASE}/concepts/todo-categories`, () => HttpResponse.json([])),
 
   // ── Default mutation handlers ─────────────────────────────────────────────
+  http.patch(`${BASE}/household/areas`, () =>
+    HttpResponse.json({ areasConfig: null }),
+  ),
   http.patch(`${BASE}/items/:id`, () =>
     HttpResponse.json({
       id: 'item-1',

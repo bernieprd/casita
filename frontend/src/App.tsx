@@ -18,7 +18,8 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import InstallBanner from './components/InstallBanner'
-import { useHouseholdTheme, useUpdateHouseholdTheme } from './api/household'
+import { useHouseholdTheme, useUpdateHouseholdTheme, useHouseholdSettings } from './api/household'
+import { isAreaEnabled, type AreaId } from './api/areas'
 import { useTheme } from '@/hooks/useTheme'
 import { useMe } from './api/me'
 import i18n, { SUPPORTED_LOCALES } from './i18n'
@@ -203,6 +204,8 @@ function AppShell() {
     localStorage.removeItem('casita_onboarding_pending')
     setShowOnboarding(false)
   }
+  const { data: householdSettings } = useHouseholdSettings()
+  const areasConfig = householdSettings?.areasConfig
   const { data: householdTheme } = useHouseholdTheme()
   const { mutate: updateHouseholdTheme, isPending: themeSaving } = useUpdateHouseholdTheme()
   const { prefs: themePrefs, setPrefs: setThemePrefs } = useTheme(householdTheme, updateHouseholdTheme)
@@ -362,7 +365,8 @@ function AppShell() {
                 { id: 'shopping' as TabId, label: t('nav.shopping'), icon: <ShoppingCart className="size-5" /> },
                 { id: 'recipes'  as TabId, label: t('nav.recipes'),  icon: <BookOpen className="size-5" /> },
               ] satisfies { id: TabId; label: string; icon: ReactNode }[]
-            ).map(({ id, label, icon }) => (
+            ).filter(({ id }) => id === 'home' || isAreaEnabled(areasConfig, id as AreaId))
+             .map(({ id, label, icon }) => (
               <button
                 key={id}
                 onClick={() => navigate(TAB_PATHS[id])}
