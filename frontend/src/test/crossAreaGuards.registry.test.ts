@@ -8,6 +8,9 @@ const COVERED_LOCATIONS = new Set([
   'Home.tsx / RecipesSection',
   'PlanRecipeSheet.tsx / schedule-as-task',
   'Recipes.tsx / shopping-toggle',
+  'SettingsMenu.tsx / finance-entry',
+  'App.tsx / /finance route',
+  'HouseholdSettings.tsx / areas-toggle',
 ])
 
 describe('cross-area guard registry', () => {

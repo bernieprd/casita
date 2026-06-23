@@ -2,9 +2,20 @@
 
 ## What we're building
 
-A Finance area in Casita that replicates the user's Notion finance tracker. Accessible via **Settings → Finance** (not a main tab, at least for now). Supports manual entry, in-app charts, and JSON import/export.
+A Finance area in Casita that replicates the user's Notion finance tracker. Accessible via **Settings → Finance** (not a main tab). Supports manual entry and JSON import.
 
 Modelled on four Notion databases: **Budgeting** (the monthly hub), **Income**, **Expenses**, and **Savings & Investments**.
+
+---
+
+## Integration with the areas/tabs system
+
+Finance is registered as an `AreaId` (`'finance'`) in `frontend/src/api/areas.ts`. It integrates with the Phase 1 area enable/disable system (PR #57) as follows:
+
+- **HouseholdSettings.tsx** — Finance toggle appears in the owner section alongside Calendar, Todos, Shopping, Recipes
+- **SettingsMenu.tsx** — Finance entry guarded by `isAreaEnabled(areasConfig, 'finance')`; hidden when disabled
+- **App.tsx** — `/finance` route redirects to `/settings` when Finance is disabled
+- **Not a pinnable tab** — Finance does not appear in the Phase 2 tab-pin section (it is a Settings sub-area, not a bottom-nav tab)
 
 ---
 

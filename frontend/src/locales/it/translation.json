@@ -315,7 +315,9 @@
       "privacyPolicy": "Informativa sulla privacy",
       "termsOfService": "Termini di servizio",
       "supportText": "Supporta lo sviluppo di Casita con un caffè! Hai una richiesta di funzionalità o feedback? Mandaceli — ci farebbe molto piacere sentirti e li terremo in considerazione.",
-      "buyACoffee": "Offrici un caffè ☕"
+      "buyACoffee": "Offrici un caffè ☕",
+      "finance": "Finanze",
+      "financeDescription": "Entrate, uscite e risparmi"
     },
     "account": {
       "title": "Account",
@@ -416,7 +418,8 @@
       "calendar": "Calendar",
       "todos": "To-Dos",
       "shopping": "Shopping",
-      "recipes": "Recipes"
+      "recipes": "Recipes",
+      "finance": "Finanze"
     }
   },
   "household": {
@@ -489,7 +492,9 @@
     "e17_title": "Ridisegno delle impostazioni",
     "e17_desc": "Le pagine delle Impostazioni sono state riorganizzate con un aspetto più pulito.",
     "e18_title": "Sincronizzazione multi-account e nuove viste",
-    "e18_desc": "Collega più account Google (personale + lavoro) da Impostazioni → Calendario. Le nuove viste settimana e mese ti permettono di vedere il programma a colpo d'occhio — passa tra Agenda, Settimana e Mese con il selettore in cima alla scheda Calendario."
+    "e18_desc": "Collega più account Google (personale + lavoro) da Impostazioni → Calendario. Le nuove viste settimana e mese ti permettono di vedere il programma a colpo d'occhio — passa tra Agenda, Settimana e Mese con il selettore in cima alla scheda Calendario.",
+    "e19_title": "Area finanze",
+    "e19_desc": "Tieni traccia di entrate, uscite e risparmi per periodo di paga. Accessibile da Impostazioni → Finanze. Le spese condivise vengono ripartite automaticamente."
   },
   "nav": {
     "settings": "Impostazioni",
@@ -548,5 +553,37 @@
       "eventDoctor": "Visita medica",
       "eventFamilyDinner": "Cena in famiglia"
     }
+  },
+  "finance": {
+    "title": "Finanze",
+    "income": "Entrate",
+    "expenses": "Uscite",
+    "accounts": "Conti e Risparmi",
+    "net": "Netto",
+    "savings": "Risparmi",
+    "addIncome": "Aggiungi entrata",
+    "addExpense": "Aggiungi uscita",
+    "addAccount": "Aggiungi conto",
+    "noPeriods": "Nessun periodo di tracciamento",
+    "newPeriod": "Nuovo periodo",
+    "source": "Fonte",
+    "tag": "Categoria",
+    "amount": "Importo",
+    "budget": "Budget",
+    "institution": "Istituzione",
+    "date": "Data",
+    "type": "Tipo",
+    "shared": "Condiviso",
+    "personal": "Personale",
+    "yourShare": "La tua quota",
+    "editIncome": "Modifica entrata",
+    "editExpense": "Modifica uscita",
+    "editAccount": "Modifica conto",
+    "deleteIncome": "Elimina entrata",
+    "deleteExpense": "Elimina uscita",
+    "deleteAccount": "Elimina conto",
+    "periodStart": "Inizio periodo",
+    "periodEnd": "Fine periodo",
+    "periodName": "Nome del periodo"
   }
 }

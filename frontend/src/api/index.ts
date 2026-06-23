@@ -13,3 +13,11 @@ export { conceptKeys, useConceptList, useCreateConcept, useRenameConcept, useDel
 export type { AreaId, HouseholdAreasConfig } from './areas'
 export { isAreaEnabled } from './areas'
 export { useUpdateAreasConfig } from './household'
+export type { FinancePeriod, FinanceIncome, FinanceExpense, FinanceAccount } from './types'
+export {
+  financeKeys, eurosToCents, centsToEuros,
+  useFinancePeriods, useCreateFinancePeriod, useDeleteFinancePeriod,
+  useFinanceIncome, useCreateFinanceIncome, useUpdateFinanceIncome, useDeleteFinanceIncome,
+  useFinanceExpenses, useCreateFinanceExpense, useUpdateFinanceExpense, useDeleteFinanceExpense,
+  useFinanceAccounts, useCreateFinanceAccount, useUpdateFinanceAccount, useDeleteFinanceAccount,
+} from './finance'

@@ -65,12 +65,13 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
 
   const { mutate: updateAreasConfig } = useUpdateAreasConfig()
 
-  const AREA_IDS: AreaId[] = ['calendar', 'todos', 'shopping', 'recipes']
+  const AREA_IDS: AreaId[] = ['calendar', 'todos', 'shopping', 'recipes', 'finance']
   const areaLabelKey: Record<AreaId, string> = {
     calendar: 'settings.areas.calendar',
     todos:    'settings.areas.todos',
     shopping: 'settings.areas.shopping',
     recipes:  'settings.areas.recipes',
+    finance:  'settings.areas.finance',
   }
 
   function handleAreaToggle(areaId: AreaId) {

@@ -315,7 +315,9 @@
       "privacyPolicy": "Política de privacidad",
       "termsOfService": "Términos de servicio",
       "supportText": "¡Apoya el desarrollo de Casita con un café! ¿Tienes una solicitud de función o comentarios? Envíanoslos — nos encantaría escucharte y lo tendremos en cuenta.",
-      "buyACoffee": "Invítanos a un café ☕"
+      "buyACoffee": "Invítanos a un café ☕",
+      "finance": "Finanzas",
+      "financeDescription": "Ingresos, gastos y ahorros"
     },
     "account": {
       "title": "Cuenta",
@@ -416,7 +418,8 @@
       "calendar": "Calendar",
       "todos": "To-Dos",
       "shopping": "Shopping",
-      "recipes": "Recipes"
+      "recipes": "Recipes",
+      "finance": "Finanzas"
     }
   },
   "household": {
@@ -489,7 +492,9 @@
     "e17_title": "Rediseño de configuración",
     "e17_desc": "Las páginas de configuración han sido reorganizadas con un diseño más limpio.",
     "e18_title": "Sincronización con múltiples cuentas y nuevas vistas",
-    "e18_desc": "Conecta varias cuentas de Google (personal + trabajo) desde Ajustes → Calendario. Las nuevas vistas de semana y mes te permiten ver tu agenda de un vistazo — cambia entre Agenda, Semana y Mes con el selector en la parte superior de la pestaña Calendario."
+    "e18_desc": "Conecta varias cuentas de Google (personal + trabajo) desde Ajustes → Calendario. Las nuevas vistas de semana y mes te permiten ver tu agenda de un vistazo — cambia entre Agenda, Semana y Mes con el selector en la parte superior de la pestaña Calendario.",
+    "e19_title": "Área de finanzas",
+    "e19_desc": "Registra ingresos, gastos y ahorros por período de pago. Accede desde Ajustes → Finanzas. Los gastos compartidos se dividen automáticamente entre los miembros."
   },
   "nav": {
     "settings": "Configuración",
@@ -548,5 +553,37 @@
       "eventDoctor": "Cita médica",
       "eventFamilyDinner": "Cena familiar"
     }
+  },
+  "finance": {
+    "title": "Finanzas",
+    "income": "Ingresos",
+    "expenses": "Gastos",
+    "accounts": "Cuentas y Ahorros",
+    "net": "Neto",
+    "savings": "Ahorros",
+    "addIncome": "Añadir ingreso",
+    "addExpense": "Añadir gasto",
+    "addAccount": "Añadir cuenta",
+    "noPeriods": "Sin período de seguimiento",
+    "newPeriod": "Nuevo período",
+    "source": "Fuente",
+    "tag": "Categoría",
+    "amount": "Importe",
+    "budget": "Presupuesto",
+    "institution": "Institución",
+    "date": "Fecha",
+    "type": "Tipo",
+    "shared": "Compartido",
+    "personal": "Personal",
+    "yourShare": "Tu parte",
+    "editIncome": "Editar ingreso",
+    "editExpense": "Editar gasto",
+    "editAccount": "Editar cuenta",
+    "deleteIncome": "Eliminar ingreso",
+    "deleteExpense": "Eliminar gasto",
+    "deleteAccount": "Eliminar cuenta",
+    "periodStart": "Inicio del período",
+    "periodEnd": "Fin del período",
+    "periodName": "Nombre del período"
   }
 }

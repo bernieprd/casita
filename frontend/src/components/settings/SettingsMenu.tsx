@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Upload,
   ChevronRight,
+  TrendingUp,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTranslation } from 'react-i18next'
@@ -84,6 +85,13 @@ export default function SettingsMenu() {
           description: t('settings.menu.recipesDescription'),
           path: '/settings/recipes',
           area: 'recipes' as AreaId,
+        },
+        {
+          icon: <TrendingUp className="size-5 shrink-0 text-muted-foreground" />,
+          label: t('settings.menu.finance'),
+          description: t('settings.menu.financeDescription'),
+          path: '/finance',
+          area: 'finance' as AreaId,
         },
       ],
     },

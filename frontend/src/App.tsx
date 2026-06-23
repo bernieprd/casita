@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Settings, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
+import { Settings, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen, TrendingUp } from 'lucide-react'
 import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { itemKeys, itemsApi, todoKeys, todosApi, recipeKeys, recipesApi } from './api'
@@ -42,6 +42,7 @@ const SettingsLayout  = lazy(() => import('./components/settings/SettingsLayout'
 const HouseholdSetup  = lazy(() => import('./components/HouseholdSetup'))
 const ThemePreview    = lazy(() => import('./components/ThemePreview'))
 const OnboardingFlow  = lazy(() => import('./components/OnboardingFlow'))
+const Finance         = lazy(() => import('./components/Finance/Finance'))
 
 export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
 
@@ -220,6 +221,7 @@ function AppShell() {
   const activeTab = pathnameToTab(location.pathname)
   const isSettings = location.pathname.startsWith('/settings')
   const isRecipeDetail = /^\/recipes\/[^/]+$/.test(location.pathname)
+  const isFinance = location.pathname.startsWith('/finance')
 
   useEffect(() => {
     qc.prefetchQuery({ queryKey: itemKeys.shopping, queryFn: itemsApi.listShopping })
@@ -233,12 +235,14 @@ function AppShell() {
       <header className="sticky top-0 z-50 bg-background border-b">
         <div className="max-w-xl mx-auto flex items-center px-2 h-14">
           {headerContent ?? (
-            isSettings ? (
+            isSettings || isFinance ? (
               <>
-                <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="-ml-2">
+                <Button variant="ghost" size="icon" onClick={() => navigate(isFinance ? '/settings' : '/')} className="-ml-2">
                   <ArrowLeft />
                 </Button>
-                <h1 className="flex-1 text-lg font-bold">{t('nav.settings')}</h1>
+                <h1 className="flex-1 text-lg font-bold">
+                  {isFinance ? t('finance.title') : t('nav.settings')}
+                </h1>
               </>
             ) : (
               <>
@@ -289,7 +293,7 @@ function AppShell() {
       <div
         className={cn(
           'max-w-xl mx-auto px-4 pt-4',
-          isSettings || isRecipeDetail ? 'pb-2' : 'pb-[calc(80px+env(safe-area-inset-bottom))]'
+          isSettings || isRecipeDetail || isFinance ? 'pb-2' : 'pb-[calc(80px+env(safe-area-inset-bottom))]'
         )}
       >
         <Routes>
@@ -347,11 +351,22 @@ function AppShell() {
               </Suspense>
             </TabErrorBoundary>
           } />
+          <Route path="/finance" element={
+            isAreaEnabled(areasConfig, 'finance')
+              ? (
+                <TabErrorBoundary key="finance">
+                  <Suspense fallback={<SuspenseFallback />}>
+                    <Finance />
+                  </Suspense>
+                </TabErrorBoundary>
+              )
+              : <Navigate to="/settings" replace />
+          } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
 
-      {!isSettings && !isRecipeDetail && (
+      {!isSettings && !isRecipeDetail && !isFinance && (
         <nav
           className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}

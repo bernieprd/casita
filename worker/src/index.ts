@@ -11,6 +11,12 @@ import { listConcepts, createConcept, updateConcept, deleteConcept, backfillConc
 import { deleteAccount, exportAccountData } from './routes/account'
 import { getMe, updateMe } from './routes/me'
 import { importData } from './routes/import-d1'
+import {
+  getFinancePeriods, createFinancePeriod, deleteFinancePeriod,
+  getFinanceIncome, createFinanceIncome, updateFinanceIncome, deleteFinanceIncome,
+  getFinanceExpenses, createFinanceExpense, updateFinanceExpense, deleteFinanceExpense,
+  getFinanceAccounts, createFinanceAccount, updateFinanceAccount, deleteFinanceAccount,
+} from './routes/finance-d1'
 import { verifyClerkToken, getClerkClient } from './auth/clerk'
 import type { Env, RequestContext } from './types'
 
@@ -191,6 +197,21 @@ const routes: Array<[string, URLPattern, AuthHandler]> = [
   ['POST',   new URLPattern({ pathname: '/concepts/:type',              search: '*' }), createConcept],
   ['PATCH',  new URLPattern({ pathname: '/concepts/:type/:id',          search: '*' }), updateConcept],
   ['DELETE', new URLPattern({ pathname: '/concepts/:type/:id',          search: '*' }), deleteConcept],
+  ['GET',    new URLPattern({ pathname: '/finance/periods',             search: '*' }), getFinancePeriods],
+  ['POST',   new URLPattern({ pathname: '/finance/periods',             search: '*' }), createFinancePeriod],
+  ['DELETE', new URLPattern({ pathname: '/finance/periods/:id',         search: '*' }), deleteFinancePeriod],
+  ['GET',    new URLPattern({ pathname: '/finance/income',              search: '*' }), getFinanceIncome],
+  ['POST',   new URLPattern({ pathname: '/finance/income',              search: '*' }), createFinanceIncome],
+  ['PATCH',  new URLPattern({ pathname: '/finance/income/:id',          search: '*' }), updateFinanceIncome],
+  ['DELETE', new URLPattern({ pathname: '/finance/income/:id',          search: '*' }), deleteFinanceIncome],
+  ['GET',    new URLPattern({ pathname: '/finance/expenses',            search: '*' }), getFinanceExpenses],
+  ['POST',   new URLPattern({ pathname: '/finance/expenses',            search: '*' }), createFinanceExpense],
+  ['PATCH',  new URLPattern({ pathname: '/finance/expenses/:id',        search: '*' }), updateFinanceExpense],
+  ['DELETE', new URLPattern({ pathname: '/finance/expenses/:id',        search: '*' }), deleteFinanceExpense],
+  ['GET',    new URLPattern({ pathname: '/finance/accounts',            search: '*' }), getFinanceAccounts],
+  ['POST',   new URLPattern({ pathname: '/finance/accounts',            search: '*' }), createFinanceAccount],
+  ['PATCH',  new URLPattern({ pathname: '/finance/accounts/:id',        search: '*' }), updateFinanceAccount],
+  ['DELETE', new URLPattern({ pathname: '/finance/accounts/:id',        search: '*' }), deleteFinanceAccount],
 ]
 
 // ── Entry point ───────────────────────────────────────────────────────────────
