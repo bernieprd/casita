@@ -238,7 +238,7 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
   // ── Google Calendar ────────────────────────────────────────────────────────
 
   const { data: googleStatus, isLoading: statusLoading } = useGoogleStatus()
-  const isConnected = googleStatus?.connected ?? false
+  const isConnected = (googleStatus?.accounts?.length ?? 0) > 0
 
   const { data: calendarData, isLoading: calendarsLoading, isError: calendarsError } = useUserCalendars()
   const calendars = calendarData?.calendars
@@ -628,7 +628,7 @@ export default function Settings({ themePrefs, setThemePrefs, themeSaving }: Set
             variant="outline"
             size="sm"
             className="mt-1 text-destructive border-destructive/50 hover:bg-destructive/10"
-            onClick={() => disconnectGoogle()}
+            onClick={() => disconnectGoogle(undefined)}
           >
             Disconnect
           </Button>

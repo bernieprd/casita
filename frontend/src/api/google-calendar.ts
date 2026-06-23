@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import { calendarKeys } from './calendar'
-import type { UserCalendar } from './types'
+import type { UserCalendar, ConnectedAccount } from './types'
 
 export const googleCalendarKeys = {
   status:    ['google-calendar', 'status'] as const,
@@ -11,7 +11,7 @@ export const googleCalendarKeys = {
 export function useGoogleStatus() {
   return useQuery({
     queryKey: googleCalendarKeys.status,
-    queryFn: () => api.get<{ connected: boolean }>('/auth/google/status'),
+    queryFn: () => api.get<{ accounts: ConnectedAccount[] }>('/auth/google/status'),
     staleTime: 5 * 60 * 1000,
   })
 }
@@ -52,10 +52,14 @@ export function useUpdateUserCalendars() {
 export function useDisconnectGoogle() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => api.delete('/auth/google'),
+    mutationFn: (accountEmail?: string) =>
+      accountEmail
+        ? api.delete(`/auth/google?account=${encodeURIComponent(accountEmail)}`)
+        : api.delete('/auth/google'),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: googleCalendarKeys.status })
       qc.invalidateQueries({ queryKey: googleCalendarKeys.calendars })
+      qc.invalidateQueries({ queryKey: calendarKeys.all })
     },
   })
 }

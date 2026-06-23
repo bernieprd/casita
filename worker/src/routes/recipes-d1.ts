@@ -120,7 +120,7 @@ export async function getRecipes(_req: Request, env: Env, ctx: RequestContext): 
     'SELECT * FROM recipes WHERE household_id = ?',
   ).bind(ctx.householdId).all<RecipeRow>()
 
-  return Response.json(results.map(rowToRecipe))
+  return Response.json(results.map(rowToRecipe), { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }
 
 export async function getRecipe(_req: Request, env: Env, ctx: RequestContext, id: string): Promise<Response> {

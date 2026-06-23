@@ -49,7 +49,7 @@ export async function getTodos(
     'SELECT * FROM todos WHERE household_id = ? ORDER BY sort_order ASC, created_at DESC',
   ).bind(ctx.householdId).all<Record<string, unknown>>()
 
-  return Response.json(results.map(rowToTodo))
+  return Response.json(results.map(rowToTodo), { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }
 
 export async function createTodo(req: Request, env: Env, ctx: RequestContext): Promise<Response> {

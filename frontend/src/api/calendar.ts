@@ -15,6 +15,5 @@ export function useCalendarEvents(timeMin: string, timeMax: string) {
       return api.get<CalendarEvent[]>(`/calendar?${params}`)
     },
     staleTime: 5 * 60 * 1000,
-    refetchOnMount: 'always', // refetch when tab becomes active
   })
 }
