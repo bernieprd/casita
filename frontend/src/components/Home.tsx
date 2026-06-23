@@ -217,7 +217,7 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
       .slice(0, 3)
   }, [events])
 
-  if (!googleStatus?.connected && !isLoading && upcoming.length === 0) return null
+  if (!(googleStatus?.accounts?.length) && !isLoading && upcoming.length === 0) return null
 
   return (
     <div className="mb-6">

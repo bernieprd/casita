@@ -4,9 +4,12 @@ packages:
 allowBuilds:
   '@clerk/shared': true
   esbuild: true
+  msw: true
   sharp: true
   workerd: true
 minimumReleaseAgeExclude:
   - miniflare@4.20260603.0
   - wrangler@4.98.0
   - react-hook-form@7.78.0
+  - '@clerk/localizations@4.9.0'
+  - '@clerk/shared@4.19.0'

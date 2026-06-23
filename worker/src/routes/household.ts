@@ -1,4 +1,4 @@
-import type { Env, RequestContext, HouseholdNotionConfig } from '../types'
+import type { Env, RequestContext } from '../types'
 import { seedHouseholdConcepts } from './concepts-d1'
 import { getClerkClient } from '../auth/clerk'
 import { rebuildSharedIndex } from './shared-calendar-index'
@@ -7,16 +7,6 @@ import { rebuildSharedIndex } from './shared-calendar-index'
 
 function err(status: number, code: string): Response {
   return Response.json({ error: code }, { status })
-}
-
-export async function getNotionConfig(
-  env: Env,
-  householdId: string,
-): Promise<HouseholdNotionConfig | null> {
-  return env.DB
-    .prepare('SELECT * FROM household_notion_config WHERE household_id = ?')
-    .bind(householdId)
-    .first<HouseholdNotionConfig>()
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
@@ -259,7 +249,7 @@ export async function getHouseholdSettings(
   if (row?.settings) {
     try { parsed = JSON.parse(row.settings) } catch { parsed = {} }
   }
-  return Response.json(parsed)
+  return Response.json(parsed, { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }
 
 export async function updateHouseholdSettings(
@@ -268,7 +258,8 @@ export async function updateHouseholdSettings(
   ctx: RequestContext,
 ): Promise<Response> {
   if (!ctx.householdId) return err(403, 'ERR_FORBIDDEN')
-  if (ctx.role !== 'owner') return err(403, 'ERR_FORBIDDEN')
+  // No role check — theme settings are intentionally editable by all members.
+  // If non-cosmetic settings are added here, gate them behind an owner check.
 
   const body = await req.json<Record<string, unknown>>()
   const { colorScheme: _dropped, ...rest } = body
@@ -427,7 +418,7 @@ export async function getTodoSettings(
     .prepare('SELECT todo_workflow FROM households WHERE id = ?')
     .bind(ctx.householdId)
     .first<{ todo_workflow: string }>()
-  return Response.json({ workflow: row?.todo_workflow ?? 'simple' })
+  return Response.json({ workflow: row?.todo_workflow ?? 'simple' }, { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }
 
 export async function updateTodoSettings(
