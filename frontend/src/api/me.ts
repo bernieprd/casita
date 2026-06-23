@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import type { LocaleCode } from '../i18n'
+import type { TabConfig } from './areas'
 
-interface MeResponse {
+export interface MeResponse {
   clerkUserId: string
   email: string
   locale: LocaleCode
+  tabConfig: TabConfig | null
 }
 
 export function useMe() {
@@ -23,6 +25,17 @@ export function useUpdateLocale() {
       qc.setQueryData(['me'], (prev: MeResponse | undefined) =>
         prev ? { ...prev, locale: data.locale } : prev,
       )
+    },
+  })
+}
+
+export function useUpdateTabConfig() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (tabConfig: TabConfig) =>
+      api.patch<{ tabConfig: TabConfig }>('/me', { tabConfig }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['me'] })
     },
   })
 }
