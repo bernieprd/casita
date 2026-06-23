@@ -266,7 +266,7 @@ export default function ShoppingList() {
             items={groupItems}
             removingIds={removingIds}
             onRemove={handleRemove}
-            onEdit={item => navigate('/items/' + item.id + '/edit')}
+            onEdit={item => navigate('/items/' + item.id + '/edit', { state: { fromApp: true } })}
           />
         ))
       )}
@@ -275,7 +275,7 @@ export default function ShoppingList() {
         open={incompleteSheetOpen}
         items={incompleteItems}
         onClose={() => setIncompleteSheetOpen(false)}
-        onEdit={item => navigate('/items/' + item.id + '/edit')}
+        onEdit={item => navigate('/items/' + item.id + '/edit', { state: { fromApp: true } })}
       />
     </div>
   )

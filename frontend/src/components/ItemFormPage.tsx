@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useParams, useNavigate, useBlocker } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, useBlocker } from 'react-router-dom'
 import { ArrowLeft, ChevronsUpDown, Check, X, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,7 +37,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { useItems, useCreateItem, useUpdateItem, useDeleteItem, useConceptList } from '../api'
-import type { Item } from '../api'
 import { useTranslation } from 'react-i18next'
 
 export default function ItemFormPage() {
@@ -45,6 +44,7 @@ export default function ItemFormPage() {
   const { id } = useParams<{ id?: string }>()
   const isEdit = !!id
   const navigate = useNavigate()
+  const location = useLocation()
 
   const { data: allItems = [] } = useItems()
   const item = allItems.find(i => i.id === id)
@@ -138,7 +138,7 @@ export default function ItemFormPage() {
     <div className="h-dvh bg-background flex flex-col overflow-x-hidden">
       <header className="sticky top-0 z-50 bg-background border-b shrink-0">
         <div className="max-w-xl mx-auto flex items-center px-2 h-14">
-          <Button variant="ghost" size="icon" onClick={() => navigate(window.history.state?.idx > 0 ? -1 : '/shopping')} disabled={isPending} className="-ml-2">
+          <Button variant="ghost" size="icon" onClick={() => { if (location.state?.fromApp) navigate(-1); else navigate('/shopping') }} disabled={isPending} className="-ml-2">
             <ArrowLeft />
           </Button>
           <h1 className="flex-1 text-lg font-bold">{isEdit ? t('item.editTitle') : t('item.newTitle')}</h1>

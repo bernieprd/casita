@@ -52,7 +52,7 @@ export default function Shopping({ setHeader }: { setHeader: (node: ReactNode | 
     create.mutate(
       { name: queryRef.current.trim(), category: null, supermarkets: [], onShoppingList: true },
       {
-        onSuccess: item => { setQuery(''); navigate('/items/' + item.id + '/edit') },
+        onSuccess: item => { setQuery(''); navigate('/items/' + item.id + '/edit', { state: { fromApp: true } }) },
         onError: () => toast.error(t('shopping.couldNotCreate')),
       },
     )

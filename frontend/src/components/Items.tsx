@@ -246,7 +246,7 @@ export default function Items() {
             key={label}
             label={label}
             items={groupItems}
-            onEdit={item => navigate('/items/' + item.id + '/edit')}
+            onEdit={item => navigate('/items/' + item.id + '/edit', { state: { fromApp: true } })}
             onToggle={item => toggleShoppingList.mutate({ id: item.id, onShoppingList: !item.onShoppingList })}
           />
         ))
@@ -262,7 +262,7 @@ export default function Items() {
         open={incompleteSheetOpen}
         items={incompleteItems}
         onClose={() => setIncompleteSheetOpen(false)}
-        onEdit={item => navigate('/items/' + item.id + '/edit')}
+        onEdit={item => navigate('/items/' + item.id + '/edit', { state: { fromApp: true } })}
       />
     </div>
   )
