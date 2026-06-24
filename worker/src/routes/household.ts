@@ -2,6 +2,8 @@ import type { Env, RequestContext } from '../types'
 import { seedHouseholdConcepts } from './concepts-d1'
 import { getClerkClient } from '../auth/clerk'
 import { rebuildSharedIndex } from './shared-calendar-index'
+import { sendEmail } from '../email/resend'
+import { welcomeEmailHtml } from '../email/templates/welcome'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -111,6 +113,13 @@ export async function createHousehold(
 
   await seedHouseholdConcepts(env, id)
 
+  if (ctx.email) {
+    void sendEmail(
+      { to: ctx.email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env) },
+      env,
+    ).catch(() => {})
+  }
+
   return Response.json({ id, name: name.trim(), role: 'owner' }, { status: 201 })
 }
 
@@ -151,6 +160,13 @@ export async function joinHousehold(
     .prepare('INSERT INTO household_members (household_id, clerk_user_id, role, joined_at, email) VALUES (?, ?, ?, ?, ?)')
     .bind(household.id, ctx.clerkUserId, 'member', now, ctx.email)
     .run()
+
+  if (ctx.email) {
+    void sendEmail(
+      { to: ctx.email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env) },
+      env,
+    ).catch(() => {})
+  }
 
   return Response.json({ id: household.id, name: household.name, role: 'member' }, { status: 200 })
 }
