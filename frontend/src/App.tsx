@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Settings, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
+import { LayoutGrid, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
 import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { itemKeys, itemsApi, todoKeys, todosApi, recipeKeys, recipesApi } from './api'
@@ -38,12 +38,13 @@ function LocaleSync() {
 const RecipeFormPage  = lazy(() => import('./components/RecipeFormPage'))
 const TodoFormPage    = lazy(() => import('./components/TodoFormPage'))
 const ItemFormPage    = lazy(() => import('./components/ItemFormPage'))
+const MenuComponent   = lazy(() => import('./components/Menu'))
 const SettingsLayout  = lazy(() => import('./components/settings/SettingsLayout'))
 const HouseholdSetup  = lazy(() => import('./components/HouseholdSetup'))
 const ThemePreview    = lazy(() => import('./components/ThemePreview'))
 const OnboardingFlow  = lazy(() => import('./components/OnboardingFlow'))
 
-export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
+export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes' | 'menu'
 
 const TAB_PATHS: Record<TabId, string> = {
   home:     '/',
@@ -51,9 +52,11 @@ const TAB_PATHS: Record<TabId, string> = {
   todos:    '/todos',
   shopping: '/shopping',
   recipes:  '/recipes',
+  menu:     '/menu',
 }
 
 function pathnameToTab(pathname: string): TabId {
+  if (pathname.startsWith('/menu'))     return 'menu'
   if (pathname.startsWith('/calendar')) return 'calendar'
   if (pathname.startsWith('/todos'))    return 'todos'
   if (pathname.startsWith('/shopping')) return 'shopping'
@@ -77,6 +80,7 @@ function buildNavTabs(
   return [
     { id: 'home' as TabId, label: t('nav.home'), icon: <Home className="size-5" /> },
     ...pinnedAreas.map(areaTab),
+    { id: 'menu' as TabId, label: t('nav.menu'), icon: <LayoutGrid className="size-5" /> },
   ]
 }
 
@@ -238,7 +242,7 @@ function AppShell() {
   const location = useLocation()
 
   const activeTab = pathnameToTab(location.pathname)
-  const isSettings = location.pathname.startsWith('/settings')
+  const isSettings = location.pathname.startsWith('/settings') || location.pathname.startsWith('/menu/settings')
   const isRecipeDetail = /^\/recipes\/[^/]+$/.test(location.pathname)
 
   useEffect(() => {
@@ -261,14 +265,7 @@ function AppShell() {
                 <h1 className="flex-1 text-lg font-bold">{t('nav.settings')}</h1>
               </>
             ) : (
-              <>
-                <h1 className="flex-1 text-lg font-bold">{householdName ?? 'Casita'}</h1>
-                {activeTab === 'home' && (
-                  <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
-                    <Settings />
-                  </Button>
-                )}
-              </>
+              <h1 className="flex-1 text-lg font-bold">{householdName ?? 'Casita'}</h1>
             )
           )}
         </div>
@@ -352,6 +349,13 @@ function AppShell() {
             <TabErrorBoundary key="recipes">
               <Suspense fallback={<SuspenseFallback />}>
                 <Recipes setToolbar={setHeaderContent} />
+              </Suspense>
+            </TabErrorBoundary>
+          } />
+          <Route path="/menu" element={
+            <TabErrorBoundary key="menu">
+              <Suspense fallback={<SuspenseFallback />}>
+                <MenuComponent />
               </Suspense>
             </TabErrorBoundary>
           } />
