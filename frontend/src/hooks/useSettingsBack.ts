@@ -6,6 +6,6 @@ export function useSettingsBack() {
   const location = useLocation()
   return useCallback(
     () => location.key === 'default' ? navigate('/menu') : navigate(-1),
-    [navigate, location],
+    [navigate, location.key],
   )
 }

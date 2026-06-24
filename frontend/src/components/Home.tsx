@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { RotateCcw, ExternalLink, ChevronUp, ChevronDown, Link2, FileText, Repeat2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { cn, memberInitials, safeUrl, formatFrequency } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -17,17 +16,6 @@ import { useLocale } from '@/hooks/useLocale'
 import { makeDayLabel } from '@/lib/dayLabel'
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
-
-function SectionHeader({ label, action }: { label: string; action?: React.ReactNode }) {
-  return (
-    <div className="flex items-center mb-1">
-      <span className="flex-1 text-xs font-medium tracking-widest uppercase text-muted-foreground leading-none">
-        {label}
-      </span>
-      {action}
-    </div>
-  )
-}
 
 function SectionCard({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
   return (
