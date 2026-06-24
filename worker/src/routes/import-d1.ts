@@ -19,6 +19,16 @@ type ImportRecipe = {
   instructions?: string | null
   ingredients?: ImportIngredient[]
 }
+type ImportFinancePeriod = { name: string; startDate: string; endDate: string }
+type ImportFinanceIncome = { source: string; tag?: string | null; amount: number; periodName: string }
+type ImportFinanceExpense = { source: string; tag?: string | null; type?: string; amount: number; budget?: number; periodName: string }
+type ImportFinanceAccount = { name: string; institution?: string | null; amount: number; date: string; periodName: string }
+type ImportFinance = {
+  periods?: ImportFinancePeriod[]
+  income?: ImportFinanceIncome[]
+  expenses?: ImportFinanceExpense[]
+  accounts?: ImportFinanceAccount[]
+}
 
 export async function importData(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
   if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
@@ -29,9 +39,9 @@ export async function importData(req: Request, env: Env, ctx: RequestContext): P
   if (bodyText.length > 100_000) {
     return Response.json({ error: 'ERR_PAYLOAD_TOO_LARGE' }, { status: 400 })
   }
-  let body: { items?: ImportItem[]; recipes?: ImportRecipe[]; todos?: ImportTodo[] }
+  let body: { items?: ImportItem[]; recipes?: ImportRecipe[]; todos?: ImportTodo[]; finance?: ImportFinance }
   try {
-    body = JSON.parse(bodyText) as { items?: ImportItem[]; recipes?: ImportRecipe[]; todos?: ImportTodo[] }
+    body = JSON.parse(bodyText) as { items?: ImportItem[]; recipes?: ImportRecipe[]; todos?: ImportTodo[]; finance?: ImportFinance }
   } catch {
     return Response.json({ error: 'ERR_INVALID_JSON' }, { status: 400 })
   }
@@ -242,8 +252,113 @@ export async function importData(req: Request, env: Env, ctx: RequestContext): P
     }
   }
 
+  // ── Finance ────────────────────────────────────────────────────────────────
+
+  let importedFinancePeriods = 0
+  let importedFinanceIncome = 0
+  let importedFinanceExpenses = 0
+  let importedFinanceAccounts = 0
+
+  if (body.finance) {
+    const fPeriods = Array.isArray(body.finance.periods) ? body.finance.periods : []
+    const fIncome = Array.isArray(body.finance.income) ? body.finance.income : []
+    const fExpenses = Array.isArray(body.finance.expenses) ? body.finance.expenses : []
+    const fAccounts = Array.isArray(body.finance.accounts) ? body.finance.accounts : []
+
+    // Upsert periods — UNIQUE INDEX on (household_id, start_date) so INSERT OR IGNORE deduplicates
+    const validPeriods = fPeriods.filter(
+      p => typeof p.name === 'string' && p.name.trim() &&
+           typeof p.startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.startDate) &&
+           typeof p.endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.endDate),
+    )
+    for (let i = 0; i < validPeriods.length; i += 100) {
+      const chunk = validPeriods.slice(i, i + 100)
+      await env.DB.batch(chunk.map(p =>
+        env.DB.prepare(
+          'INSERT OR IGNORE INTO finance_periods (id, household_id, name, start_date, end_date, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        ).bind(crypto.randomUUID(), householdId, p.name.trim(), p.startDate, p.endDate, now),
+      ))
+      importedFinancePeriods += chunk.length
+    }
+
+    // Resolve all period IDs by name so income/expenses/accounts can reference them
+    const periodIdByName = new Map<string, string>()
+    if (fIncome.length > 0 || fExpenses.length > 0 || fAccounts.length > 0) {
+      const { results: pRows } = await env.DB.prepare(
+        'SELECT id, name FROM finance_periods WHERE household_id = ?',
+      ).bind(householdId).all<{ id: string; name: string }>()
+      for (const r of pRows) periodIdByName.set(r.name, r.id)
+    }
+
+    // Income
+    const validIncome = fIncome.filter(
+      e => typeof e.source === 'string' && e.source.trim() && periodIdByName.has(e.periodName),
+    )
+    for (let i = 0; i < validIncome.length; i += 100) {
+      const chunk = validIncome.slice(i, i + 100)
+      await env.DB.batch(chunk.map(e =>
+        env.DB.prepare(
+          'INSERT INTO finance_income (id, household_id, user_id, period_id, source, tag, amount_cents, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        ).bind(
+          crypto.randomUUID(), householdId, ctx.clerkUserId,
+          periodIdByName.get(e.periodName)!,
+          e.source.trim(), e.tag ?? null,
+          Math.round((Number(e.amount) || 0) * 100), now,
+        ),
+      ))
+      importedFinanceIncome += chunk.length
+    }
+
+    // Expenses
+    const validExpenses = fExpenses.filter(
+      e => typeof e.source === 'string' && e.source.trim() && periodIdByName.has(e.periodName),
+    )
+    for (let i = 0; i < validExpenses.length; i += 100) {
+      const chunk = validExpenses.slice(i, i + 100)
+      await env.DB.batch(chunk.map(e =>
+        env.DB.prepare(
+          'INSERT INTO finance_expenses (id, household_id, user_id, period_id, source, tag, type, amount_cents, budget_cents, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        ).bind(
+          crypto.randomUUID(), householdId, ctx.clerkUserId,
+          periodIdByName.get(e.periodName)!,
+          e.source.trim(), e.tag ?? null,
+          e.type === 'shared' ? 'shared' : 'personal',
+          Math.round((Number(e.amount) || 0) * 100),
+          Math.round((Number(e.budget) || 0) * 100),
+          now,
+        ),
+      ))
+      importedFinanceExpenses += chunk.length
+    }
+
+    // Accounts
+    const validAccounts = fAccounts.filter(
+      a => typeof a.name === 'string' && a.name.trim() &&
+           typeof a.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(a.date) &&
+           periodIdByName.has(a.periodName),
+    )
+    for (let i = 0; i < validAccounts.length; i += 100) {
+      const chunk = validAccounts.slice(i, i + 100)
+      await env.DB.batch(chunk.map(a =>
+        env.DB.prepare(
+          'INSERT INTO finance_accounts (id, household_id, user_id, period_id, name, institution, amount_cents, date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        ).bind(
+          crypto.randomUUID(), householdId, ctx.clerkUserId,
+          periodIdByName.get(a.periodName)!,
+          a.name.trim(), a.institution ?? null,
+          Math.round((Number(a.amount) || 0) * 100),
+          a.date, now,
+        ),
+      ))
+      importedFinanceAccounts += chunk.length
+    }
+  }
+
   return Response.json({
-    imported: { items: importedItems, recipes: importedRecipes, todos: importedTodos },
+    imported: {
+      items: importedItems, recipes: importedRecipes, todos: importedTodos,
+      finance: { periods: importedFinancePeriods, income: importedFinanceIncome, expenses: importedFinanceExpenses, accounts: importedFinanceAccounts },
+    },
     skipped: { items: skippedItems },
     failed: { recipes: failedRecipes },
   })

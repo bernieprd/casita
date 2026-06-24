@@ -463,7 +463,7 @@ export async function updateAreasConfig(
   if (ctx.role !== 'owner') return err(403, 'ERR_FORBIDDEN')
 
   const body = await req.json<{ areasConfig?: unknown }>()
-  const VALID_AREAS = ['calendar', 'todos', 'shopping', 'recipes'] as const
+  const VALID_AREAS = ['calendar', 'todos', 'shopping', 'recipes', 'finance'] as const
 
   if (!body.areasConfig || typeof body.areasConfig !== 'object' || Array.isArray(body.areasConfig))
     return err(400, 'ERR_INVALID_REQUEST')

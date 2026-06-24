@@ -78,3 +78,51 @@ export interface RecipeIngredient {
   section: string | null
   needsShopping: boolean
 }
+
+export interface FinancePeriod {
+  id: string
+  householdId: string
+  name: string
+  startDate: string
+  endDate: string
+  createdAt: number
+  incomeCents?: number
+  expensesCents?: number
+  accountsCents?: number
+}
+
+export interface FinanceIncome {
+  id: string
+  householdId: string
+  userId: string
+  periodId: string
+  source: string
+  tag: string | null
+  amountCents: number
+  createdAt: number
+}
+
+export interface FinanceExpense {
+  id: string
+  householdId: string
+  userId: string
+  periodId: string
+  source: string
+  tag: string | null
+  type: 'shared' | 'personal'
+  amountCents: number
+  budgetCents: number
+  createdAt: number
+}
+
+export interface FinanceAccount {
+  id: string
+  householdId: string
+  userId: string
+  periodId: string
+  name: string
+  institution: string | null
+  amountCents: number
+  date: string
+  createdAt: number
+}

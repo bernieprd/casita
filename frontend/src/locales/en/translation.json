@@ -315,7 +315,9 @@
       "privacyPolicy": "Privacy Policy",
       "termsOfService": "Terms of Service",
       "supportText": "Support Casita's development with a coffee! Have a feature request or feedback? Send it our way — we'd love to hear from you and will take it into account.",
-      "buyACoffee": "Buy us a coffee ☕"
+      "buyACoffee": "Buy us a coffee ☕",
+      "finance": "Finance",
+      "financeDescription": "Income, expenses & savings"
     },
     "account": {
       "title": "Account",
@@ -416,7 +418,8 @@
       "calendar": "Calendar",
       "todos": "To-Dos",
       "shopping": "Shopping",
-      "recipes": "Recipes"
+      "recipes": "Recipes",
+      "finance": "Finance"
     }
   },
   "household": {
@@ -489,7 +492,9 @@
     "e17_title": "Settings redesign",
     "e17_desc": "Settings pages have been reorganised with a cleaner layout.",
     "e18_title": "Multi-account calendar sync & new views",
-    "e18_desc": "Connect multiple Google accounts (personal + work) from Settings → Calendar. New week and month views let you see your schedule at a glance — switch between Agenda, Week, and Month with the toggle at the top of the Calendar tab."
+    "e18_desc": "Connect multiple Google accounts (personal + work) from Settings → Calendar. New week and month views let you see your schedule at a glance — switch between Agenda, Week, and Month with the toggle at the top of the Calendar tab.",
+    "e19_title": "Finance tracking area",
+    "e19_desc": "Track income, expenses, and savings per pay period. Access via Settings → Finance. Shared expenses are automatically split between household members."
   },
   "nav": {
     "settings": "Settings",
@@ -548,5 +553,37 @@
       "eventDoctor": "Doctor appointment",
       "eventFamilyDinner": "Family dinner"
     }
+  },
+  "finance": {
+    "title": "Finance",
+    "income": "Income",
+    "expenses": "Expenses",
+    "accounts": "Accounts & Savings",
+    "net": "Net",
+    "savings": "Savings",
+    "addIncome": "Add income",
+    "addExpense": "Add expense",
+    "addAccount": "Add account",
+    "noPeriods": "No tracking period yet",
+    "newPeriod": "New period",
+    "source": "Source",
+    "tag": "Category",
+    "amount": "Amount",
+    "budget": "Budget",
+    "institution": "Institution",
+    "date": "Date",
+    "type": "Type",
+    "shared": "Shared",
+    "personal": "Personal",
+    "yourShare": "Your share",
+    "editIncome": "Edit income",
+    "editExpense": "Edit expense",
+    "editAccount": "Edit account",
+    "deleteIncome": "Delete income entry",
+    "deleteExpense": "Delete expense entry",
+    "deleteAccount": "Delete account entry",
+    "periodStart": "Period start",
+    "periodEnd": "Period end",
+    "periodName": "Period name"
   }
 }

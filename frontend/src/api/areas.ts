@@ -1,4 +1,4 @@
-export type AreaId = 'calendar' | 'todos' | 'shopping' | 'recipes'
+export type AreaId = 'calendar' | 'todos' | 'shopping' | 'recipes' | 'finance'
 
 export type HouseholdAreasConfig = {
   [key in AreaId]?: { enabled: boolean }

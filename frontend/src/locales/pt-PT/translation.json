@@ -315,7 +315,9 @@
       "privacyPolicy": "Política de Privacidade",
       "termsOfService": "Termos de Serviço",
       "supportText": "Apoia o desenvolvimento do Casita com um café! Tens uma sugestão de funcionalidade ou comentários? Envia-nos — adoraríamos ouvir-te e iremos tê-los em conta.",
-      "buyACoffee": "Convida-nos a um café ☕"
+      "buyACoffee": "Convida-nos a um café ☕",
+      "finance": "Finanças",
+      "financeDescription": "Rendimentos, despesas e poupanças"
     },
     "account": {
       "title": "Conta",
@@ -416,7 +418,8 @@
       "calendar": "Calendar",
       "todos": "To-Dos",
       "shopping": "Shopping",
-      "recipes": "Recipes"
+      "recipes": "Recipes",
+      "finance": "Finanças"
     }
   },
   "household": {
@@ -489,7 +492,9 @@
     "e17_title": "Redesenho das definições",
     "e17_desc": "As páginas de definições foram reorganizadas com um aspeto mais limpo.",
     "e18_title": "Sincronização com várias contas e novas vistas",
-    "e18_desc": "Liga várias contas Google (pessoal + trabalho) em Definições → Calendário. As novas vistas de semana e mês permitem ver o teu horário de relance — alterna entre Agenda, Semana e Mês com o seletor no topo do separador Calendário."
+    "e18_desc": "Liga várias contas Google (pessoal + trabalho) em Definições → Calendário. As novas vistas de semana e mês permitem ver o teu horário de relance — alterna entre Agenda, Semana e Mês com o seletor no topo do separador Calendário.",
+    "e19_title": "Área de finanças",
+    "e19_desc": "Acompanha rendimentos, despesas e poupanças por período de pagamento. Acede via Definições → Finanças. As despesas partilhadas são divididas automaticamente."
   },
   "nav": {
     "settings": "Definições",
@@ -548,5 +553,37 @@
       "eventDoctor": "Consulta médica",
       "eventFamilyDinner": "Jantar em família"
     }
+  },
+  "finance": {
+    "title": "Finanças",
+    "income": "Rendimentos",
+    "expenses": "Despesas",
+    "accounts": "Contas e Poupanças",
+    "net": "Líquido",
+    "savings": "Poupanças",
+    "addIncome": "Adicionar rendimento",
+    "addExpense": "Adicionar despesa",
+    "addAccount": "Adicionar conta",
+    "noPeriods": "Sem período de acompanhamento",
+    "newPeriod": "Novo período",
+    "source": "Fonte",
+    "tag": "Categoria",
+    "amount": "Valor",
+    "budget": "Orçamento",
+    "institution": "Instituição",
+    "date": "Data",
+    "type": "Tipo",
+    "shared": "Partilhado",
+    "personal": "Pessoal",
+    "yourShare": "A tua parte",
+    "editIncome": "Editar rendimento",
+    "editExpense": "Editar despesa",
+    "editAccount": "Editar conta",
+    "deleteIncome": "Eliminar rendimento",
+    "deleteExpense": "Eliminar despesa",
+    "deleteAccount": "Eliminar conta",
+    "periodStart": "Início do período",
+    "periodEnd": "Fim do período",
+    "periodName": "Nome do período"
   }
 }
