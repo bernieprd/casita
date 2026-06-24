@@ -315,7 +315,9 @@
       "privacyPolicy": "Informativa sulla privacy",
       "termsOfService": "Termini di servizio",
       "supportText": "Supporta lo sviluppo di Casita con un caffè! Hai una richiesta di funzionalità o feedback? Mandaceli — ci farebbe molto piacere sentirti e li terremo in considerazione.",
-      "buyACoffee": "Offrici un caffè ☕"
+      "buyACoffee": "Offrici un caffè ☕",
+      "areasAndTabs": "Aree e schede",
+      "areasAndTabsDescription": "Abilita aree, aggiungi schede"
     },
     "account": {
       "title": "Account",
@@ -410,13 +412,20 @@
       "addType": "Aggiungi un tipo"
     },
     "areas": {
-      "title": "Areas & Tabs",
-      "ownerSection": "Household areas",
-      "ownerSectionDescription": "Disabled areas are hidden from all members.",
-      "calendar": "Calendar",
-      "todos": "To-Dos",
-      "shopping": "Shopping",
-      "recipes": "Recipes"
+      "title": "Aree e schede",
+      "ownerSection": "Aree della casa",
+      "ownerSectionDescription": "Le aree disabilitate sono nascoste a tutti i membri.",
+      "calendar": "Calendario",
+      "todos": "Attività",
+      "shopping": "Spesa",
+      "recipes": "Ricette",
+      "userSection": "Le tue schede",
+      "userSectionDescription": "Visibile solo a te. Le modifiche non influenzano gli altri membri.",
+      "pinTab": "Aggiungi alla barra delle schede",
+      "maxTabsNote": "Puoi aggiungere fino a 3 aree alla barra delle schede.",
+      "pinnedTabsLabel": "Aggiunte",
+      "notPinnedTabsLabel": "Non aggiunte",
+      "noAreasEnabled": "Nessuna area è attualmente abilitata."
     }
   },
   "household": {

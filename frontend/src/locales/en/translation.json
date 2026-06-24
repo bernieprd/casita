@@ -315,7 +315,9 @@
       "privacyPolicy": "Privacy Policy",
       "termsOfService": "Terms of Service",
       "supportText": "Support Casita's development with a coffee! Have a feature request or feedback? Send it our way — we'd love to hear from you and will take it into account.",
-      "buyACoffee": "Buy us a coffee ☕"
+      "buyACoffee": "Buy us a coffee ☕",
+      "areasAndTabs": "Areas & Tabs",
+      "areasAndTabsDescription": "Enable areas, pin tabs"
     },
     "account": {
       "title": "Account",
@@ -416,7 +418,14 @@
       "calendar": "Calendar",
       "todos": "To-Dos",
       "shopping": "Shopping",
-      "recipes": "Recipes"
+      "recipes": "Recipes",
+      "userSection": "Your tabs",
+      "userSectionDescription": "Only visible to you. Changes don't affect other members.",
+      "pinTab": "Pin to tab bar",
+      "maxTabsNote": "You can pin up to 3 areas to your tab bar.",
+      "pinnedTabsLabel": "Pinned",
+      "notPinnedTabsLabel": "Not pinned",
+      "noAreasEnabled": "No areas are currently enabled."
     }
   },
   "household": {

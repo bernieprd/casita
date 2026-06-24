@@ -11,3 +11,17 @@ export function isAreaEnabled(
   if (!config) return true
   return config[area]?.enabled !== false
 }
+
+export interface TabConfig {
+  pinned: AreaId[]  // ordered, max 3
+}
+
+export const DEFAULT_PINNED_TABS: AreaId[] = ['calendar', 'todos', 'shopping']
+
+export function computePinnedTabs(
+  tabConfig: TabConfig | null | undefined,
+  areasConfig: HouseholdAreasConfig | null | undefined,
+): AreaId[] {
+  const pinned = tabConfig?.pinned ?? DEFAULT_PINNED_TABS
+  return pinned.filter((area) => isAreaEnabled(areasConfig, area)).slice(0, 3)
+}
