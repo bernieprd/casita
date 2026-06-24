@@ -114,10 +114,14 @@ export async function createHousehold(
   await seedHouseholdConcepts(env, id)
 
   if (ctx.email) {
-    void sendEmail(
-      { to: ctx.email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env) },
-      env,
-    ).catch(() => {})
+    try {
+      await sendEmail(
+        { to: ctx.email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env) },
+        env,
+      )
+    } catch (e) {
+      console.error('[welcome email] failed for createHousehold:', e)
+    }
   }
 
   return Response.json({ id, name: name.trim(), role: 'owner' }, { status: 201 })
@@ -162,10 +166,14 @@ export async function joinHousehold(
     .run()
 
   if (ctx.email) {
-    void sendEmail(
-      { to: ctx.email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env) },
-      env,
-    ).catch(() => {})
+    try {
+      await sendEmail(
+        { to: ctx.email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env) },
+        env,
+      )
+    } catch (e) {
+      console.error('[welcome email] failed for joinHousehold:', e)
+    }
   }
 
   return Response.json({ id: household.id, name: household.name, role: 'member' }, { status: 200 })
