@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useSettingsBack } from '@/hooks/useSettingsBack'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useBackfillConcepts } from '../../api/concepts'
@@ -13,7 +13,7 @@ interface ShoppingSettingsProps {
 
 export default function ShoppingSettings({ setHeader }: ShoppingSettingsProps) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
+  const goBack = useSettingsBack()
 
   const { data: householdData } = useHouseholdSettings()
   const isOwner = householdData?.role === 'owner'
@@ -34,7 +34,7 @@ export default function ShoppingSettings({ setHeader }: ShoppingSettingsProps) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/settings')}
+          onClick={goBack}
           className="-ml-2"
           aria-label={t('common.back')}
         >
@@ -44,7 +44,7 @@ export default function ShoppingSettings({ setHeader }: ShoppingSettingsProps) {
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader, t])
+  }, [goBack, setHeader, t])
 
   return (
     <div className="p-4">

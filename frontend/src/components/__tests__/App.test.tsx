@@ -68,6 +68,17 @@ function renderApp(App: React.ComponentType) {
   )
 }
 
+function renderAppAt(App: React.ComponentType, path: string) {
+  const queryClient = createTestQueryClient()
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[path]}>
+        <App />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+}
+
 // App.tsx / computed tab array — coverage marker for cross-area guard registry
 describe('App.tsx / computed tab array', () => {
   it('disabled area cannot appear in computed tab array', async () => {
@@ -103,5 +114,79 @@ describe('App.tsx / computed tab array', () => {
     // non-disabled pinned tabs should still appear
     expect(screen.getByTestId('nav-tab-calendar')).toBeInTheDocument()
     expect(screen.getByTestId('nav-tab-todos')).toBeInTheDocument()
+  })
+})
+
+// Menu.tsx / area cards — coverage marker for cross-area guard registry
+describe('Phase 3 nav invariants', () => {
+  function setupPhase3Mocks(tabConfig: { pinned: string[] } | null = { pinned: ['calendar', 'todos', 'shopping'] }) {
+    server.use(
+      http.get(`${BASE}/household/me`, () =>
+        HttpResponse.json({
+          householdId: 'hh-test',
+          householdName: 'Test House',
+          role: 'member',
+          inviteCode: null,
+          members: [],
+          areasConfig: null,
+        }),
+      ),
+      http.get(`${BASE}/me`, () =>
+        HttpResponse.json({
+          clerkUserId: 'user-test',
+          email: 'test@test.com',
+          locale: 'en',
+          tabConfig,
+        }),
+      ),
+    )
+  }
+
+  it('Menu tab is always last', async () => {
+    setupPhase3Mocks()
+
+    const App = await importApp()
+    renderApp(App)
+
+    await waitFor(() => expect(screen.getByTestId('nav-tab-menu')).toBeInTheDocument())
+
+    const navButtons = screen.getAllByTestId(/^nav-tab-/)
+    expect(navButtons[navButtons.length - 1]).toHaveAttribute('data-testid', 'nav-tab-menu')
+  })
+
+  it('tab array never exceeds 5 items', async () => {
+    setupPhase3Mocks()
+
+    const App = await importApp()
+    renderApp(App)
+
+    await waitFor(() => expect(screen.getByTestId('nav-tab-menu')).toBeInTheDocument())
+
+    // home + 3 pinned + menu = 5
+    const navButtons = screen.getAllByTestId(/^nav-tab-/)
+    expect(navButtons.length).toBeLessThanOrEqual(5)
+  })
+
+  it('Recipes accessible via Menu when not pinned', async () => {
+    setupPhase3Mocks()
+
+    const App = await importApp()
+    renderAppAt(App, '/menu')
+
+    await waitFor(() =>
+      expect(screen.getByTestId('menu-area-card-recipes')).toBeInTheDocument(),
+    )
+  })
+
+  it('gear icon absent from Home header', async () => {
+    setupPhase3Mocks(null)
+
+    const App = await importApp()
+    renderApp(App)
+
+    await waitFor(() => expect(screen.getByTestId('nav-tab-home')).toBeInTheDocument())
+
+    const header = document.querySelector('header')
+    expect(header?.querySelector('button')).toBeNull()
   })
 })

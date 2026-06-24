@@ -1,15 +1,13 @@
 import { useEffect, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useSettingsBack } from '@/hooks/useSettingsBack'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { useHouseholdSettings, useUpdateAreasConfig } from '../../api/household'
 import { useMe, useUpdateTabConfig } from '../../api/me'
-import { isAreaEnabled, computePinnedTabs, type AreaId } from '../../api/areas'
+import { isAreaEnabled, computePinnedTabs, ALL_AREA_IDS, type AreaId } from '../../api/areas'
 import { useTranslation } from 'react-i18next'
-
-const AREA_IDS: AreaId[] = ['calendar', 'todos', 'shopping', 'recipes']
 
 interface Props {
   setHeader: (node: ReactNode | null) => void
@@ -17,7 +15,7 @@ interface Props {
 
 export default function AreasSettings({ setHeader }: Props) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
+  const goBack = useSettingsBack()
 
   const { data: householdData } = useHouseholdSettings()
   const isOwner = householdData?.role === 'owner'
@@ -45,7 +43,7 @@ export default function AreasSettings({ setHeader }: Props) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/settings')}
+          onClick={goBack}
           className="-ml-2"
           aria-label={t('common.back')}
         >
@@ -55,7 +53,7 @@ export default function AreasSettings({ setHeader }: Props) {
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader, t])
+  }, [goBack, setHeader, t])
 
   function handleAreaToggle(areaId: AreaId) {
     updateAreasConfig({ ...areasConfig, [areaId]: { enabled: !isAreaEnabled(areasConfig, areaId) } })
@@ -71,7 +69,7 @@ export default function AreasSettings({ setHeader }: Props) {
     updateTabConfig({ pinned: newPinned })
   }
 
-  const enabledAreas = AREA_IDS.filter((id) => isAreaEnabled(areasConfig, id))
+  const enabledAreas = ALL_AREA_IDS.filter((id) => isAreaEnabled(areasConfig, id))
 
   return (
     <div className="p-4 space-y-6">
@@ -84,7 +82,7 @@ export default function AreasSettings({ setHeader }: Props) {
           {t('settings.areas.ownerSectionDescription')}
         </p>
         <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border">
-          {AREA_IDS.map((areaId) => (
+          {ALL_AREA_IDS.map((areaId) => (
             <div key={areaId} className="flex items-center gap-3 px-4 py-3">
               <span className="flex-1 text-sm font-medium">{t(areaLabelKey[areaId])}</span>
               <Switch

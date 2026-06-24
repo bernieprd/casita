@@ -16,6 +16,8 @@ export interface TabConfig {
   pinned: AreaId[]  // ordered, max 3
 }
 
+export const ALL_AREA_IDS: AreaId[] = ['calendar', 'todos', 'shopping', 'recipes']
+
 export const DEFAULT_PINNED_TABS: AreaId[] = ['calendar', 'todos', 'shopping']
 
 export function computePinnedTabs(

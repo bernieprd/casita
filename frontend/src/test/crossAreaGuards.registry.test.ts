@@ -10,6 +10,7 @@ const COVERED_LOCATIONS = new Set([
   'Recipes.tsx / shopping-toggle',
   'AreasSettings.tsx / tab-pin options',
   'App.tsx / computed tab array',
+  'Menu.tsx / area cards',
 ])
 
 describe('cross-area guard registry', () => {

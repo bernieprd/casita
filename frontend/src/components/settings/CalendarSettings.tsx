@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
+import { useSettingsBack } from '@/hooks/useSettingsBack'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,8 +33,7 @@ interface CalendarSettingsProps {
 
 export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const goBack = useSettingsBack()
   const [searchParams, setSearchParams] = useSearchParams()
   const oauthResult = searchParams.get('google')
 
@@ -52,7 +52,7 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => location.key === 'default' ? navigate('/settings') : navigate(-1)}
+          onClick={goBack}
           className="-ml-2"
           aria-label={t('common.back')}
         >
@@ -62,7 +62,7 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader, t])
+  }, [goBack, setHeader, t])
 
   const { data: statusData, isLoading: statusLoading } = useGoogleStatus()
   const accounts = statusData?.accounts ?? []

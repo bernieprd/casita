@@ -498,7 +498,9 @@
     "e17_title": "Settings redesign",
     "e17_desc": "Settings pages have been reorganised with a cleaner layout.",
     "e18_title": "Multi-account calendar sync & new views",
-    "e18_desc": "Connect multiple Google accounts (personal + work) from Settings → Calendar. New week and month views let you see your schedule at a glance — switch between Agenda, Week, and Month with the toggle at the top of the Calendar tab."
+    "e18_desc": "Connect multiple Google accounts (personal + work) from Settings → Calendar. New week and month views let you see your schedule at a glance — switch between Agenda, Week, and Month with the toggle at the top of the Calendar tab.",
+    "e19_title": "Areas & Tabs — make it yours",
+    "e19_desc": "Household owners can now enable or disable areas for everyone. Each member can then pin up to three areas directly to their tab bar, and anything not pinned stays a tap away. Customise from Settings → Areas & Tabs."
   },
   "nav": {
     "settings": "Settings",
@@ -507,6 +509,7 @@
     "todos": "To-Dos",
     "shopping": "Shopping",
     "recipes": "Recipes",
+    "menu": "Menu",
     "updateAvailable": "Update available",
     "reload": "Reload",
     "offline": "Offline — showing cached data",
