@@ -498,7 +498,9 @@
     "e17_title": "Redesenho das definições",
     "e17_desc": "As páginas de definições foram reorganizadas com um aspeto mais limpo.",
     "e18_title": "Sincronização com várias contas e novas vistas",
-    "e18_desc": "Liga várias contas Google (pessoal + trabalho) em Definições → Calendário. As novas vistas de semana e mês permitem ver o teu horário de relance — alterna entre Agenda, Semana e Mês com o seletor no topo do separador Calendário."
+    "e18_desc": "Liga várias contas Google (pessoal + trabalho) em Definições → Calendário. As novas vistas de semana e mês permitem ver o teu horário de relance — alterna entre Agenda, Semana e Mês com o seletor no topo do separador Calendário.",
+    "e19_title": "Áreas e separadores — personaliza a tua experiência",
+    "e19_desc": "Os proprietários do agregado podem ativar ou desativar áreas para todos. Cada membro pode fixar até três áreas diretamente na sua barra de separadores, e tudo o que não estiver fixo fica a um toque. Personaliza em Definições → Áreas e separadores."
   },
   "nav": {
     "settings": "Definições",

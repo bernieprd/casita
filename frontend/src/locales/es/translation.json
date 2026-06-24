@@ -498,7 +498,9 @@
     "e17_title": "Rediseño de configuración",
     "e17_desc": "Las páginas de configuración han sido reorganizadas con un diseño más limpio.",
     "e18_title": "Sincronización con múltiples cuentas y nuevas vistas",
-    "e18_desc": "Conecta varias cuentas de Google (personal + trabajo) desde Ajustes → Calendario. Las nuevas vistas de semana y mes te permiten ver tu agenda de un vistazo — cambia entre Agenda, Semana y Mes con el selector en la parte superior de la pestaña Calendario."
+    "e18_desc": "Conecta varias cuentas de Google (personal + trabajo) desde Ajustes → Calendario. Las nuevas vistas de semana y mes te permiten ver tu agenda de un vistazo — cambia entre Agenda, Semana y Mes con el selector en la parte superior de la pestaña Calendario.",
+    "e19_title": "Áreas y pestañas — personalízalo",
+    "e19_desc": "Los propietarios del hogar pueden activar o desactivar áreas para todos. Cada miembro puede fijar hasta tres áreas directamente en su barra de pestañas, y todo lo que no esté fijado queda a un toque. Personaliza desde Ajustes → Áreas y pestañas."
   },
   "nav": {
     "settings": "Configuración",
