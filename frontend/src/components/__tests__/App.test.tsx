@@ -119,7 +119,7 @@ describe('App.tsx / computed tab array', () => {
 
 // Menu.tsx / area cards — coverage marker for cross-area guard registry
 describe('Phase 3 nav invariants', () => {
-  it('Menu tab is always last', async () => {
+  function setupPhase3Mocks(tabConfig: { pinned: string[] } | null = { pinned: ['calendar', 'todos', 'shopping'] }) {
     server.use(
       http.get(`${BASE}/household/me`, () =>
         HttpResponse.json({
@@ -136,10 +136,14 @@ describe('Phase 3 nav invariants', () => {
           clerkUserId: 'user-test',
           email: 'test@test.com',
           locale: 'en',
-          tabConfig: { pinned: ['calendar', 'todos', 'shopping'] },
+          tabConfig,
         }),
       ),
     )
+  }
+
+  it('Menu tab is always last', async () => {
+    setupPhase3Mocks()
 
     const App = await importApp()
     renderApp(App)
@@ -151,26 +155,7 @@ describe('Phase 3 nav invariants', () => {
   })
 
   it('tab array never exceeds 5 items', async () => {
-    server.use(
-      http.get(`${BASE}/household/me`, () =>
-        HttpResponse.json({
-          householdId: 'hh-test',
-          householdName: 'Test House',
-          role: 'member',
-          inviteCode: null,
-          members: [],
-          areasConfig: null,
-        }),
-      ),
-      http.get(`${BASE}/me`, () =>
-        HttpResponse.json({
-          clerkUserId: 'user-test',
-          email: 'test@test.com',
-          locale: 'en',
-          tabConfig: { pinned: ['calendar', 'todos', 'shopping'] },
-        }),
-      ),
-    )
+    setupPhase3Mocks()
 
     const App = await importApp()
     renderApp(App)
@@ -183,26 +168,7 @@ describe('Phase 3 nav invariants', () => {
   })
 
   it('Recipes accessible via Menu when not pinned', async () => {
-    server.use(
-      http.get(`${BASE}/household/me`, () =>
-        HttpResponse.json({
-          householdId: 'hh-test',
-          householdName: 'Test House',
-          role: 'member',
-          inviteCode: null,
-          members: [],
-          areasConfig: null,
-        }),
-      ),
-      http.get(`${BASE}/me`, () =>
-        HttpResponse.json({
-          clerkUserId: 'user-test',
-          email: 'test@test.com',
-          locale: 'en',
-          tabConfig: { pinned: ['calendar', 'todos', 'shopping'] },
-        }),
-      ),
-    )
+    setupPhase3Mocks()
 
     const App = await importApp()
     renderAppAt(App, '/menu')
@@ -213,26 +179,7 @@ describe('Phase 3 nav invariants', () => {
   })
 
   it('gear icon absent from Home header', async () => {
-    server.use(
-      http.get(`${BASE}/household/me`, () =>
-        HttpResponse.json({
-          householdId: 'hh-test',
-          householdName: 'Test House',
-          role: 'member',
-          inviteCode: null,
-          members: [],
-          areasConfig: null,
-        }),
-      ),
-      http.get(`${BASE}/me`, () =>
-        HttpResponse.json({
-          clerkUserId: 'user-test',
-          email: 'test@test.com',
-          locale: 'en',
-          tabConfig: null,
-        }),
-      ),
-    )
+    setupPhase3Mocks(null)
 
     const App = await importApp()
     renderApp(App)

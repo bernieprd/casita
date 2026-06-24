@@ -1,12 +1,11 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays, CheckSquare, ShoppingCart, BookOpen, ChevronRight } from 'lucide-react'
 import { useMe } from '@/api/me'
 import { useHouseholdSettings } from '@/api/household'
-import { isAreaEnabled, computePinnedTabs, type AreaId } from '@/api/areas'
+import { isAreaEnabled, computePinnedTabs, ALL_AREA_IDS, type AreaId } from '@/api/areas'
 import SettingsMenu from './settings/SettingsMenu'
-
-const ALL_AREA_IDS: AreaId[] = ['calendar', 'todos', 'shopping', 'recipes']
 
 export default function Menu() {
   const { t } = useTranslation()
@@ -20,12 +19,12 @@ export default function Menu() {
     (id) => isAreaEnabled(areasConfig, id) && !pinnedSet.has(id),
   )
 
-  const AREA_META: Record<AreaId, { label: string; icon: React.ReactNode; path: string }> = {
+  const AREA_META = useMemo<Record<AreaId, { label: string; icon: React.ReactNode; path: string }>>(() => ({
     calendar: { label: t('nav.calendar'), icon: <CalendarDays className="size-5 shrink-0 text-muted-foreground" />, path: '/calendar' },
     todos:    { label: t('nav.todos'),    icon: <CheckSquare  className="size-5 shrink-0 text-muted-foreground" />, path: '/todos' },
     shopping: { label: t('nav.shopping'), icon: <ShoppingCart className="size-5 shrink-0 text-muted-foreground" />, path: '/shopping' },
     recipes:  { label: t('nav.recipes'),  icon: <BookOpen     className="size-5 shrink-0 text-muted-foreground" />, path: '/recipes' },
-  }
+  }), [t])
 
   return (
     <div className="py-2 space-y-5">

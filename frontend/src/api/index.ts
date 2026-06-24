@@ -11,6 +11,6 @@ export { householdKeys, useHouseholdSettings, useGenerateInvite, useRevokeInvite
 export type { ConceptType, ConceptItem } from './concepts'
 export { conceptKeys, useConceptList, useCreateConcept, useRenameConcept, useDeleteConcept } from './concepts'
 export type { AreaId, HouseholdAreasConfig, TabConfig } from './areas'
-export { isAreaEnabled, computePinnedTabs, DEFAULT_PINNED_TABS } from './areas'
+export { isAreaEnabled, computePinnedTabs, DEFAULT_PINNED_TABS, ALL_AREA_IDS } from './areas'
 export { useUpdateAreasConfig } from './household'
 export { useUpdateTabConfig } from './me'

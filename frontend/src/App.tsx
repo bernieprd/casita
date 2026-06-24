@@ -242,7 +242,7 @@ function AppShell() {
   const location = useLocation()
 
   const activeTab = pathnameToTab(location.pathname)
-  const isSettings = location.pathname.startsWith('/settings') || location.pathname.startsWith('/menu/settings')
+  const isSettings = location.pathname.startsWith('/settings')
   const isRecipeDetail = /^\/recipes\/[^/]+$/.test(location.pathname)
 
   useEffect(() => {
