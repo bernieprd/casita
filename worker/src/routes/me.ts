@@ -5,6 +5,11 @@ type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
 
 const VALID_AREA_IDS = ['calendar', 'todos', 'shopping', 'recipes'] as const
 
+function safeParseJson(s: string | null | undefined): unknown {
+  if (!s) return null
+  try { return JSON.parse(s) } catch { return null }
+}
+
 function isSupportedLocale(v: unknown): v is SupportedLocale {
   return SUPPORTED_LOCALES.includes(v as SupportedLocale)
 }
@@ -34,7 +39,7 @@ export async function getMe(
     clerkUserId: ctx.clerkUserId,
     email: ctx.email,
     locale: row?.locale ?? 'en',
-    tabConfig: row?.tab_config ? JSON.parse(row.tab_config) : null,
+    tabConfig: safeParseJson(row?.tab_config),
   })
 }
 

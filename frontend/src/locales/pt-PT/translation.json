@@ -316,8 +316,8 @@
       "termsOfService": "Termos de Serviço",
       "supportText": "Apoia o desenvolvimento do Casita com um café! Tens uma sugestão de funcionalidade ou comentários? Envia-nos — adoraríamos ouvir-te e iremos tê-los em conta.",
       "buyACoffee": "Convida-nos a um café ☕",
-      "areasAndTabs": "Areas & Tabs",
-      "areasAndTabsDescription": "Enable areas, pin tabs"
+      "areasAndTabs": "Áreas e abas",
+      "areasAndTabsDescription": "Ativar áreas, fixar abas"
     },
     "account": {
       "title": "Conta",
@@ -412,19 +412,20 @@
       "addType": "Adicionar um tipo"
     },
     "areas": {
-      "title": "Areas & Tabs",
-      "ownerSection": "Household areas",
-      "ownerSectionDescription": "Disabled areas are hidden from all members.",
-      "calendar": "Calendar",
-      "todos": "To-Dos",
-      "shopping": "Shopping",
-      "recipes": "Recipes",
-      "userSection": "Your tabs",
-      "userSectionDescription": "Only visible to you. Changes don't affect other members.",
-      "pinTab": "Pin to tab bar",
-      "maxTabsNote": "You can pin up to 3 areas to your tab bar.",
-      "pinnedTabsLabel": "Pinned",
-      "notPinnedTabsLabel": "Not pinned"
+      "title": "Áreas e abas",
+      "ownerSection": "Áreas da casa",
+      "ownerSectionDescription": "As áreas desativadas estão ocultas para todos os membros.",
+      "calendar": "Calendário",
+      "todos": "Tarefas",
+      "shopping": "Compras",
+      "recipes": "Receitas",
+      "userSection": "As tuas abas",
+      "userSectionDescription": "Visível apenas para ti. As alterações não afetam outros membros.",
+      "pinTab": "Fixar na barra de abas",
+      "maxTabsNote": "Podes fixar até 3 áreas na tua barra de abas.",
+      "pinnedTabsLabel": "Fixadas",
+      "notPinnedTabsLabel": "Não fixadas",
+      "noAreasEnabled": "Não existem áreas ativas de momento."
     }
   },
   "household": {

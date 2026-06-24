@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { useHouseholdSettings, useUpdateAreasConfig } from '../../api/household'
-import { useMe } from '../../api/me'
-import { useUpdateTabConfig } from '../../api/me'
+import { useMe, useUpdateTabConfig } from '../../api/me'
 import { isAreaEnabled, computePinnedTabs, type AreaId } from '../../api/areas'
 import { useTranslation } from 'react-i18next'
 
@@ -76,31 +75,30 @@ export default function AreasSettings({ setHeader }: Props) {
 
   return (
     <div className="p-4 space-y-6">
-      {/* ── Household areas (owner-level) ── */}
-      {isOwner && (
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-            {t('settings.areas.ownerSection')}
-          </p>
-          <p className="text-xs text-muted-foreground mb-3">
-            {t('settings.areas.ownerSectionDescription')}
-          </p>
-          <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border">
-            {AREA_IDS.map((areaId) => (
-              <div key={areaId} className="flex items-center gap-3 px-4 py-3">
-                <span className="flex-1 text-sm font-medium">{t(areaLabelKey[areaId])}</span>
-                <Switch
-                  data-testid={`areas-settings-${areaId}-toggle`}
-                  checked={isAreaEnabled(areasConfig, areaId)}
-                  onCheckedChange={() => handleAreaToggle(areaId)}
-                />
-              </div>
-            ))}
-          </div>
+      {/* ── Household areas (visible to all, editable by owner only) ── */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+          {t('settings.areas.ownerSection')}
+        </p>
+        <p className="text-xs text-muted-foreground mb-3">
+          {t('settings.areas.ownerSectionDescription')}
+        </p>
+        <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border">
+          {AREA_IDS.map((areaId) => (
+            <div key={areaId} className="flex items-center gap-3 px-4 py-3">
+              <span className="flex-1 text-sm font-medium">{t(areaLabelKey[areaId])}</span>
+              <Switch
+                data-testid={`areas-settings-${areaId}-toggle`}
+                checked={isAreaEnabled(areasConfig, areaId)}
+                onCheckedChange={() => handleAreaToggle(areaId)}
+                disabled={!isOwner}
+              />
+            </div>
+          ))}
         </div>
-      )}
+      </div>
 
-      {isOwner && <Separator />}
+      <Separator />
 
       {/* ── Per-user tab pins ── */}
       <div>
@@ -111,7 +109,7 @@ export default function AreasSettings({ setHeader }: Props) {
           {t('settings.areas.userSectionDescription')}
         </p>
         {enabledAreas.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('settings.areas.ownerSectionDescription')}</p>
+          <p className="text-sm text-muted-foreground">{t('settings.areas.noAreasEnabled')}</p>
         ) : (
           <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border">
             {enabledAreas.map((areaId) => {

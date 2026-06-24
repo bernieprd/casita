@@ -424,7 +424,8 @@
       "pinTab": "Pin to tab bar",
       "maxTabsNote": "You can pin up to 3 areas to your tab bar.",
       "pinnedTabsLabel": "Pinned",
-      "notPinnedTabsLabel": "Not pinned"
+      "notPinnedTabsLabel": "Not pinned",
+      "noAreasEnabled": "No areas are currently enabled."
     }
   },
   "household": {
