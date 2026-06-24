@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '@clerk/clerk-react'
-import { useHousehold } from '@/context/AuthContext'
+import { useHouseholdSettings } from '@/api/household'
 import {
   useFinancePeriods,
   useFinanceIncome,
@@ -18,8 +18,8 @@ import AccountsSection from './AccountsSection'
 export default function Finance() {
   const { t } = useTranslation()
   const { user } = useUser()
-  const { household } = useHousehold()
-  const memberCount = (household as { members?: unknown[] } | null)?.members?.length ?? 1
+  const { data: householdSettings } = useHouseholdSettings()
+  const memberCount = householdSettings?.members?.length ?? 1
 
   const { data: periods = [] } = useFinancePeriods()
   const [selectedIndex, setSelectedIndex] = useState(() => Math.max(0, (periods?.length ?? 1) - 1))
