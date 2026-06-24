@@ -1,16 +1,16 @@
-import { useState, useEffect, lazy, Suspense, type ReactNode } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Settings, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { LayoutGrid, WifiOff, RefreshCw, ArrowLeft, Home, CalendarDays, CheckSquare, ShoppingCart, BookOpen } from 'lucide-react'
+import { Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
-import { itemKeys, itemsApi, todoKeys, todosApi } from './api'
+import { itemKeys, itemsApi, todoKeys, todosApi, recipeKeys, recipesApi } from './api'
 import { useOnlineStatus } from './useOnlineStatus'
 import { TabErrorBoundary } from './components/TabErrorBoundary'
-import HomeComponent from './components/Home'
-import Calendar from './components/Calendar'
-import Todos from './components/Todos'
-import Shopping from './components/Shopping'
-import Recipes from './components/Recipes'
+const HomeComponent = lazy(() => import('./components/Home'))
+const Calendar      = lazy(() => import('./components/Calendar'))
+const Todos         = lazy(() => import('./components/Todos'))
+const Shopping      = lazy(() => import('./components/Shopping'))
+const Recipes       = lazy(() => import('./components/Recipes'))
 import PublicRecipeView from './components/PublicRecipeView'
 import { SignIn, SignUp, SignedIn, useUser } from '@clerk/clerk-react'
 import { AuthProvider, useAuth, useHousehold } from './context/AuthContext'
@@ -18,10 +18,13 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import InstallBanner from './components/InstallBanner'
-import { useHouseholdTheme, useUpdateHouseholdTheme } from './api/household'
+import { useHouseholdTheme, useUpdateHouseholdTheme, useHouseholdSettings } from './api/household'
+import { computePinnedTabs, type AreaId } from './api/areas'
 import { useTheme } from '@/hooks/useTheme'
 import { useMe } from './api/me'
-import i18n from './i18n'
+import i18n, { SUPPORTED_LOCALES } from './i18n'
+import { normalizeLocale } from './lib/clerkLocalizations'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 
 function LocaleSync() {
@@ -34,11 +37,14 @@ function LocaleSync() {
 
 const RecipeFormPage  = lazy(() => import('./components/RecipeFormPage'))
 const TodoFormPage    = lazy(() => import('./components/TodoFormPage'))
+const ItemFormPage    = lazy(() => import('./components/ItemFormPage'))
+const MenuComponent   = lazy(() => import('./components/Menu'))
 const SettingsLayout  = lazy(() => import('./components/settings/SettingsLayout'))
 const HouseholdSetup  = lazy(() => import('./components/HouseholdSetup'))
 const ThemePreview    = lazy(() => import('./components/ThemePreview'))
+const OnboardingFlow  = lazy(() => import('./components/OnboardingFlow'))
 
-export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes'
+export type TabId = 'home' | 'calendar' | 'todos' | 'shopping' | 'recipes' | 'menu'
 
 const TAB_PATHS: Record<TabId, string> = {
   home:     '/',
@@ -46,14 +52,36 @@ const TAB_PATHS: Record<TabId, string> = {
   todos:    '/todos',
   shopping: '/shopping',
   recipes:  '/recipes',
+  menu:     '/menu',
 }
 
 function pathnameToTab(pathname: string): TabId {
+  if (pathname.startsWith('/menu'))     return 'menu'
   if (pathname.startsWith('/calendar')) return 'calendar'
   if (pathname.startsWith('/todos'))    return 'todos'
   if (pathname.startsWith('/shopping')) return 'shopping'
   if (pathname.startsWith('/recipes'))  return 'recipes'
   return 'home'
+}
+
+function buildNavTabs(
+  t: (key: string) => string,
+  pinnedAreas: AreaId[],
+): { id: TabId; label: string; icon: ReactNode }[] {
+  const areaTab = (id: AreaId): { id: TabId; label: string; icon: ReactNode } => {
+    const meta: Record<AreaId, { label: string; icon: ReactNode }> = {
+      calendar: { label: t('nav.calendar'), icon: <CalendarDays className="size-5" /> },
+      todos:    { label: t('nav.todos'),    icon: <CheckSquare className="size-5" /> },
+      shopping: { label: t('nav.shopping'), icon: <ShoppingCart className="size-5" /> },
+      recipes:  { label: t('nav.recipes'),  icon: <BookOpen className="size-5" /> },
+    }
+    return { id: id as TabId, ...meta[id] }
+  }
+  return [
+    { id: 'home' as TabId, label: t('nav.home'), icon: <Home className="size-5" /> },
+    ...pinnedAreas.map(areaTab),
+    { id: 'menu' as TabId, label: t('nav.menu'), icon: <LayoutGrid className="size-5" /> },
+  ]
 }
 
 function Spinner() {
@@ -107,24 +135,83 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
+function useAuthLocale() {
+  const [searchParams] = useSearchParams()
+  const appliedRef = useRef(false)
+
+  useEffect(() => {
+    if (appliedRef.current) return
+    appliedRef.current = true
+
+    const queryLocale = searchParams.get('locale')
+    if (queryLocale) {
+      i18n.changeLanguage(normalizeLocale(queryLocale))
+      return
+    }
+
+    if (i18n.language === 'en') {
+      // Check referrer from mycasita.app marketing pages (e.g. /es, /pt-pt, /it)
+      const refUrl = document.referrer
+        ? (() => { try { return new URL(document.referrer) } catch { return null } })()
+        : null
+      if (refUrl?.hostname === 'mycasita.app') {
+        const segment = refUrl.pathname.split('/').find(Boolean) ?? ''
+        const refLocale = normalizeLocale(segment || 'en')
+        if (refLocale !== 'en') { i18n.changeLanguage(refLocale); return }
+      }
+
+      // Navigator fallback — only when no stored preference exists yet
+      const browserLocale = normalizeLocale(navigator.language)
+      if (browserLocale !== 'en') i18n.changeLanguage(browserLocale)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- run-once on mount; searchParams read synchronously above
+}
+
+function LanguageSelector() {
+  const { i18n: i18nInstance } = useTranslation()
+  const current = normalizeLocale(i18nInstance.language)
+  return (
+    <div className="mt-4 flex justify-center">
+      <Select value={current} onValueChange={(v) => i18nInstance.changeLanguage(v)}>
+        <SelectTrigger className="w-44 text-xs">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {SUPPORTED_LOCALES.map(({ code, label }) => (
+            <SelectItem key={code} value={code} className="text-xs">{label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
+
 function SignInPage() {
   const { isSignedIn, isLoaded } = useUser()
+  useAuthLocale()
   if (!isLoaded) return <Spinner />
   if (isSignedIn) return <Navigate to="/" replace />
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <SignIn routing="path" path="/sign-in" />
+      <div>
+        <SignIn routing="path" path="/sign-in" />
+        <LanguageSelector />
+      </div>
     </div>
   )
 }
 
 function SignUpPage() {
   const { isSignedIn, isLoaded } = useUser()
+  useAuthLocale()
   if (!isLoaded) return <Spinner />
   if (isSignedIn) return <Navigate to="/household/setup" replace />
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <SignUp routing="path" path="/sign-up" />
+      <div>
+        <SignUp routing="path" path="/sign-up" />
+        <LanguageSelector />
+      </div>
     </div>
   )
 }
@@ -133,6 +220,16 @@ function AppShell() {
   const { t } = useTranslation()
   const [headerContent, setHeaderContent] = useState<ReactNode | null>(null)
   const { householdName } = useHousehold()
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => localStorage.getItem('casita_onboarding_pending') !== null,
+  )
+  function handleOnboardingClose() {
+    localStorage.removeItem('casita_onboarding_pending')
+    setShowOnboarding(false)
+  }
+  const { data: householdSettings } = useHouseholdSettings()
+  const areasConfig = householdSettings?.areasConfig
+  const { data: me } = useMe()
   const { data: householdTheme } = useHouseholdTheme()
   const { mutate: updateHouseholdTheme, isPending: themeSaving } = useUpdateHouseholdTheme()
   const { prefs: themePrefs, setPrefs: setThemePrefs } = useTheme(householdTheme, updateHouseholdTheme)
@@ -151,6 +248,7 @@ function AppShell() {
   useEffect(() => {
     qc.prefetchQuery({ queryKey: itemKeys.shopping, queryFn: itemsApi.listShopping })
     qc.prefetchQuery({ queryKey: todoKeys.all,      queryFn: todosApi.list })
+    qc.prefetchQuery({ queryKey: recipeKeys.all,    queryFn: recipesApi.list })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -161,20 +259,13 @@ function AppShell() {
           {headerContent ?? (
             isSettings ? (
               <>
-                <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="-ml-2">
+                <Button variant="ghost" size="icon" onClick={() => navigate('/menu')} className="-ml-2">
                   <ArrowLeft />
                 </Button>
                 <h1 className="flex-1 text-lg font-bold">{t('nav.settings')}</h1>
               </>
             ) : (
-              <>
-                <h1 className="flex-1 text-lg font-bold">{householdName ?? 'Casita'}</h1>
-                {activeTab === 'home' && (
-                  <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
-                    <Settings />
-                  </Button>
-                )}
-              </>
+              <h1 className="flex-1 text-lg font-bold">{householdName ?? 'Casita'}</h1>
             )
           )}
         </div>
@@ -203,6 +294,15 @@ function AppShell() {
 
       <InstallBanner />
 
+      {showOnboarding && (
+        <Suspense fallback={null}>
+          <OnboardingFlow
+            householdName={householdName}
+            onClose={handleOnboardingClose}
+          />
+        </Suspense>
+      )}
+
       <div
         className={cn(
           'max-w-xl mx-auto px-4 pt-4',
@@ -212,32 +312,51 @@ function AppShell() {
         <Routes>
           <Route path="/" element={
             <TabErrorBoundary key="home">
-              <HomeComponent />
+              <Suspense fallback={<SuspenseFallback />}>
+                <HomeComponent />
+              </Suspense>
             </TabErrorBoundary>
           } />
           <Route path="/calendar" element={
             <TabErrorBoundary key="calendar">
-              <Calendar setHeader={setHeaderContent} />
+              <Suspense fallback={<SuspenseFallback />}>
+                <Calendar setHeader={setHeaderContent} />
+              </Suspense>
             </TabErrorBoundary>
           } />
           <Route path="/todos" element={
             <TabErrorBoundary key="todos">
-              <Todos setHeader={setHeaderContent} />
+              <Suspense fallback={<SuspenseFallback />}>
+                <Todos setHeader={setHeaderContent} />
+              </Suspense>
             </TabErrorBoundary>
           } />
           <Route path="/shopping/*" element={
             <TabErrorBoundary key="shopping">
-              <Shopping setHeader={setHeaderContent} />
+              <Suspense fallback={<SuspenseFallback />}>
+                <Shopping setHeader={setHeaderContent} />
+              </Suspense>
             </TabErrorBoundary>
           } />
           <Route path="/recipes" element={
             <TabErrorBoundary key="recipes">
-              <Recipes setToolbar={setHeaderContent} />
+              <Suspense fallback={<SuspenseFallback />}>
+                <Recipes setToolbar={setHeaderContent} />
+              </Suspense>
             </TabErrorBoundary>
           } />
           <Route path="/recipes/:id" element={
             <TabErrorBoundary key="recipes">
-              <Recipes setToolbar={setHeaderContent} />
+              <Suspense fallback={<SuspenseFallback />}>
+                <Recipes setToolbar={setHeaderContent} />
+              </Suspense>
+            </TabErrorBoundary>
+          } />
+          <Route path="/menu" element={
+            <TabErrorBoundary key="menu">
+              <Suspense fallback={<SuspenseFallback />}>
+                <MenuComponent />
+              </Suspense>
             </TabErrorBoundary>
           } />
           <Route path="/settings/*" element={
@@ -262,17 +381,10 @@ function AppShell() {
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <div className="max-w-xl mx-auto flex">
-            {(
-              [
-                { id: 'home'     as TabId, label: t('nav.home'),     icon: <Home className="size-5" /> },
-                { id: 'calendar' as TabId, label: t('nav.calendar'), icon: <CalendarDays className="size-5" /> },
-                { id: 'todos'    as TabId, label: t('nav.todos'),    icon: <CheckSquare className="size-5" /> },
-                { id: 'shopping' as TabId, label: t('nav.shopping'), icon: <ShoppingCart className="size-5" /> },
-                { id: 'recipes'  as TabId, label: t('nav.recipes'),  icon: <BookOpen className="size-5" /> },
-              ] satisfies { id: TabId; label: string; icon: ReactNode }[]
-            ).map(({ id, label, icon }) => (
+            {buildNavTabs(t, computePinnedTabs(me?.tabConfig, areasConfig)).map(({ id, label, icon }) => (
               <button
                 key={id}
+                data-testid={`nav-tab-${id}`}
                 onClick={() => navigate(TAB_PATHS[id])}
                 aria-current={activeTab === id ? 'page' : undefined}
                 className={cn(
@@ -324,6 +436,16 @@ export default function App() {
         <Route path="/todos/:id/edit" element={
           <ProtectedRoute>
             <Suspense fallback={<SuspenseFallback />}><TodoFormPage /></Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/items/new" element={
+          <ProtectedRoute>
+            <Suspense fallback={<SuspenseFallback />}><ItemFormPage /></Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="/items/:id/edit" element={
+          <ProtectedRoute>
+            <Suspense fallback={<SuspenseFallback />}><ItemFormPage /></Suspense>
           </ProtectedRoute>
         } />
         <Route path="/*" element={

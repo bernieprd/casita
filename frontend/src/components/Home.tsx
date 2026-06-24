@@ -2,11 +2,11 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { RotateCcw, ExternalLink, ChevronUp, ChevronDown, Link2, FileText, Repeat2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { cn, memberInitials, safeUrl, formatFrequency } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useShoppingList, useRecipes, useTodos, useCalendarEvents, useGoogleStatus, useToggleShoppingList, useUpdateTodo, useHouseholdSettings, useConceptList } from '../api'
+import { isAreaEnabled } from '@/api/areas'
 import type { Item } from '../api/types'
 import { useNavigate } from 'react-router-dom'
 import { ItemRow } from './ItemRow'
@@ -16,17 +16,6 @@ import { useLocale } from '@/hooks/useLocale'
 import { makeDayLabel } from '@/lib/dayLabel'
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
-
-function SectionHeader({ label, action }: { label: string; action?: React.ReactNode }) {
-  return (
-    <div className="flex items-center mb-1">
-      <span className="flex-1 text-xs font-medium tracking-widest uppercase text-muted-foreground leading-none">
-        {label}
-      </span>
-      {action}
-    </div>
-  )
-}
 
 function SectionCard({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
   return (
@@ -217,7 +206,7 @@ function CalendarSection({ onNavigate }: { onNavigate: () => void }) {
       .slice(0, 3)
   }, [events])
 
-  if (!googleStatus?.connected && !isLoading && upcoming.length === 0) return null
+  if (!(googleStatus?.accounts?.length) && !isLoading && upcoming.length === 0) return null
 
   return (
     <div className="mb-6">
@@ -624,7 +613,7 @@ function ShoppingSection({ onNavigate }: { onNavigate: () => void }) {
 
 // ── Random recipe ─────────────────────────────────────────────────────────────
 
-function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
+function RecipeSection({ onNavigate, onSeeAll }: { onNavigate: (id: string) => void; onSeeAll: () => void }) {
   const { t } = useTranslation()
   const { data: recipes, isLoading } = useRecipes()
   const [seed, setSeed] = useState(() => Math.random())
@@ -636,22 +625,29 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
   }, [recipes, seed])
 
   return (
-    <div className="mb-6">
-      <SectionHeader
-        label={t('home.cookThisWeek')}
-        action={
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={() => setSeed(Math.random())}
-            className="text-muted-foreground/60 -mr-1"
-          >
-            <RotateCcw className="size-4" />
-          </Button>
-        }
-      />
+    <div className="mb-6 bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] overflow-hidden">
+      <div className="flex items-center px-4 py-3 border-b border-border">
+        <span className="flex-1 text-xs font-medium tracking-widest uppercase text-muted-foreground leading-none">
+          {t('home.cookThisWeek')}
+        </span>
+        <button
+          type="button"
+          onClick={onSeeAll}
+          className="text-xs font-semibold text-primary cursor-pointer mr-3"
+        >
+          {t('home.seeAll')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setSeed(Math.random())}
+          className="text-muted-foreground/60 -mr-1"
+          aria-label={t('home.shuffleRecipe')}
+        >
+          <RotateCcw className="size-4" />
+        </button>
+      </div>
       {isLoading ? (
-        <div className="bg-card rounded-lg border border-border overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,.06)]">
+        <>
           <Skeleton className="w-full aspect-video" />
           <div className="p-3">
             <Skeleton className="h-5 w-[70%] mb-2" />
@@ -660,11 +656,14 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
               <Skeleton className="h-5 w-13 rounded-full" />
             </div>
           </div>
-        </div>
+        </>
       ) : !recipe ? (
-        <SectionCard><EmptyState text={t('home.noRecipesYet')} /></SectionCard>
+        <EmptyState text={t('home.noRecipesYet')} />
       ) : (
-        <SectionCard onClick={() => onNavigate(recipe.id)}>
+        <div
+          onClick={() => onNavigate(recipe.id)}
+          className="cursor-pointer transition-opacity active:opacity-75"
+        >
           <div className="relative w-full aspect-video">
             <div className="absolute inset-0 bg-accent flex items-center justify-center text-4xl">
               {recentImgError ? '🖼️' : '🍽'}
@@ -695,21 +694,21 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
             <p className="text-base font-semibold mb-2">{recipe.name}</p>
             <div className="flex gap-1 flex-wrap">
               {recipe.type && <Badge variant="default" className="text-[11px] h-5">{recipe.type}</Badge>}
-                {recipe.url && (
-                  <a
-                    href={recipe.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    className="text-[11px] h-5 px-1.5 inline-flex items-center rounded-full border text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <ExternalLink className="size-2.5 mr-1" />
-                    {t('home.recipe')}
-                  </a>
-                )}
+              {recipe.url && (
+                <a
+                  href={recipe.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  className="text-[11px] h-5 px-1.5 inline-flex items-center rounded-full border text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ExternalLink className="size-2.5 mr-1" />
+                  {t('home.recipe')}
+                </a>
+              )}
             </div>
           </div>
-        </SectionCard>
+        </div>
       )}
     </div>
   )
@@ -719,12 +718,14 @@ function RecipeSection({ onNavigate }: { onNavigate: (id: string) => void }) {
 
 export default function Home() {
   const navigate = useNavigate()
+  const { data: settings } = useHouseholdSettings()
+  const areasConfig = settings?.areasConfig ?? null
   return (
     <div className="pb-2">
-      <CalendarSection onNavigate={() => navigate('/calendar')} />
-      <TodoSection     onSeeAll={() => navigate('/todos')} />
-      <ShoppingSection onNavigate={() => navigate('/shopping')} />
-      <RecipeSection   onNavigate={id => navigate(`/recipes/${id}`)} />
+      {isAreaEnabled(areasConfig, 'calendar') && <CalendarSection onNavigate={() => navigate('/calendar')} />}
+      {isAreaEnabled(areasConfig, 'todos') && <TodoSection onSeeAll={() => navigate('/todos')} />}
+      {isAreaEnabled(areasConfig, 'shopping') && <ShoppingSection onNavigate={() => navigate('/shopping')} />}
+      {isAreaEnabled(areasConfig, 'recipes') && <RecipeSection onNavigate={id => navigate(`/recipes/${id}`)} onSeeAll={() => navigate('/recipes')} />}
     </div>
   )
 }

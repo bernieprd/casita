@@ -12,7 +12,8 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Plus, Pencil, Search, Share, ArrowLeft, CalendarPlus, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
-import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping, useItems, useShareRecipe } from '../api'
+import { useRecipes, useRecipe, useRecipeIngredients, useToggleNeedsShopping, useItems, useShareRecipe, useHouseholdSettings } from '../api'
+import { isAreaEnabled } from '@/api/areas'
 import type { Block, RecipeIngredient, Item } from '../api'
 import { ItemRow } from './ItemRow'
 
@@ -322,11 +323,13 @@ function CollapsibleIngredientGroup({
   items,
   toggle,
   inList,
+  showShoppingToggle,
 }: {
   section: string
   items: RecipeIngredient[]
   toggle: ToggleMutation
   inList: (ing: RecipeIngredient) => boolean
+  showShoppingToggle: boolean
 }) {
   const [open, setOpen] = useState(true)
   return (
@@ -354,7 +357,7 @@ function CollapsibleIngredientGroup({
                   name={ing.itemName}
                   subtitle={ing.quantity ?? undefined}
                   onShoppingList={inList(ing)}
-                  onToggle={() => toggle.mutate({ id: ing.id, needsShopping: !inList(ing), itemId: ing.itemId, itemName: ing.itemName })}
+                  onToggle={showShoppingToggle ? () => toggle.mutate({ id: ing.id, needsShopping: !inList(ing), itemId: ing.itemId, itemName: ing.itemName }) : undefined}
                 />
               </li>
             ))}
@@ -369,10 +372,12 @@ function IngredientGroups({
   ingredients,
   toggle,
   allItems,
+  showShoppingToggle,
 }: {
   ingredients: RecipeIngredient[]
   toggle: ToggleMutation
   allItems: Item[]
+  showShoppingToggle: boolean
 }) {
   const inList = (ing: RecipeIngredient): boolean => {
     if (ing.itemId && allItems.length > 0) {
@@ -414,7 +419,7 @@ function IngredientGroups({
                       name={ing.itemName}
                       subtitle={ing.quantity ?? undefined}
                       onShoppingList={inList(ing)}
-                      onToggle={() => toggle.mutate({ id: ing.id, needsShopping: !inList(ing), itemId: ing.itemId, itemName: ing.itemName })}
+                      onToggle={showShoppingToggle ? () => toggle.mutate({ id: ing.id, needsShopping: !inList(ing), itemId: ing.itemId, itemName: ing.itemName }) : undefined}
                     />
                   </li>
                 ))}
@@ -429,6 +434,7 @@ function IngredientGroups({
             items={items}
             toggle={toggle}
             inList={inList}
+            showShoppingToggle={showShoppingToggle}
           />
         )
       })}
@@ -446,6 +452,8 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
   const { data: allItems = [] } = useItems()
   const navigate = useNavigate()
   const shareRecipe = useShareRecipe(id)
+  const { data: householdSettings } = useHouseholdSettings()
+  const areasConfig = householdSettings?.areasConfig ?? null
   const onBackRef = useRef(onBack)
   onBackRef.current = onBack
   const [planOpen, setPlanOpen] = useState(false)
@@ -469,9 +477,11 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
           <ArrowLeft />
         </Button>
         <h1 className="flex-1 text-lg font-bold truncate">{recipe?.name ?? ''}</h1>
-        <Button variant="ghost" size="icon" onClick={() => setPlanOpen(true)}>
-          <CalendarPlus className="h-5 w-5" />
-        </Button>
+        {isAreaEnabled(areasConfig, 'todos') && (
+          <Button data-testid="schedule-as-task-btn" variant="ghost" size="icon" onClick={() => setPlanOpen(true)}>
+            <CalendarPlus className="h-5 w-5" />
+          </Button>
+        )}
         <Button variant="ghost" size="icon" onClick={() => navigate(`/recipes/${id}/edit`)}>
           <Pencil className="h-5 w-5" />
         </Button>
@@ -482,11 +492,13 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
     )
     return () => setToolbar?.(null)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipe?.name])
+  }, [recipe?.name, isAreaEnabled(areasConfig, 'todos')])
 
   return (
     <div className="pb-10">
-      <PlanRecipeSheet open={planOpen} recipeName={recipe?.name ?? ''} onClose={() => setPlanOpen(false)} />
+      {isAreaEnabled(areasConfig, 'todos') && (
+        <PlanRecipeSheet open={planOpen} recipeName={recipe?.name ?? ''} onClose={() => setPlanOpen(false)} />
+      )}
 
       {recipeLoading && !recipe ? (
         <>
@@ -562,7 +574,7 @@ function RecipeDetail({ id, onBack, setToolbar }: { id: string; onBack: () => vo
           ) : (ingredients ?? []).length === 0 ? (
             <p className="text-sm text-muted-foreground py-3">{t('recipes.noIngredients')}</p>
           ) : (
-            <IngredientGroups ingredients={ingredients ?? []} toggle={toggle} allItems={allItems} />
+            <IngredientGroups ingredients={ingredients ?? []} toggle={toggle} allItems={allItems} showShoppingToggle={isAreaEnabled(areasConfig, 'shopping')} />
           )}
 
           {/* Instructions */}

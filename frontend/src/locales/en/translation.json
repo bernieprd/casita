@@ -281,7 +281,11 @@
     "newDescription": "Add a new item to your inventory.",
     "namePlaceholder": "Name",
     "categoryPlaceholder": "Category",
-    "supermarketsPlaceholder": "Supermarkets (comma or Enter to add)"
+    "supermarketsPlaceholder": "Supermarkets (comma or Enter to add)",
+    "deleteItem": "Delete item",
+    "supermarketsSearch": "Search supermarkets…",
+    "addSupermarket": "+ Add \"{{name}}\"",
+    "noSupermarketsFound": "No supermarkets found."
   },
   "settings": {
     "menu": {
@@ -311,7 +315,9 @@
       "privacyPolicy": "Privacy Policy",
       "termsOfService": "Terms of Service",
       "supportText": "Support Casita's development with a coffee! Have a feature request or feedback? Send it our way — we'd love to hear from you and will take it into account.",
-      "buyACoffee": "Buy us a coffee ☕"
+      "buyACoffee": "Buy us a coffee ☕",
+      "areasAndTabs": "Areas & Tabs",
+      "areasAndTabsDescription": "Enable areas, pin tabs"
     },
     "account": {
       "title": "Account",
@@ -367,8 +373,12 @@
       "connectSuccess": "Google Calendar connected successfully.",
       "connectError": "Failed to connect Google Calendar. Please try again.",
       "connectGoogleCalendar": "Connect Google Calendar",
+      "addGoogleAccount": "Add Google account",
+      "googleCalendar": "Google Calendar",
       "connectDialogTitle": "Connect Google Calendar",
       "connectDialogDescription": "Casita will read your calendar events. You choose which calendars are visible to your household.",
+      "disconnectTitle": "Disconnect account?",
+      "disconnectDescription": "Events from {{email}} will no longer appear in your calendar.",
       "failedToLoad": "Failed to load calendars. Try reconnecting.",
       "visibilityPrivate": "Private — only me",
       "visibilityHousehold": "Household — full events",
@@ -400,6 +410,22 @@
       "help": "Types help you filter and browse your recipe collection.",
       "types": "Types",
       "addType": "Add a type"
+    },
+    "areas": {
+      "title": "Areas & Tabs",
+      "ownerSection": "Household areas",
+      "ownerSectionDescription": "Disabled areas are hidden from all members.",
+      "calendar": "Calendar",
+      "todos": "To-Dos",
+      "shopping": "Shopping",
+      "recipes": "Recipes",
+      "userSection": "Your tabs",
+      "userSectionDescription": "Only visible to you. Changes don't affect other members.",
+      "pinTab": "Pin to tab bar",
+      "maxTabsNote": "You can pin up to 3 areas to your tab bar.",
+      "pinnedTabsLabel": "Pinned",
+      "notPinnedTabsLabel": "Not pinned",
+      "noAreasEnabled": "No areas are currently enabled."
     }
   },
   "household": {
@@ -421,7 +447,16 @@
     "couldNotDelete": "Could not delete \"{{name}}\""
   },
   "calendar": {
-    "allDay": "All day"
+    "allDay": "All day",
+    "viewAgenda": "Agenda",
+    "viewWeek": "Week",
+    "viewMonth": "Month",
+    "moreEvents": "+{{count}} more",
+    "emptyTitle": "Nothing coming up",
+    "emptySubtitle": "Enjoy the quiet",
+    "connectPromptSee": "Connect Google Calendar in <a>Settings</a> to see your events",
+    "connectPromptAdd": "Connect Google Calendar in <a>Settings</a> to add your own events",
+    "noCalendarsSelected": "No calendars selected — <a>choose which ones to show</a>"
   },
   "changelog": {
     "month_june_2026": "June 2026",
@@ -461,7 +496,11 @@
     "e16_title": "Google Calendar sync",
     "e16_desc": "Connect your Google Calendar to see events alongside your household tasks.",
     "e17_title": "Settings redesign",
-    "e17_desc": "Settings pages have been reorganised with a cleaner layout."
+    "e17_desc": "Settings pages have been reorganised with a cleaner layout.",
+    "e18_title": "Multi-account calendar sync & new views",
+    "e18_desc": "Connect multiple Google accounts (personal + work) from Settings → Calendar. New week and month views let you see your schedule at a glance — switch between Agenda, Week, and Month with the toggle at the top of the Calendar tab.",
+    "e19_title": "Areas & Tabs — make it yours",
+    "e19_desc": "Household owners can now enable or disable areas for everyone. Each member can then pin up to three areas directly to their tab bar, and anything not pinned stays a tap away. Customise from Settings → Areas & Tabs."
   },
   "nav": {
     "settings": "Settings",
@@ -470,6 +509,7 @@
     "todos": "To-Dos",
     "shopping": "Shopping",
     "recipes": "Recipes",
+    "menu": "Menu",
     "updateAvailable": "Update available",
     "reload": "Reload",
     "offline": "Offline — showing cached data",
@@ -480,5 +520,45 @@
     "errorTitle": "Something went wrong",
     "errorUnexpected": "Unexpected error",
     "tryAgain": "Try again"
+  },
+  "onboarding": {
+    "back": "Back",
+    "next": "Next",
+    "letsGo": "Let's go",
+    "slides": {
+      "welcome": {
+        "title": "Welcome to {{name}}",
+        "description": "Your household in one place — tasks, shopping, recipes, and events, all shared with everyone at home."
+      },
+      "calendar": {
+        "title": "Calendar",
+        "description": "See what's coming up — add events, connect Google Calendar, and keep your household in sync."
+      },
+      "todos": {
+        "title": "To-Dos",
+        "description": "Track household tasks, assign them to members, set priorities and due dates."
+      },
+      "shopping": {
+        "title": "Shopping",
+        "description": "Build a shared shopping list, organise by store, and check items off together."
+      },
+      "recipes": {
+        "title": "Recipes",
+        "description": "Save your favourite recipes, plan what to cook, and turn ingredients into shopping list items."
+      }
+    },
+    "preview": {
+      "milkItem": "Milk",
+      "eggsItem": "Eggs",
+      "breadItem": "Bread",
+      "tagDinner": "Dinner",
+      "tagLunch": "Lunch",
+      "tagBreakfast": "Breakfast",
+      "todoFixTap": "Fix bathroom tap",
+      "todoBuyGroceries": "Buy groceries",
+      "todoCallInsurance": "Call insurance",
+      "eventDoctor": "Doctor appointment",
+      "eventFamilyDinner": "Family dinner"
+    }
   }
 }

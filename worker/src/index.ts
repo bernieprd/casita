@@ -6,14 +6,12 @@ import { getTodos, createTodo, updateTodo, deleteTodo, reorderTodos } from './ro
 import { getCalendarEvents } from './routes/calendar'
 import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, disconnectGoogle } from './routes/google-auth'
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
-import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold, transferOwnership, deleteHousehold, getTodoSettings, updateTodoSettings } from './routes/household'
+import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold, transferOwnership, deleteHousehold, getTodoSettings, updateTodoSettings, updateAreasConfig } from './routes/household'
 import { listConcepts, createConcept, updateConcept, deleteConcept, backfillConceptsRoute } from './routes/concepts-d1'
 import { deleteAccount, exportAccountData } from './routes/account'
 import { getMe, updateMe } from './routes/me'
 import { importData } from './routes/import-d1'
 import { verifyClerkToken, getClerkClient } from './auth/clerk'
-import { runMigrationItems, runMigrationRecipes, runMigrationIngredients, runMigrationTodos, runMigrationTokens } from './db/migrate-from-notion'
-import { NotionError } from './notion'
 import type { Env, RequestContext } from './types'
 
 const DEFAULT_ORIGIN = 'https://dashboard.mycasita.app'
@@ -58,7 +56,6 @@ type AuthHandler = (req: Request, env: Env, ctx: RequestContext, ...ids: string[
 const publicRoutes: Array<[string, URLPattern, PublicHandler]> = [
   ['GET',    new URLPattern({ pathname: '/auth/google/callback',    search: '*' }), handleGoogleOAuthCallback],
   ['GET',    new URLPattern({ pathname: '/public/recipes/:token',   search: '*' }), getPublicRecipe],
-  ['POST',   new URLPattern({ pathname: '/admin/migrate',           search: '*' }), handleAdminMigrate],
   ['POST',   new URLPattern({ pathname: '/admin/backfill-emails',  search: '*' }), handleBackfillEmails],
   ['POST',   new URLPattern({ pathname: '/admin/migrate-kv-to-email', search: '*' }), handleMigrateKvToEmail],
   ['GET',    new URLPattern({ pathname: '/recipe-photos/:key',      search: '*' }), serveRecipePhoto],
@@ -69,38 +66,6 @@ async function checkAdminRateLimit(req: Request, env: Env): Promise<Response | n
   const { success } = await env.ADMIN_RATE_LIMITER.limit({ key: ip })
   if (!success) return Response.json({ error: 'Too Many Requests' }, { status: 429 })
   return null
-}
-
-async function handleAdminMigrate(req: Request, env: Env): Promise<Response> {
-  const limited = await checkAdminRateLimit(req, env)
-  if (limited) return limited
-  console.log(`[ADMIN] migrate from ${req.headers.get('CF-Connecting-IP') ?? 'unknown'}`)
-  const secret = req.headers.get('X-Admin-Secret')
-  if (!secret || secret !== env.ADMIN_MIGRATE_SECRET) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 })
-  }
-  const url = new URL(req.url)
-  const type = url.searchParams.get('type')
-  const householdId = url.searchParams.get('household_id')
-
-  let log: string[]
-  if (type === 'tokens') {
-    log = await runMigrationTokens(env)
-  } else if (!householdId) {
-    return Response.json({ error: 'household_id required for type=' + type }, { status: 400 })
-  } else if (type === 'items') {
-    log = await runMigrationItems(env, householdId)
-  } else if (type === 'recipes') {
-    log = await runMigrationRecipes(env, householdId)
-  } else if (type === 'ingredients') {
-    log = await runMigrationIngredients(env, householdId)
-  } else if (type === 'todos') {
-    log = await runMigrationTodos(env, householdId)
-  } else {
-    return Response.json({ error: 'type must be one of: items, recipes, ingredients, todos, tokens' }, { status: 400 })
-  }
-
-  return Response.json({ ok: true, log })
 }
 
 async function handleBackfillEmails(req: Request, env: Env): Promise<Response> {
@@ -193,6 +158,7 @@ const routes: Array<[string, URLPattern, AuthHandler]> = [
   ['PATCH',  new URLPattern({ pathname: '/household/settings',          search: '*' }), updateHouseholdSettings],
   ['GET',    new URLPattern({ pathname: '/household/todo-settings',    search: '*' }), getTodoSettings],
   ['PATCH',  new URLPattern({ pathname: '/household/todo-settings',    search: '*' }), updateTodoSettings],
+  ['PATCH',  new URLPattern({ pathname: '/household/areas',            search: '*' }), updateAreasConfig],
   ['GET',    new URLPattern({ pathname: '/items',                       search: '*' }), getItems],
   ['POST',   new URLPattern({ pathname: '/items',                       search: '*' }), createItem],
   ['PATCH',  new URLPattern({ pathname: '/items/:id',                   search: '*' }), updateItem],
@@ -320,12 +286,6 @@ export default {
       console.log(`[ROUTE MISS] ${req.method} ${req.url}`)
       return err(404, 'ERR_NOT_FOUND', origin)
     } catch (e) {
-      if (e instanceof NotionError) {
-        const clientStatus = (e.status === 401 || e.status === 403)
-          ? 502
-          : (e.status >= 400 && e.status < 500 ? e.status : 502)
-        return err(clientStatus, 'ERR_UPSTREAM', origin)
-      }
       console.error(e)
       return err(500, 'ERR_INTERNAL', origin)
     }

@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
+import { useSettingsBack } from '@/hooks/useSettingsBack'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,6 +16,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
 import {
   useGoogleStatus,
   useUserCalendars,
@@ -22,7 +24,7 @@ import {
   useDisconnectGoogle,
   initiateGoogleConnect,
 } from '../../api/google-calendar'
-import type { UserCalendar } from '../../api/types'
+import type { UserCalendar, ConnectedAccount } from '../../api/types'
 import { useTranslation } from 'react-i18next'
 
 interface CalendarSettingsProps {
@@ -31,14 +33,13 @@ interface CalendarSettingsProps {
 
 export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const goBack = useSettingsBack()
   const [searchParams, setSearchParams] = useSearchParams()
   const oauthResult = searchParams.get('google')
 
   const [connectGoogleOpen, setConnectGoogleOpen] = useState(false)
+  const [disconnectTarget, setDisconnectTarget] = useState<ConnectedAccount | null>(null)
 
-  // Clear the OAuth query param from the URL after reading it
   useEffect(() => {
     if (oauthResult) {
       setSearchParams({}, { replace: true })
@@ -51,7 +52,7 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => location.key === 'default' ? navigate('/settings') : navigate(-1)}
+          onClick={goBack}
           className="-ml-2"
           aria-label={t('common.back')}
         >
@@ -61,30 +62,36 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader, t])
+  }, [goBack, setHeader, t])
 
-  const { data: googleStatus, isLoading: statusLoading } = useGoogleStatus()
-  const isConnected = googleStatus?.connected ?? false
+  const { data: statusData, isLoading: statusLoading } = useGoogleStatus()
+  const accounts = statusData?.accounts ?? []
+  const isConnected = accounts.length > 0
 
   const { data: calendarData, isLoading: calendarsLoading, isError: calendarsError } = useUserCalendars()
-  const calendars = calendarData?.calendars
+  const calendars = calendarData?.calendars ?? []
   const { mutate: updateCalendars } = useUpdateUserCalendars()
-  const { mutate: disconnectGoogle } = useDisconnectGoogle()
+  const { mutate: disconnectGoogle, isPending: isDisconnecting } = useDisconnectGoogle()
 
   function handleToggle(cal: UserCalendar) {
-    if (!calendars) return
     const updated = calendars.map(c =>
-      c.id === cal.id ? { ...c, enabled: !c.enabled } : c
+      c.id === cal.id && c.accountEmail === cal.accountEmail ? { ...c, enabled: !c.enabled } : c
     )
     updateCalendars(updated)
   }
 
   function handleVisibility(cal: UserCalendar, visibility: UserCalendar['visibility']) {
-    if (!calendars) return
     const updated = calendars.map(c =>
-      c.id === cal.id ? { ...c, visibility } : c
+      c.id === cal.id && c.accountEmail === cal.accountEmail ? { ...c, visibility } : c
     )
     updateCalendars(updated)
+  }
+
+  function handleDisconnect() {
+    if (!disconnectTarget) return
+    disconnectGoogle(disconnectTarget.accountEmail, {
+      onSettled: () => setDisconnectTarget(null),
+    })
   }
 
   return (
@@ -106,7 +113,6 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
         <Skeleton className="h-9 w-56 rounded" />
       ) : isConnected ? (
         <>
-
           {calendarsLoading ? (
             <>
               {[0, 1, 2].map(i => (
@@ -118,56 +124,84 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
               ))}
             </>
           ) : calendarsError ? (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive mb-2">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive mb-4">
               {t('settings.calendar.failedToLoad')}
             </div>
           ) : (
             <>
-              {(calendars ?? []).map(cal => (
-                <div key={cal.id} className="mb-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="h-4 w-4 rounded flex-shrink-0"
-                      style={{ backgroundColor: cal.colorHex }}
-                      aria-label={t('settings.calendar.calendarColor', { name: cal.name })}
-                    />
-                    <span className="text-sm flex-1">{cal.name}</span>
-                    <Switch
-                      checked={cal.enabled}
-                      onCheckedChange={() => handleToggle(cal)}
-                    />
-                  </div>
+              {accounts.map((account, i) => {
+                const accountCalendars = calendars.filter(c => c.accountEmail === account.accountEmail)
+                return (
+                  <div key={account.accountEmail}>
+                    {i > 0 && <Separator className="my-5" />}
 
-                  {cal.enabled && (
-                    <div className="pl-7 mt-1.5">
-                      <Select
-                        value={cal.visibility ?? 'private'}
-                        onValueChange={val => handleVisibility(cal, val as UserCalendar['visibility'])}
+                    {/* Account header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-sm font-medium">{t('settings.calendar.googleCalendar')}</p>
+                        <p className="text-xs text-muted-foreground">{account.accountEmail}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs h-7"
+                        onClick={() => setDisconnectTarget(account)}
                       >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="private">{t('settings.calendar.visibilityPrivate')}</SelectItem>
-                          <SelectItem value="household">{t('settings.calendar.visibilityHousehold')}</SelectItem>
-                          <SelectItem value="free-busy">{t('settings.calendar.visibilityFreeBusy')}</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        {t('common.disconnect')}
+                      </Button>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {/* Calendars for this account */}
+                    {accountCalendars.map(cal => (
+                      <div key={cal.id} className="mb-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="h-4 w-4 rounded flex-shrink-0"
+                            style={{ backgroundColor: cal.colorHex }}
+                            aria-label={t('settings.calendar.calendarColor', { name: cal.name })}
+                          />
+                          <span className="text-sm flex-1 truncate">{cal.name}</span>
+                          <Switch
+                            checked={cal.enabled}
+                            onCheckedChange={() => handleToggle(cal)}
+                          />
+                        </div>
+
+                        {cal.enabled && (
+                          <div className="pl-7 mt-1.5">
+                            <Select
+                              value={cal.visibility ?? 'private'}
+                              onValueChange={val => handleVisibility(cal, val as UserCalendar['visibility'])}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="private">{t('settings.calendar.visibilityPrivate')}</SelectItem>
+                                <SelectItem value="household">{t('settings.calendar.visibilityHousehold')}</SelectItem>
+                                <SelectItem value="free-busy">{t('settings.calendar.visibilityFreeBusy')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
             </>
           )}
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-8 text-destructive border-destructive/50 hover:bg-destructive/10 w-full"
-            onClick={() => disconnectGoogle()}
-          >
-            {t('common.disconnect')}
-          </Button>
+          {/* Add another account */}
+          <div className="mt-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConnectGoogleOpen(true)}
+            >
+              {t('settings.calendar.addGoogleAccount')}
+            </Button>
+          </div>
         </>
       ) : (
         <>
@@ -178,34 +212,57 @@ export default function CalendarSettings({ setHeader }: CalendarSettingsProps) {
           >
             {t('settings.calendar.connectGoogleCalendar')}
           </Button>
-
-          <AlertDialog open={connectGoogleOpen} onOpenChange={setConnectGoogleOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('settings.calendar.connectDialogTitle')}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t('settings.calendar.connectDialogDescription')}{' '}
-                  <a
-                    href="https://mycasita.app/privacy"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline"
-                  >
-                    Privacy policy
-                  </a>
-                  .
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                <AlertDialogAction onClick={() => initiateGoogleConnect()}>
-                  {t('common.connect')}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </>
       )}
+
+      {/* Connect dialog */}
+      <AlertDialog open={connectGoogleOpen} onOpenChange={setConnectGoogleOpen}>
+        <AlertDialogContent className="max-h-[90dvh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('settings.calendar.connectDialogTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('settings.calendar.connectDialogDescription')}{' '}
+              <a
+                href="https://mycasita.app/privacy"
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                Privacy policy
+              </a>
+              .
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => initiateGoogleConnect()}>
+              {t('common.connect')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Disconnect confirmation */}
+      <AlertDialog open={disconnectTarget !== null} onOpenChange={open => !open && setDisconnectTarget(null)}>
+        <AlertDialogContent className="max-h-[90dvh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('settings.calendar.disconnectTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('settings.calendar.disconnectDescription', { email: disconnectTarget?.accountEmail ?? '' })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDisconnecting}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDisconnect}
+              disabled={isDisconnecting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDisconnecting ? t('common.disconnect') + '…' : t('common.disconnect')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

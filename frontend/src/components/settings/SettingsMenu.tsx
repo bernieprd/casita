@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom'
+import { useHouseholdSettings } from '@/api/household'
+import { isAreaEnabled, type AreaId } from '@/api/areas'
 import {
   User,
   Home,
@@ -6,6 +8,7 @@ import {
   ShoppingCart,
   BookOpen,
   CheckSquare,
+  LayoutGrid,
   Sparkles,
   MessageSquare,
   Upload,
@@ -20,6 +23,7 @@ interface NavRow {
   description: string
   path?: string
   href?: string
+  area?: AreaId
 }
 
 interface NavGroup {
@@ -30,6 +34,8 @@ interface NavGroup {
 export default function SettingsMenu() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { data: householdSettings } = useHouseholdSettings()
+  const areasConfig = householdSettings?.areasConfig
 
   const groups: NavGroup[] = [
     {
@@ -53,28 +59,38 @@ export default function SettingsMenu() {
           path: '/settings/household',
         },
         {
+          icon: <LayoutGrid className="size-5 shrink-0 text-muted-foreground" />,
+          label: t('settings.menu.areasAndTabs'),
+          description: t('settings.menu.areasAndTabsDescription'),
+          path: '/settings/areas',
+        },
+        {
           icon: <CalendarDays className="size-5 shrink-0 text-muted-foreground" />,
           label: t('settings.menu.calendar'),
           description: t('settings.menu.calendarDescription'),
           path: '/settings/calendar',
+          area: 'calendar' as AreaId,
         },
         {
           icon: <CheckSquare className="size-5 shrink-0 text-muted-foreground" />,
           label: t('settings.menu.todos'),
           description: t('settings.menu.todosDescription'),
           path: '/settings/todos',
+          area: 'todos' as AreaId,
         },
         {
           icon: <ShoppingCart className="size-5 shrink-0 text-muted-foreground" />,
           label: t('settings.menu.shopping'),
           description: t('settings.menu.shoppingDescription'),
           path: '/settings/shopping',
+          area: 'shopping' as AreaId,
         },
         {
           icon: <BookOpen className="size-5 shrink-0 text-muted-foreground" />,
           label: t('settings.menu.recipes'),
           description: t('settings.menu.recipesDescription'),
           path: '/settings/recipes',
+          area: 'recipes' as AreaId,
         },
       ],
     },
@@ -111,7 +127,7 @@ export default function SettingsMenu() {
             {group.heading}
           </p>
           <div className="bg-card rounded-lg border border-border shadow-[0_1px_2px_rgba(0,0,0,.06)] divide-y divide-border">
-            {group.rows.map((row) =>
+            {group.rows.filter((row) => !row.area || isAreaEnabled(areasConfig, row.area)).map((row) =>
               row.href ? (
                 <a
                   key={row.href}
