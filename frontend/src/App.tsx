@@ -259,7 +259,7 @@ function AppShell() {
           {headerContent ?? (
             isSettings ? (
               <>
-                <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="-ml-2">
+                <Button variant="ghost" size="icon" onClick={() => navigate('/menu')} className="-ml-2">
                   <ArrowLeft />
                 </Button>
                 <h1 className="flex-1 text-lg font-bold">{t('nav.settings')}</h1>

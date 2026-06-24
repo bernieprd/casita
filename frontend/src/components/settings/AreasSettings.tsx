@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useSettingsBack } from '@/hooks/useSettingsBack'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -15,7 +15,7 @@ interface Props {
 
 export default function AreasSettings({ setHeader }: Props) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
+  const goBack = useSettingsBack()
 
   const { data: householdData } = useHouseholdSettings()
   const isOwner = householdData?.role === 'owner'
@@ -43,7 +43,7 @@ export default function AreasSettings({ setHeader }: Props) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/settings')}
+          onClick={goBack}
           className="-ml-2"
           aria-label={t('common.back')}
         >
@@ -53,7 +53,7 @@ export default function AreasSettings({ setHeader }: Props) {
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader, t])
+  }, [goBack, setHeader, t])
 
   function handleAreaToggle(areaId: AreaId) {
     updateAreasConfig({ ...areasConfig, [areaId]: { enabled: !isAreaEnabled(areasConfig, areaId) } })

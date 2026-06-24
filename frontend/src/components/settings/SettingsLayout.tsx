@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import type { ThemePrefs } from '@/lib/theme'
-import SettingsMenu from './SettingsMenu'
 import AccountSettings from './AccountSettings'
 import HouseholdSettings from './HouseholdSettings'
 import CalendarSettings from './CalendarSettings'
@@ -22,7 +21,7 @@ interface Props {
 export default function SettingsLayout({ themePrefs, setThemePrefs, themeSaving, setHeader }: Props) {
   return (
     <Routes>
-      <Route index element={<SettingsMenu />} />
+      <Route index element={<Navigate to="/menu" replace />} />
       <Route path="account"   element={<AccountSettings setHeader={setHeader} />} />
       <Route path="household" element={<HouseholdSettings themePrefs={themePrefs} setThemePrefs={setThemePrefs} themeSaving={themeSaving} setHeader={setHeader} />} />
       <Route path="areas"     element={<AreasSettings     setHeader={setHeader} />} />
@@ -32,7 +31,7 @@ export default function SettingsLayout({ themePrefs, setThemePrefs, themeSaving,
       <Route path="todos"     element={<TodosSettings     setHeader={setHeader} />} />
       <Route path="changelog"  element={<ChangelogSettings  setHeader={setHeader} />} />
       <Route path="import"    element={<ImportSettings     setHeader={setHeader} />} />
-      <Route path="*"         element={<Navigate to="/settings" replace />} />
+      <Route path="*"         element={<Navigate to="/menu" replace />} />
     </Routes>
   )
 }

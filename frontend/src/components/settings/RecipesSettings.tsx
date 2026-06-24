@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useSettingsBack } from '@/hooks/useSettingsBack'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useHouseholdSettings } from '../../api/household'
@@ -12,7 +12,7 @@ interface RecipesSettingsProps {
 
 export default function RecipesSettings({ setHeader }: RecipesSettingsProps) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
+  const goBack = useSettingsBack()
 
   const { data: householdData } = useHouseholdSettings()
   const isOwner = householdData?.role === 'owner'
@@ -23,7 +23,7 @@ export default function RecipesSettings({ setHeader }: RecipesSettingsProps) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/settings')}
+          onClick={goBack}
           className="-ml-2"
           aria-label={t('common.back')}
         >
@@ -33,7 +33,7 @@ export default function RecipesSettings({ setHeader }: RecipesSettingsProps) {
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader, t])
+  }, [goBack, setHeader, t])
 
   return (
     <div className="p-4">

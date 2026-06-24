@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useSettingsBack } from '@/hooks/useSettingsBack'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -37,7 +37,7 @@ const CHANGELOG: ChangelogEntry[] = [
 
 export default function ChangelogSettings({ setHeader }: Props) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
+  const goBack = useSettingsBack()
 
   useEffect(() => {
     setHeader(
@@ -45,7 +45,7 @@ export default function ChangelogSettings({ setHeader }: Props) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/settings')}
+          onClick={goBack}
           className="-ml-2"
           aria-label={t('common.back')}
         >
@@ -55,7 +55,7 @@ export default function ChangelogSettings({ setHeader }: Props) {
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader, t])
+  }, [goBack, setHeader, t])
 
   const groups = CHANGELOG.reduce<{ monthKey: string; entries: ChangelogEntry[] }[]>(
     (acc, entry) => {
