@@ -88,6 +88,7 @@ export interface FinancePeriod {
   createdAt: number
   incomeCents?: number
   expensesCents?: number
+  accountsCents?: number
 }
 
 export interface FinanceIncome {

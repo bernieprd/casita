@@ -10,6 +10,7 @@ import {
 } from '@/api/finance'
 import PeriodSelector from './PeriodSelector'
 import SummaryCards from './SummaryCards'
+import SavingsTrendChart from './SavingsTrendChart'
 import IncomeSection from './IncomeSection'
 import ExpenseSection from './ExpenseSection'
 import AccountsSection from './AccountsSection'
@@ -51,11 +52,14 @@ export default function Finance() {
           <SummaryCards
             incomeCents={incomeCents}
             yourShareCents={yourShareCents}
+            periods={periods}
           />
+
+          <SavingsTrendChart periods={periods} />
 
           <IncomeSection periodId={periodId} income={income} />
           <ExpenseSection periodId={periodId} expenses={expenses} memberCount={memberCount} />
-          <AccountsSection periodId={periodId} accounts={accounts} />
+          <AccountsSection periodId={periodId} accounts={accounts} periods={periods} />
         </>
       )}
     </div>

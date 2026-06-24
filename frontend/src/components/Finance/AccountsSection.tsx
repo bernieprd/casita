@@ -3,17 +3,19 @@ import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useTranslation } from 'react-i18next'
-import type { FinanceAccount } from '@/api/types'
+import type { FinanceAccount, FinancePeriod } from '@/api/types'
 import { centsToEuros } from '@/api/finance'
 import EntryRow from './EntryRow'
 import AccountForm from './AccountForm'
+import NetWorthChart from './NetWorthChart'
 
 interface Props {
   periodId: string
   accounts: FinanceAccount[]
+  periods: FinancePeriod[]
 }
 
-export default function AccountsSection({ periodId, accounts }: Props) {
+export default function AccountsSection({ periodId, accounts, periods }: Props) {
   const { t } = useTranslation()
   const [editEntry, setEditEntry] = useState<FinanceAccount | null | undefined>(undefined)
   const open = editEntry !== undefined
@@ -30,6 +32,8 @@ export default function AccountsSection({ periodId, accounts }: Props) {
           <Plus className="size-3.5 mr-1" />{t('finance.addAccount')}
         </Button>
       </div>
+
+      {periods.length >= 2 && <NetWorthChart periods={periods} />}
 
       {accounts.length > 0 && (
         <p className="text-xs text-muted-foreground mb-2 px-1">

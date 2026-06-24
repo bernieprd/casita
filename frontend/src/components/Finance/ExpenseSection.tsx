@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import type { FinanceExpense } from '@/api/types'
 import EntryRow from './EntryRow'
 import ExpenseForm from './ExpenseForm'
+import SpendingDonutChart from './SpendingDonutChart'
 
 interface Props {
   periodId: string
@@ -32,6 +33,12 @@ export default function ExpenseSection({ periodId, expenses, memberCount }: Prop
           <Plus className="size-3.5 mr-1" />{t('finance.addExpense')}
         </Button>
       </div>
+
+      {expenses.length > 0 && (
+        <div className="mb-4">
+          <SpendingDonutChart expenses={expenses} />
+        </div>
+      )}
 
       {shared.length > 0 && (
         <div className="mb-3">

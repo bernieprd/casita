@@ -110,6 +110,8 @@ export interface FinancePeriod {
   incomeCents?: number
   /** Pre-computed from finance_expenses for bar chart (shared + personal owned by user) */
   expensesCents?: number
+  /** Pre-computed from finance_accounts for net worth chart (user-scoped) */
+  accountsCents?: number
 }
 
 export interface FinanceIncome {

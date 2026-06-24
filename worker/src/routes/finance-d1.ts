@@ -75,7 +75,7 @@ export async function getFinancePeriods(
   const periodIds = periodRows.map(r => r.id as string)
   const placeholders = periodIds.map(() => '?').join(', ')
 
-  const [incomeRollup, expensesRollup] = await Promise.all([
+  const [incomeRollup, expensesRollup, accountsRollup] = await Promise.all([
     env.DB.prepare(
       `SELECT period_id, SUM(amount_cents) AS total FROM finance_income
        WHERE household_id = ? AND user_id = ? AND period_id IN (${placeholders})
@@ -86,15 +86,22 @@ export async function getFinancePeriods(
        WHERE household_id = ? AND (type = 'shared' OR user_id = ?) AND period_id IN (${placeholders})
        GROUP BY period_id`,
     ).bind(ctx.householdId, ctx.clerkUserId, ...periodIds).all<{ period_id: string; total: number }>(),
+    env.DB.prepare(
+      `SELECT period_id, SUM(amount_cents) AS total FROM finance_accounts
+       WHERE household_id = ? AND user_id = ? AND period_id IN (${placeholders})
+       GROUP BY period_id`,
+    ).bind(ctx.householdId, ctx.clerkUserId, ...periodIds).all<{ period_id: string; total: number }>(),
   ])
 
-  const incomeMap = new Map(incomeRollup.results.map(r => [r.period_id, r.total]))
+  const incomeMap   = new Map(incomeRollup.results.map(r => [r.period_id, r.total]))
   const expensesMap = new Map(expensesRollup.results.map(r => [r.period_id, r.total]))
+  const accountsMap = new Map(accountsRollup.results.map(r => [r.period_id, r.total]))
 
   const periods: FinancePeriod[] = periodRows.map(row => ({
     ...rowToPeriod(row),
     incomeCents:   incomeMap.get(row.id as string) ?? 0,
     expensesCents: expensesMap.get(row.id as string) ?? 0,
+    accountsCents: accountsMap.get(row.id as string) ?? 0,
   }))
 
   return Response.json(periods)
