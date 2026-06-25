@@ -115,8 +115,13 @@ export async function createHousehold(
 
   if (ctx.email) {
     try {
+      const unsubscribeToken = crypto.randomUUID()
+      await env.DB
+        .prepare('UPDATE household_members SET unsubscribe_token = ? WHERE clerk_user_id = ? AND household_id = ?')
+        .bind(unsubscribeToken, ctx.clerkUserId, id)
+        .run()
       await sendEmail(
-        { to: ctx.email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env) },
+        { to: ctx.email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env, unsubscribeToken) },
         env,
       )
     } catch (e) {
@@ -167,8 +172,13 @@ export async function joinHousehold(
 
   if (ctx.email) {
     try {
+      const unsubscribeToken = crypto.randomUUID()
+      await env.DB
+        .prepare('UPDATE household_members SET unsubscribe_token = ? WHERE clerk_user_id = ? AND household_id = ?')
+        .bind(unsubscribeToken, ctx.clerkUserId, household.id)
+        .run()
       await sendEmail(
-        { to: ctx.email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env) },
+        { to: ctx.email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env, unsubscribeToken) },
         env,
       )
     } catch (e) {

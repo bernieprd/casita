@@ -1,4 +1,5 @@
 import type { Env, RequestContext } from '../types'
+import { getAppBaseUrl } from '../types'
 import { getClerkClient } from '../auth/clerk'
 import { rebuildSharedIndex } from './shared-calendar-index'
 
@@ -114,4 +115,54 @@ export async function exportAccountData(_req: Request, env: Env, ctx: RequestCon
       'Content-Disposition': 'attachment; filename="casita-export.json"',
     },
   })
+}
+
+export async function unsubscribe(req: Request, env: Env): Promise<Response> {
+  const token = new URL(req.url).searchParams.get('token')
+  if (!token) {
+    return htmlResponse(400, 'Invalid unsubscribe link.', env)
+  }
+
+  const row = await env.DB
+    .prepare('SELECT clerk_user_id FROM household_members WHERE unsubscribe_token = ?')
+    .bind(token)
+    .first<{ clerk_user_id: string }>()
+
+  if (!row) {
+    return htmlResponse(404, 'This unsubscribe link has already been used or has expired.', env)
+  }
+
+  await env.DB
+    .prepare('UPDATE household_members SET unsubscribe_token = NULL WHERE unsubscribe_token = ?')
+    .bind(token)
+    .run()
+
+  return htmlResponse(200, 'You\'ve been unsubscribed from Casita emails.', env)
+}
+
+function htmlResponse(status: number, message: string, env: Env): Response {
+  const appUrl = getAppBaseUrl(env)
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unsubscribe — Casita</title>
+  <style>
+    body { margin: 0; padding: 40px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f9fafb; }
+    .card { max-width: 480px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,.08); text-align: center; }
+    h1 { font-size: 20px; color: #18181b; margin: 0 0 12px; }
+    p { font-size: 15px; color: #52525b; margin: 0 0 24px; line-height: 1.6; }
+    a { display: inline-block; padding: 12px 24px; background: #18181b; color: #fff; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🏡 Casita</h1>
+    <p>${message}</p>
+    <a href="${appUrl}">Back to Casita</a>
+  </div>
+</body>
+</html>`
+  return new Response(html, { status, headers: { 'Content-Type': 'text/html;charset=UTF-8' } })
 }

@@ -8,7 +8,7 @@ import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, di
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
 import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold, transferOwnership, deleteHousehold, getTodoSettings, updateTodoSettings, updateAreasConfig } from './routes/household'
 import { listConcepts, createConcept, updateConcept, deleteConcept, backfillConceptsRoute } from './routes/concepts-d1'
-import { deleteAccount, exportAccountData } from './routes/account'
+import { deleteAccount, exportAccountData, unsubscribe } from './routes/account'
 import { getMe, updateMe } from './routes/me'
 import { importData } from './routes/import-d1'
 import { verifyClerkToken, getClerkClient } from './auth/clerk'
@@ -59,6 +59,7 @@ const publicRoutes: Array<[string, URLPattern, PublicHandler]> = [
   ['POST',   new URLPattern({ pathname: '/admin/backfill-emails',  search: '*' }), handleBackfillEmails],
   ['POST',   new URLPattern({ pathname: '/admin/migrate-kv-to-email', search: '*' }), handleMigrateKvToEmail],
   ['GET',    new URLPattern({ pathname: '/recipe-photos/:key',      search: '*' }), serveRecipePhoto],
+  ['GET',    new URLPattern({ pathname: '/account/unsubscribe',     search: '*' }), unsubscribe],
 ]
 
 async function checkAdminRateLimit(req: Request, env: Env): Promise<Response | null> {
