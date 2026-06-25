@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useHouseholdSettings } from '@/api/household'
+import { useCommsPreferences } from '@/api/account'
 import { isAreaEnabled, type AreaId } from '@/api/areas'
 import {
   User,
@@ -25,6 +26,7 @@ interface NavRow {
   path?: string
   href?: string
   area?: AreaId
+  badge?: boolean
 }
 
 interface NavGroup {
@@ -37,6 +39,7 @@ export default function SettingsMenu() {
   const navigate = useNavigate()
   const { data: householdSettings } = useHouseholdSettings()
   const areasConfig = householdSettings?.areasConfig
+  const { data: commsPrefs } = useCommsPreferences()
 
   const groups: NavGroup[] = [
     {
@@ -53,6 +56,7 @@ export default function SettingsMenu() {
           label: t('settings.menu.notifications'),
           description: t('settings.menu.notificationsDescription'),
           path: '/settings/notifications',
+          badge: commsPrefs?.email_notifications_enabled === false,
         },
       ],
     },
@@ -148,6 +152,7 @@ export default function SettingsMenu() {
                     <p className="text-sm font-medium">{row.label}</p>
                     <p className="text-xs text-muted-foreground">{row.description}</p>
                   </div>
+                  {row.badge && <span className="size-2 rounded-full bg-primary shrink-0" />}
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                 </a>
               ) : (
@@ -161,6 +166,7 @@ export default function SettingsMenu() {
                     <p className="text-sm font-medium">{row.label}</p>
                     <p className="text-xs text-muted-foreground">{row.description}</p>
                   </div>
+                  {row.badge && <span className="size-2 rounded-full bg-primary shrink-0" />}
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                 </button>
               )

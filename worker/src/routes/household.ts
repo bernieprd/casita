@@ -22,8 +22,8 @@ async function sendWelcomeEmail(
     if (workerUrl.includes('localhost') || workerUrl.includes('127.0.0.1')) return
     const unsubscribeToken = crypto.randomUUID()
     await env.DB
-      .prepare(`INSERT INTO user_comms_prefs (clerk_user_id, unsubscribe_token)
-        VALUES (?, ?)
+      .prepare(`INSERT INTO user_comms_prefs (clerk_user_id, unsubscribe_token, email_notifications_enabled, email_frequency)
+        VALUES (?, ?, 0, 'off')
         ON CONFLICT(clerk_user_id) DO UPDATE SET unsubscribe_token = excluded.unsubscribe_token`)
       .bind(clerkUserId, unsubscribeToken)
       .run()

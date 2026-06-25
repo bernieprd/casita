@@ -129,7 +129,7 @@ Verify the sender domain in the Resend dashboard before any sends.
 Trigger: when a new `household_members` row is created (user signs up or is invited and accepts).
 
 - Fire-and-forget: call `sendEmail` from the household creation/accept handler
-- Respect `email_notifications_enabled` — skip if user has opted out (unlikely on first signup, but good habit)
+- Always send — this is a transactional email, not gated by `email_notifications_enabled`
 - Content: brief welcome, 2–3 bullet points on what Casita does, link to the app
 - Keep it plain HTML for now — no fancy templating needed in v1
 
@@ -209,5 +209,5 @@ Admin-level endpoint: `PATCH /household/comms-defaults`.
 - **Resend** is the chosen provider — native fetch API, great Cloudflare Workers support, generous free tier.
 - **No email templating library** for v1 — raw HTML strings in the worker are fine. Introduce React Email or similar only if the volume of email types justifies it.
 - **Unsubscribe token** is generated lazily on first send (not at account creation) to avoid unnecessary DB writes for users who never receive email.
-- **Never send to users with `email_notifications_enabled = 0`** — check this in every send path, not just the cron.
+- **Never send digest/marketing emails to users with `email_notifications_enabled = 0`** — check this in every non-transactional send path. The welcome email is exempt: it's transactional and always sends.
 - All emails must include an unsubscribe footer link and a physical mailing address (CAN-SPAM requirement).

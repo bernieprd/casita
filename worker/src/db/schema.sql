@@ -24,8 +24,8 @@ CREATE INDEX IF NOT EXISTS hm_household_id  ON household_members(household_id);
 
 CREATE TABLE IF NOT EXISTS user_comms_prefs (
   clerk_user_id               TEXT PRIMARY KEY,
-  email_notifications_enabled INTEGER NOT NULL DEFAULT 1,
-  email_frequency             TEXT NOT NULL DEFAULT 'instant',
+  email_notifications_enabled INTEGER NOT NULL DEFAULT 0,
+  email_frequency             TEXT NOT NULL DEFAULT 'off',
   unsubscribe_token           TEXT
 );
 
