@@ -15,15 +15,19 @@ CREATE TABLE IF NOT EXISTS household_members (
   joined_at     INTEGER NOT NULL,
   locale        TEXT NOT NULL DEFAULT 'en',
   tab_config         TEXT DEFAULT NULL,        -- JSON TabConfig; NULL → default pinned tabs
-  unsubscribe_token           TEXT,
-  email_notifications_enabled INTEGER NOT NULL DEFAULT 1,
-  email_frequency             TEXT NOT NULL DEFAULT 'instant',
   PRIMARY KEY (household_id, clerk_user_id)
 );
 CREATE INDEX IF NOT EXISTS hm_clerk_user_id ON household_members(clerk_user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS hm_unique_user ON household_members(clerk_user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS hm_email ON household_members(email);
 CREATE INDEX IF NOT EXISTS hm_household_id  ON household_members(household_id);
+
+CREATE TABLE IF NOT EXISTS user_comms_prefs (
+  clerk_user_id               TEXT PRIMARY KEY,
+  email_notifications_enabled INTEGER NOT NULL DEFAULT 1,
+  email_frequency             TEXT NOT NULL DEFAULT 'instant',
+  unsubscribe_token           TEXT
+);
 
 -- Seed (run after both users log in once and you have their Clerk user IDs):
 -- INSERT INTO households VALUES ('hh-home', 'Home', NULL, unixepoch() * 1000);

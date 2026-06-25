@@ -38,6 +38,7 @@ export async function deleteAccount(_req: Request, env: Env, ctx: RequestContext
   await Promise.all([
     env.AUTH_KV.delete(`google_tokens:${ctx.email}`),
     env.AUTH_KV.delete(`user_calendars:${ctx.email}`),
+    env.DB.prepare('DELETE FROM user_comms_prefs WHERE clerk_user_id = ?').bind(ctx.clerkUserId).run(),
   ])
 
   if (ctx.householdId) {
@@ -124,7 +125,7 @@ export async function unsubscribe(req: Request, env: Env): Promise<Response> {
   }
 
   const row = await env.DB
-    .prepare('SELECT clerk_user_id FROM household_members WHERE unsubscribe_token = ?')
+    .prepare('SELECT clerk_user_id FROM user_comms_prefs WHERE unsubscribe_token = ?')
     .bind(token)
     .first<{ clerk_user_id: string }>()
 
@@ -133,7 +134,7 @@ export async function unsubscribe(req: Request, env: Env): Promise<Response> {
   }
 
   await env.DB
-    .prepare('UPDATE household_members SET unsubscribe_token = NULL, email_notifications_enabled = 0, email_frequency = ? WHERE clerk_user_id = ?')
+    .prepare('UPDATE user_comms_prefs SET unsubscribe_token = NULL, email_notifications_enabled = 0, email_frequency = ? WHERE clerk_user_id = ?')
     .bind('off', row.clerk_user_id)
     .run()
 
@@ -141,15 +142,12 @@ export async function unsubscribe(req: Request, env: Env): Promise<Response> {
 }
 
 export async function getCommsPreferences(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  if (!ctx.householdId) {
-    return Response.json({ email_notifications_enabled: false, email_frequency: 'off' })
-  }
   const row = await env.DB
-    .prepare('SELECT email_notifications_enabled, email_frequency FROM household_members WHERE clerk_user_id = ? AND household_id = ?')
-    .bind(ctx.clerkUserId, ctx.householdId)
+    .prepare('SELECT email_notifications_enabled, email_frequency FROM user_comms_prefs WHERE clerk_user_id = ?')
+    .bind(ctx.clerkUserId)
     .first<{ email_notifications_enabled: number; email_frequency: string }>()
   if (!row) {
-    return Response.json({ email_notifications_enabled: false, email_frequency: 'off' })
+    return Response.json({ email_notifications_enabled: true, email_frequency: 'instant' })
   }
   return Response.json({
     email_notifications_enabled: row.email_notifications_enabled === 1,
@@ -158,9 +156,6 @@ export async function getCommsPreferences(_req: Request, env: Env, ctx: RequestC
 }
 
 export async function updateCommsPreferences(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
-  if (!ctx.householdId) {
-    return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 400 })
-  }
   const body = await req.json<{ email_notifications_enabled?: unknown; email_frequency?: unknown }>()
   if (typeof body.email_notifications_enabled !== 'boolean') {
     return Response.json({ error: 'ERR_INVALID_INPUT' }, { status: 400 })
@@ -169,8 +164,12 @@ export async function updateCommsPreferences(req: Request, env: Env, ctx: Reques
     return Response.json({ error: 'ERR_INVALID_FREQUENCY' }, { status: 400 })
   }
   await env.DB
-    .prepare('UPDATE household_members SET email_notifications_enabled = ?, email_frequency = ? WHERE clerk_user_id = ? AND household_id = ?')
-    .bind(body.email_notifications_enabled ? 1 : 0, body.email_frequency, ctx.clerkUserId, ctx.householdId)
+    .prepare(`INSERT INTO user_comms_prefs (clerk_user_id, email_notifications_enabled, email_frequency)
+      VALUES (?, ?, ?)
+      ON CONFLICT(clerk_user_id) DO UPDATE SET
+        email_notifications_enabled = excluded.email_notifications_enabled,
+        email_frequency = excluded.email_frequency`)
+    .bind(ctx.clerkUserId, body.email_notifications_enabled ? 1 : 0, body.email_frequency)
     .run()
   return Response.json({ ok: true })
 }

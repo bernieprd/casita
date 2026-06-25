@@ -15,21 +15,22 @@ function err(status: number, code: string): Response {
 async function sendWelcomeEmailIfEnabled(
   email: string,
   clerkUserId: string,
-  householdId: string,
   env: Env,
 ): Promise<void> {
   try {
     const row = await env.DB
-      .prepare('SELECT email_notifications_enabled FROM household_members WHERE clerk_user_id = ? AND household_id = ?')
-      .bind(clerkUserId, householdId)
+      .prepare('SELECT email_notifications_enabled FROM user_comms_prefs WHERE clerk_user_id = ?')
+      .bind(clerkUserId)
       .first<{ email_notifications_enabled: number }>()
-    if (!row || row.email_notifications_enabled === 0) return
+    if (row && row.email_notifications_enabled === 0) return
     const workerUrl = getWorkerBaseUrl(env)
     if (workerUrl.includes('localhost') || workerUrl.includes('127.0.0.1')) return
     const unsubscribeToken = crypto.randomUUID()
     await env.DB
-      .prepare('UPDATE household_members SET unsubscribe_token = ? WHERE clerk_user_id = ? AND household_id = ?')
-      .bind(unsubscribeToken, clerkUserId, householdId)
+      .prepare(`INSERT INTO user_comms_prefs (clerk_user_id, unsubscribe_token)
+        VALUES (?, ?)
+        ON CONFLICT(clerk_user_id) DO UPDATE SET unsubscribe_token = excluded.unsubscribe_token`)
+      .bind(clerkUserId, unsubscribeToken)
       .run()
     await sendEmail(
       { to: email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env, unsubscribeToken) },
@@ -143,7 +144,7 @@ export async function createHousehold(
   await seedHouseholdConcepts(env, id)
 
   if (ctx.email) {
-    await sendWelcomeEmailIfEnabled(ctx.email, ctx.clerkUserId, id, env)
+    await sendWelcomeEmailIfEnabled(ctx.email, ctx.clerkUserId, env)
   }
 
   return Response.json({ id, name: name.trim(), role: 'owner' }, { status: 201 })
@@ -188,7 +189,7 @@ export async function joinHousehold(
     .run()
 
   if (ctx.email) {
-    await sendWelcomeEmailIfEnabled(ctx.email, ctx.clerkUserId, household.id, env)
+    await sendWelcomeEmailIfEnabled(ctx.email, ctx.clerkUserId, env)
   }
 
   return Response.json({ id: household.id, name: household.name, role: 'member' }, { status: 200 })
