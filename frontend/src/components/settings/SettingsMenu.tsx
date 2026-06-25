@@ -50,8 +50,8 @@ export default function SettingsMenu() {
         },
         {
           icon: <Bell className="size-5 shrink-0 text-muted-foreground" />,
-          label: 'Notifications',
-          description: 'Manage email preferences',
+          label: t('settings.menu.notifications'),
+          description: t('settings.menu.notificationsDescription'),
           path: '/settings/notifications',
         },
       ],

@@ -133,8 +133,8 @@ export async function unsubscribe(req: Request, env: Env): Promise<Response> {
   }
 
   await env.DB
-    .prepare('UPDATE household_members SET unsubscribe_token = NULL, email_notifications_enabled = 0, email_frequency = ? WHERE unsubscribe_token = ?')
-    .bind('off', token)
+    .prepare('UPDATE household_members SET unsubscribe_token = NULL, email_notifications_enabled = 0, email_frequency = ? WHERE clerk_user_id = ?')
+    .bind('off', row.clerk_user_id)
     .run()
 
   return htmlResponse(200, 'You\'ve been unsubscribed from Casita emails.', env)
@@ -142,14 +142,14 @@ export async function unsubscribe(req: Request, env: Env): Promise<Response> {
 
 export async function getCommsPreferences(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
   if (!ctx.householdId) {
-    return Response.json({ email_notifications_enabled: true, email_frequency: 'instant' })
+    return Response.json({ email_notifications_enabled: false, email_frequency: 'off' })
   }
   const row = await env.DB
     .prepare('SELECT email_notifications_enabled, email_frequency FROM household_members WHERE clerk_user_id = ? AND household_id = ?')
     .bind(ctx.clerkUserId, ctx.householdId)
     .first<{ email_notifications_enabled: number; email_frequency: string }>()
   if (!row) {
-    return Response.json({ email_notifications_enabled: true, email_frequency: 'instant' })
+    return Response.json({ email_notifications_enabled: false, email_frequency: 'off' })
   }
   return Response.json({
     email_notifications_enabled: row.email_notifications_enabled === 1,

@@ -317,7 +317,16 @@
       "supportText": "Support Casita's development with a coffee! Have a feature request or feedback? Send it our way — we'd love to hear from you and will take it into account.",
       "buyACoffee": "Buy us a coffee ☕",
       "areasAndTabs": "Areas & Tabs",
-      "areasAndTabsDescription": "Enable areas, pin tabs"
+      "areasAndTabsDescription": "Enable areas, pin tabs",
+      "notifications": "Notifications",
+      "notificationsDescription": "Manage email preferences"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "emailSection": "Email",
+      "toggleLabel": "Email notifications",
+      "toggleDescription": "Receive welcome emails and household updates",
+      "offMessage": "Email notifications are off. You won't receive any emails from Casita."
     },
     "account": {
       "title": "Account",

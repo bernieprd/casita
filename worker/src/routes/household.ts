@@ -1,4 +1,5 @@
 import type { Env, RequestContext } from '../types'
+import { getWorkerBaseUrl } from '../types'
 import { seedHouseholdConcepts } from './concepts-d1'
 import { getClerkClient } from '../auth/clerk'
 import { rebuildSharedIndex } from './shared-calendar-index'
@@ -23,6 +24,8 @@ async function sendWelcomeEmailIfEnabled(
       .bind(clerkUserId, householdId)
       .first<{ email_notifications_enabled: number }>()
     if (!row || row.email_notifications_enabled === 0) return
+    const workerUrl = getWorkerBaseUrl(env)
+    if (workerUrl.includes('localhost') || workerUrl.includes('127.0.0.1')) return
     const unsubscribeToken = crypto.randomUUID()
     await env.DB
       .prepare('UPDATE household_members SET unsubscribe_token = ? WHERE clerk_user_id = ? AND household_id = ?')

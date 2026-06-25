@@ -78,11 +78,11 @@ Add to `household_members`:
 ```sql
 ALTER TABLE household_members
   ADD COLUMN email_notifications_enabled INTEGER NOT NULL DEFAULT 1,
-  ADD COLUMN email_frequency TEXT NOT NULL DEFAULT 'weekly',
+  ADD COLUMN email_frequency TEXT NOT NULL DEFAULT 'instant',
   ADD COLUMN unsubscribe_token TEXT;
 ```
 
-- `email_frequency`: `'immediate' | 'weekly' | 'off'`
+- `email_frequency`: `'instant' | 'off'` (V1); `'weekly'` added in V2
 - `unsubscribe_token`: a random UUID generated on first email send, used for one-click unsubscribe without auth
 
 Migration file: `worker/src/db/migrations/NNN_email_comms_prefs.sql` (replace NNN with next sequence number).
@@ -97,7 +97,7 @@ Request body:
 ```ts
 {
   emailNotificationsEnabled: boolean;
-  emailFrequency: 'immediate' | 'weekly' | 'off';
+  emailFrequency: 'instant' | 'off';  // V1; 'weekly' added in V2
 }
 ```
 

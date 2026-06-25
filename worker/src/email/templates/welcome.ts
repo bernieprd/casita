@@ -1,8 +1,9 @@
 import type { Env } from '../../types'
-import { getAppBaseUrl } from '../../types'
+import { getAppBaseUrl, getWorkerBaseUrl } from '../../types'
 
 export function welcomeEmailHtml(env: Env, unsubscribeToken: string): string {
   const appUrl = getAppBaseUrl(env)
+  const workerUrl = getWorkerBaseUrl(env)
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -75,7 +76,7 @@ export function welcomeEmailHtml(env: Env, unsubscribeToken: string): string {
                 You're receiving this because you created a Casita account.
                 If you didn't sign up, you can safely ignore this email.
                 &nbsp;·&nbsp;
-                <a href="${appUrl}/account/unsubscribe?token=${unsubscribeToken}" style="color:#a1a1aa;">Unsubscribe</a>
+                <a href="${workerUrl}/account/unsubscribe?token=${unsubscribeToken}" style="color:#a1a1aa;">Unsubscribe</a>
               </p>
               <p style="margin:8px 0 0;font-size:11px;color:#d4d4d8;">
                 Casita · mycasita.app

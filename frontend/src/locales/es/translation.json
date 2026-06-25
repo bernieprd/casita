@@ -317,7 +317,16 @@
       "supportText": "¡Apoya el desarrollo de Casita con un café! ¿Tienes una solicitud de función o comentarios? Envíanoslos — nos encantaría escucharte y lo tendremos en cuenta.",
       "buyACoffee": "Invítanos a un café ☕",
       "areasAndTabs": "Áreas y pestañas",
-      "areasAndTabsDescription": "Activar áreas, fijar pestañas"
+      "areasAndTabsDescription": "Activar áreas, fijar pestañas",
+      "notifications": "Notificaciones",
+      "notificationsDescription": "Gestionar preferencias de correo"
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "emailSection": "Correo electrónico",
+      "toggleLabel": "Notificaciones por correo",
+      "toggleDescription": "Recibe correos de bienvenida y novedades del hogar",
+      "offMessage": "Las notificaciones por correo están desactivadas. No recibirás ningún correo de Casita."
     },
     "account": {
       "title": "Cuenta",

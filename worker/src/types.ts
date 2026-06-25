@@ -106,6 +106,7 @@ export interface Env {
   // Set in wrangler.toml [vars] or .dev.vars to override the default.
   ALLOWED_ORIGIN?: string
   APP_BASE_URL?: string
+  WORKER_BASE_URL?: string
   RECIPE_PHOTOS: R2Bucket
   AUTH_KV: KVNamespace
   ALLOWED_EMAILS: string
@@ -123,6 +124,11 @@ export interface Env {
 export const DEFAULT_APP_URL = 'https://dashboard.mycasita.app'
 export function getAppBaseUrl(env: Env): string {
   return env.APP_BASE_URL ?? DEFAULT_APP_URL
+}
+
+export const DEFAULT_WORKER_URL = 'https://casita-worker.bernardoprd.workers.dev'
+export function getWorkerBaseUrl(env: Env): string {
+  return env.WORKER_BASE_URL ?? DEFAULT_WORKER_URL
 }
 
 export interface ConceptItem {
