@@ -317,7 +317,17 @@
       "supportText": "Supporta lo sviluppo di Casita con un caffè! Hai una richiesta di funzionalità o feedback? Mandaceli — ci farebbe molto piacere sentirti e li terremo in considerazione.",
       "buyACoffee": "Offrici un caffè ☕",
       "areasAndTabs": "Aree e schede",
-      "areasAndTabsDescription": "Abilita aree, aggiungi schede"
+      "areasAndTabsDescription": "Abilita aree, aggiungi schede",
+      "notifications": "Notifiche",
+      "notificationsDescription": "Gestisci le preferenze email"
+    },
+    "notifications": {
+      "title": "Notifiche",
+      "emailSection": "Email",
+      "toggleLabel": "Notifiche via email",
+      "toggleDescription": "Ricevi aggiornamenti e digest del nucleo familiare",
+      "offMessage": "Le notifiche via email sono disattivate. Non riceverai email da Casita.",
+      "saveError": "Impossibile salvare le preferenze"
     },
     "account": {
       "title": "Account",

@@ -317,7 +317,17 @@
       "supportText": "Apoia o desenvolvimento do Casita com um café! Tens uma sugestão de funcionalidade ou comentários? Envia-nos — adoraríamos ouvir-te e iremos tê-los em conta.",
       "buyACoffee": "Convida-nos a um café ☕",
       "areasAndTabs": "Áreas e abas",
-      "areasAndTabsDescription": "Ativar áreas, fixar abas"
+      "areasAndTabsDescription": "Ativar áreas, fixar abas",
+      "notifications": "Notificações",
+      "notificationsDescription": "Gerir preferências de email"
+    },
+    "notifications": {
+      "title": "Notificações",
+      "emailSection": "Email",
+      "toggleLabel": "Notificações por email",
+      "toggleDescription": "Recebe atualizações e resumos da casa",
+      "offMessage": "As notificações por email estão desativadas. Não receberás emails do Casita.",
+      "saveError": "Erro ao guardar preferências"
     },
     "account": {
       "title": "Conta",

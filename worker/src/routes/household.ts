@@ -1,12 +1,39 @@
 import type { Env, RequestContext } from '../types'
+import { getWorkerBaseUrl } from '../types'
 import { seedHouseholdConcepts } from './concepts-d1'
 import { getClerkClient } from '../auth/clerk'
 import { rebuildSharedIndex } from './shared-calendar-index'
+import { sendEmail } from '../email/resend'
+import { welcomeEmailHtml } from '../email/templates/welcome'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function err(status: number, code: string): Response {
   return Response.json({ error: code }, { status })
+}
+
+async function sendWelcomeEmail(
+  email: string,
+  clerkUserId: string,
+  env: Env,
+): Promise<void> {
+  try {
+    const workerUrl = getWorkerBaseUrl(env)
+    if (workerUrl.includes('localhost') || workerUrl.includes('127.0.0.1')) return
+    const unsubscribeToken = crypto.randomUUID()
+    await env.DB
+      .prepare(`INSERT INTO user_comms_prefs (clerk_user_id, unsubscribe_token, email_notifications_enabled, email_frequency)
+        VALUES (?, ?, 0, 'off')
+        ON CONFLICT(clerk_user_id) DO UPDATE SET unsubscribe_token = excluded.unsubscribe_token`)
+      .bind(clerkUserId, unsubscribeToken)
+      .run()
+    await sendEmail(
+      { to: email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env, unsubscribeToken) },
+      env,
+    )
+  } catch (e) {
+    console.error('[welcome email] failed:', e)
+  }
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────────
@@ -111,6 +138,10 @@ export async function createHousehold(
 
   await seedHouseholdConcepts(env, id)
 
+  if (ctx.email) {
+    await sendWelcomeEmail(ctx.email, ctx.clerkUserId, env)
+  }
+
   return Response.json({ id, name: name.trim(), role: 'owner' }, { status: 201 })
 }
 
@@ -151,6 +182,10 @@ export async function joinHousehold(
     .prepare('INSERT INTO household_members (household_id, clerk_user_id, role, joined_at, email) VALUES (?, ?, ?, ?, ?)')
     .bind(household.id, ctx.clerkUserId, 'member', now, ctx.email)
     .run()
+
+  if (ctx.email) {
+    await sendWelcomeEmail(ctx.email, ctx.clerkUserId, env)
+  }
 
   return Response.json({ id: household.id, name: household.name, role: 'member' }, { status: 200 })
 }

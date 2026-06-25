@@ -8,7 +8,7 @@ import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, di
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
 import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold, transferOwnership, deleteHousehold, getTodoSettings, updateTodoSettings, updateAreasConfig } from './routes/household'
 import { listConcepts, createConcept, updateConcept, deleteConcept, backfillConceptsRoute } from './routes/concepts-d1'
-import { deleteAccount, exportAccountData } from './routes/account'
+import { deleteAccount, exportAccountData, unsubscribe, getCommsPreferences, updateCommsPreferences } from './routes/account'
 import { getMe, updateMe } from './routes/me'
 import { importData } from './routes/import-d1'
 import { verifyClerkToken, getClerkClient } from './auth/clerk'
@@ -59,6 +59,7 @@ const publicRoutes: Array<[string, URLPattern, PublicHandler]> = [
   ['POST',   new URLPattern({ pathname: '/admin/backfill-emails',  search: '*' }), handleBackfillEmails],
   ['POST',   new URLPattern({ pathname: '/admin/migrate-kv-to-email', search: '*' }), handleMigrateKvToEmail],
   ['GET',    new URLPattern({ pathname: '/recipe-photos/:key',      search: '*' }), serveRecipePhoto],
+  ['GET',    new URLPattern({ pathname: '/account/unsubscribe',     search: '*' }), unsubscribe],
 ]
 
 async function checkAdminRateLimit(req: Request, env: Env): Promise<Response | null> {
@@ -144,6 +145,8 @@ const routes: Array<[string, URLPattern, AuthHandler]> = [
   ['PATCH',  new URLPattern({ pathname: '/me',                          search: '*' }), updateMe],
   ['DELETE', new URLPattern({ pathname: '/account',                     search: '*' }), deleteAccount],
   ['GET',    new URLPattern({ pathname: '/account/export',              search: '*' }), exportAccountData],
+  ['GET',    new URLPattern({ pathname: '/account/comms-preferences',  search: '*' }), getCommsPreferences],
+  ['PATCH',  new URLPattern({ pathname: '/account/comms-preferences',  search: '*' }), updateCommsPreferences],
   ['POST',   new URLPattern({ pathname: '/import',                      search: '*' }), importData],
   ['DELETE', new URLPattern({ pathname: '/household/leave',             search: '*' }), leaveHousehold],
   ['DELETE', new URLPattern({ pathname: '/household',                   search: '*' }), deleteHousehold],
