@@ -325,7 +325,7 @@
       "title": "Notifiche",
       "emailSection": "Email",
       "toggleLabel": "Notifiche via email",
-      "toggleDescription": "Ricevi email di benvenuto e aggiornamenti del nucleo familiare",
+      "toggleDescription": "Ricevi aggiornamenti e digest del nucleo familiare",
       "offMessage": "Le notifiche via email sono disattivate. Non riceverai email da Casita.",
       "saveError": "Impossibile salvare le preferenze"
     },
