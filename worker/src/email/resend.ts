@@ -10,6 +10,10 @@ export async function sendEmail(
   { to, subject, html }: SendEmailOptions,
   env: Pick<Env, 'RESEND_API_KEY' | 'RESEND_FROM_EMAIL'>
 ): Promise<void> {
+  if (!env.RESEND_API_KEY) {
+    console.warn('[sendEmail] RESEND_API_KEY not set, skipping')
+    return
+  }
   const from = env.RESEND_FROM_EMAIL ?? 'Casita <hello@mycasita.app>'
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',

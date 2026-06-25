@@ -3,6 +3,7 @@ import { useHouseholdSettings } from '@/api/household'
 import { isAreaEnabled, type AreaId } from '@/api/areas'
 import {
   User,
+  Bell,
   Home,
   CalendarDays,
   ShoppingCart,
@@ -46,6 +47,12 @@ export default function SettingsMenu() {
           label: t('settings.menu.account'),
           description: t('settings.menu.accountDescription'),
           path: '/settings/account',
+        },
+        {
+          icon: <Bell className="size-5 shrink-0 text-muted-foreground" />,
+          label: 'Notifications',
+          description: 'Manage email preferences',
+          path: '/settings/notifications',
         },
       ],
     },

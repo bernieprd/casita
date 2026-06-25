@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS household_members (
   joined_at     INTEGER NOT NULL,
   locale        TEXT NOT NULL DEFAULT 'en',
   tab_config         TEXT DEFAULT NULL,        -- JSON TabConfig; NULL → default pinned tabs
-  unsubscribe_token  TEXT,
+  unsubscribe_token           TEXT,
+  email_notifications_enabled INTEGER NOT NULL DEFAULT 1,
+  email_frequency             TEXT NOT NULL DEFAULT 'instant',
   PRIMARY KEY (household_id, clerk_user_id)
 );
 CREATE INDEX IF NOT EXISTS hm_clerk_user_id ON household_members(clerk_user_id);

@@ -79,6 +79,7 @@ export function welcomeEmailHtml(env: Env, unsubscribeToken: string): string {
               </p>
               <p style="margin:8px 0 0;font-size:11px;color:#d4d4d8;">
                 Casita · mycasita.app
+                <!-- TODO(can-spam): add physical mailing address here before sending to a real user base -->
               </p>
             </td>
           </tr>

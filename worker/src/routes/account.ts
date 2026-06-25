@@ -133,11 +133,50 @@ export async function unsubscribe(req: Request, env: Env): Promise<Response> {
   }
 
   await env.DB
-    .prepare('UPDATE household_members SET unsubscribe_token = NULL WHERE unsubscribe_token = ?')
-    .bind(token)
+    .prepare('UPDATE household_members SET unsubscribe_token = NULL, email_notifications_enabled = 0, email_frequency = ? WHERE unsubscribe_token = ?')
+    .bind('off', token)
     .run()
 
   return htmlResponse(200, 'You\'ve been unsubscribed from Casita emails.', env)
+}
+
+export async function getCommsPreferences(_req: Request, env: Env, ctx: RequestContext): Promise<Response> {
+  if (!ctx.householdId) {
+    return Response.json({ email_notifications_enabled: true, email_frequency: 'instant' })
+  }
+  const row = await env.DB
+    .prepare('SELECT email_notifications_enabled, email_frequency FROM household_members WHERE clerk_user_id = ? AND household_id = ?')
+    .bind(ctx.clerkUserId, ctx.householdId)
+    .first<{ email_notifications_enabled: number; email_frequency: string }>()
+  if (!row) {
+    return Response.json({ email_notifications_enabled: true, email_frequency: 'instant' })
+  }
+  return Response.json({
+    email_notifications_enabled: row.email_notifications_enabled === 1,
+    email_frequency: row.email_frequency,
+  })
+}
+
+export async function updateCommsPreferences(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
+  if (!ctx.householdId) {
+    return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 400 })
+  }
+  const body = await req.json<{ email_notifications_enabled?: unknown; email_frequency?: unknown }>()
+  if (typeof body.email_notifications_enabled !== 'boolean') {
+    return Response.json({ error: 'ERR_INVALID_INPUT' }, { status: 400 })
+  }
+  if (!['instant', 'off'].includes(body.email_frequency as string)) {
+    return Response.json({ error: 'ERR_INVALID_FREQUENCY' }, { status: 400 })
+  }
+  await env.DB
+    .prepare('UPDATE household_members SET email_notifications_enabled = ?, email_frequency = ? WHERE clerk_user_id = ? AND household_id = ?')
+    .bind(body.email_notifications_enabled ? 1 : 0, body.email_frequency, ctx.clerkUserId, ctx.householdId)
+    .run()
+  return Response.json({ ok: true })
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
 function htmlResponse(status: number, message: string, env: Env): Response {
@@ -159,7 +198,7 @@ function htmlResponse(status: number, message: string, env: Env): Response {
 <body>
   <div class="card">
     <h1>🏡 Casita</h1>
-    <p>${message}</p>
+    <p>${escapeHtml(message)}</p>
     <a href="${appUrl}">Back to Casita</a>
   </div>
 </body>

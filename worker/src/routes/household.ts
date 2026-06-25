@@ -11,6 +11,32 @@ function err(status: number, code: string): Response {
   return Response.json({ error: code }, { status })
 }
 
+async function sendWelcomeEmailIfEnabled(
+  email: string,
+  clerkUserId: string,
+  householdId: string,
+  env: Env,
+): Promise<void> {
+  try {
+    const row = await env.DB
+      .prepare('SELECT email_notifications_enabled FROM household_members WHERE clerk_user_id = ? AND household_id = ?')
+      .bind(clerkUserId, householdId)
+      .first<{ email_notifications_enabled: number }>()
+    if (!row || row.email_notifications_enabled === 0) return
+    const unsubscribeToken = crypto.randomUUID()
+    await env.DB
+      .prepare('UPDATE household_members SET unsubscribe_token = ? WHERE clerk_user_id = ? AND household_id = ?')
+      .bind(unsubscribeToken, clerkUserId, householdId)
+      .run()
+    await sendEmail(
+      { to: email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env, unsubscribeToken) },
+      env,
+    )
+  } catch (e) {
+    console.error('[welcome email] failed:', e)
+  }
+}
+
 // ── Handlers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -114,19 +140,7 @@ export async function createHousehold(
   await seedHouseholdConcepts(env, id)
 
   if (ctx.email) {
-    try {
-      const unsubscribeToken = crypto.randomUUID()
-      await env.DB
-        .prepare('UPDATE household_members SET unsubscribe_token = ? WHERE clerk_user_id = ? AND household_id = ?')
-        .bind(unsubscribeToken, ctx.clerkUserId, id)
-        .run()
-      await sendEmail(
-        { to: ctx.email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env, unsubscribeToken) },
-        env,
-      )
-    } catch (e) {
-      console.error('[welcome email] failed for createHousehold:', e)
-    }
+    await sendWelcomeEmailIfEnabled(ctx.email, ctx.clerkUserId, id, env)
   }
 
   return Response.json({ id, name: name.trim(), role: 'owner' }, { status: 201 })
@@ -171,19 +185,7 @@ export async function joinHousehold(
     .run()
 
   if (ctx.email) {
-    try {
-      const unsubscribeToken = crypto.randomUUID()
-      await env.DB
-        .prepare('UPDATE household_members SET unsubscribe_token = ? WHERE clerk_user_id = ? AND household_id = ?')
-        .bind(unsubscribeToken, ctx.clerkUserId, household.id)
-        .run()
-      await sendEmail(
-        { to: ctx.email, subject: 'Welcome to Casita 🏡', html: welcomeEmailHtml(env, unsubscribeToken) },
-        env,
-      )
-    } catch (e) {
-      console.error('[welcome email] failed for joinHousehold:', e)
-    }
+    await sendWelcomeEmailIfEnabled(ctx.email, ctx.clerkUserId, household.id, env)
   }
 
   return Response.json({ id: household.id, name: household.name, role: 'member' }, { status: 200 })
