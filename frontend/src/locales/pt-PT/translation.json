@@ -326,7 +326,8 @@
       "emailSection": "Email",
       "toggleLabel": "Notificações por email",
       "toggleDescription": "Recebe emails de boas-vindas e atualizações da casa",
-      "offMessage": "As notificações por email estão desativadas. Não receberás emails do Casita."
+      "offMessage": "As notificações por email estão desativadas. Não receberás emails do Casita.",
+      "saveError": "Erro ao guardar preferências"
     },
     "account": {
       "title": "Conta",

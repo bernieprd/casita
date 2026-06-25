@@ -147,7 +147,7 @@ export async function getCommsPreferences(_req: Request, env: Env, ctx: RequestC
     .bind(ctx.clerkUserId)
     .first<{ email_notifications_enabled: number; email_frequency: string }>()
   if (!row) {
-    return Response.json({ email_notifications_enabled: true, email_frequency: 'instant' })
+    return Response.json({ email_notifications_enabled: false, email_frequency: 'off' })
   }
   return Response.json({
     email_notifications_enabled: row.email_notifications_enabled === 1,

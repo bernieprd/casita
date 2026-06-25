@@ -41,7 +41,7 @@ export default function NotificationsSettings({ setHeader }: Props) {
     if (!prefs) return
     updatePrefs(
       { email_notifications_enabled: enabled, email_frequency: enabled ? 'instant' : 'off' },
-      { onError: () => toast.error('Failed to save preferences') },
+      { onError: () => toast.error(t('settings.notifications.saveError')) },
     )
   }
 
@@ -61,12 +61,16 @@ export default function NotificationsSettings({ setHeader }: Props) {
               {t('settings.notifications.toggleDescription')}
             </p>
           </div>
-          <Switch
-            id="email-notifications"
-            checked={prefs?.email_notifications_enabled ?? false}
-            onCheckedChange={handleToggle}
-            disabled={isLoading || isPending}
-          />
+          {isLoading ? (
+            <div className="h-6 w-11 rounded-full bg-muted animate-pulse" />
+          ) : (
+            <Switch
+              id="email-notifications"
+              checked={prefs?.email_notifications_enabled ?? false}
+              onCheckedChange={handleToggle}
+              disabled={isPending}
+            />
+          )}
         </div>
 
         {prefs?.email_notifications_enabled === false && (

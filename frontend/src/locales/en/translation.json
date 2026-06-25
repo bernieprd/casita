@@ -326,7 +326,8 @@
       "emailSection": "Email",
       "toggleLabel": "Email notifications",
       "toggleDescription": "Receive welcome emails and household updates",
-      "offMessage": "Email notifications are off. You won't receive any emails from Casita."
+      "offMessage": "Email notifications are off. You won't receive any emails from Casita.",
+      "saveError": "Failed to save preferences"
     },
     "account": {
       "title": "Account",

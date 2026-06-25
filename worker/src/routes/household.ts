@@ -12,17 +12,12 @@ function err(status: number, code: string): Response {
   return Response.json({ error: code }, { status })
 }
 
-async function sendWelcomeEmailIfEnabled(
+async function sendWelcomeEmail(
   email: string,
   clerkUserId: string,
   env: Env,
 ): Promise<void> {
   try {
-    const row = await env.DB
-      .prepare('SELECT email_notifications_enabled FROM user_comms_prefs WHERE clerk_user_id = ?')
-      .bind(clerkUserId)
-      .first<{ email_notifications_enabled: number }>()
-    if (row && row.email_notifications_enabled === 0) return
     const workerUrl = getWorkerBaseUrl(env)
     if (workerUrl.includes('localhost') || workerUrl.includes('127.0.0.1')) return
     const unsubscribeToken = crypto.randomUUID()
@@ -144,7 +139,7 @@ export async function createHousehold(
   await seedHouseholdConcepts(env, id)
 
   if (ctx.email) {
-    await sendWelcomeEmailIfEnabled(ctx.email, ctx.clerkUserId, env)
+    await sendWelcomeEmail(ctx.email, ctx.clerkUserId, env)
   }
 
   return Response.json({ id, name: name.trim(), role: 'owner' }, { status: 201 })
@@ -189,7 +184,7 @@ export async function joinHousehold(
     .run()
 
   if (ctx.email) {
-    await sendWelcomeEmailIfEnabled(ctx.email, ctx.clerkUserId, env)
+    await sendWelcomeEmail(ctx.email, ctx.clerkUserId, env)
   }
 
   return Response.json({ id: household.id, name: household.name, role: 'member' }, { status: 200 })
