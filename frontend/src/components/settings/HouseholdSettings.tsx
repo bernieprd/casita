@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import type { ThemePrefs } from '@/lib/theme'
 import { COLOR_PRESETS, FONT_OPTIONS, HEADING_FONT_OPTIONS, DEFAULT_THEME, loadGoogleFont } from '@/lib/theme'
@@ -34,8 +35,10 @@ import {
   useLeaveHousehold,
   useTransferOwnership,
   useDeleteHousehold,
+  useExportHousehold,
   householdThemeKeys,
 } from '../../api/household'
+import type { ExportInclude } from '../../api/household'
 import { useUser } from '@clerk/clerk-react'
 import { useHousehold } from '../../context/AuthContext'
 import { useTranslation } from 'react-i18next'
@@ -76,6 +79,16 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
   const { mutate: leaveHousehold, isPending: leaving } = useLeaveHousehold()
   const { mutate: deleteHousehold, isPending: deletingHousehold } = useDeleteHousehold()
   const [deleteHouseholdOpen, setDeleteHouseholdOpen] = useState(false)
+
+  // Export
+  const [exportSelected, setExportSelected] = useState<ExportInclude[]>(['items', 'recipes', 'todos'])
+  const exportMutation = useExportHousehold()
+
+  function toggleExportItem(item: ExportInclude) {
+    setExportSelected(prev =>
+      prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]
+    )
+  }
 
   useEffect(() => {
     setHeader(
@@ -417,6 +430,60 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
           {t('settings.household.resetToDefaults')}
         </Button>
       </div>
+
+      <Separator className="my-4" />
+
+      {/* Export data */}
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+        Export data
+      </p>
+      <div className="flex flex-col gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="export-items"
+            checked={exportSelected.includes('items')}
+            onCheckedChange={() => toggleExportItem('items')}
+          />
+          <Label htmlFor="export-items" className="text-sm font-normal cursor-pointer">
+            Shopping items
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="export-recipes"
+            checked={exportSelected.includes('recipes')}
+            onCheckedChange={() => toggleExportItem('recipes')}
+          />
+          <Label htmlFor="export-recipes" className="text-sm font-normal cursor-pointer">
+            Recipes
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="export-todos"
+            checked={exportSelected.includes('todos')}
+            onCheckedChange={() => toggleExportItem('todos')}
+          />
+          <Label htmlFor="export-todos" className="text-sm font-normal cursor-pointer">
+            To-dos
+          </Label>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        Download as JSON to import into another household via Settings → Import data.
+      </p>
+      <Button
+        variant="default"
+        disabled={exportSelected.length === 0 || exportMutation.isPending}
+        onClick={() =>
+          exportMutation.mutate(
+            { include: exportSelected },
+            { onError: () => toast.error('Failed to export household data.') }
+          )
+        }
+      >
+        Download JSON
+      </Button>
 
       <Separator className="my-4" />
 

@@ -174,6 +174,136 @@ export async function updateCommsPreferences(req: Request, env: Env, ctx: Reques
   return Response.json({ ok: true })
 }
 
+export async function exportHouseholdImportData(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
+  if (!ctx.householdId) {
+    return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
+  }
+
+  const url = new URL(req.url)
+  const includeParam = url.searchParams.get('include')
+  const validSections = ['items', 'recipes', 'todos'] as const
+  type Section = typeof validSections[number]
+
+  let include: Section[]
+  if (!includeParam || includeParam.trim() === '') {
+    include = [...validSections]
+  } else {
+    const parsed = includeParam.split(',').filter((s): s is Section =>
+      (validSections as ReadonlyArray<string>).includes(s)
+    )
+    include = parsed.length > 0 ? parsed : [...validSections]
+  }
+
+  const householdId = ctx.householdId
+
+  const [rawItems, rawRecipes, rawTodos] = await Promise.all([
+    include.includes('items')
+      ? env.DB
+          .prepare('SELECT name, category, on_shopping_list FROM items WHERE household_id = ?')
+          .bind(householdId)
+          .all<{ name: string; category: string | null; on_shopping_list: number }>()
+      : null,
+    include.includes('recipes')
+      ? env.DB
+          .prepare('SELECT id, name, type, url FROM recipes WHERE household_id = ?')
+          .bind(householdId)
+          .all<{ id: string; name: string; type: string | null; url: string | null }>()
+      : null,
+    include.includes('todos')
+      ? env.DB
+          .prepare('SELECT name, priority, due FROM todos WHERE household_id = ?')
+          .bind(householdId)
+          .all<{ name: string; priority: string | null; due: string | null }>()
+      : null,
+  ])
+
+  const payload: {
+    items?: Array<{ name: string; category: string | null; onShoppingList: boolean }>
+    recipes?: Array<{
+      name: string
+      type: string | null
+      url: string | null
+      instructions: string
+      ingredients: Array<{ name: string; quantity: string | null }>
+    }>
+    todos?: Array<{ name: string; priority: string | null; due: string | null }>
+  } = {}
+
+  if (rawItems) {
+    payload.items = rawItems.results.map(r => ({
+      name: r.name,
+      category: r.category,
+      onShoppingList: r.on_shopping_list === 1,
+    }))
+  }
+
+  if (rawTodos) {
+    payload.todos = rawTodos.results.map(r => ({
+      name: r.name,
+      priority: r.priority,
+      due: r.due,
+    }))
+  }
+
+  if (rawRecipes) {
+    const recipeRows = rawRecipes.results
+
+    const [allBlocks, allIngredients] = await Promise.all([
+      Promise.all(
+        recipeRows.map(r =>
+          env.DB
+            .prepare('SELECT type, text FROM recipe_blocks WHERE recipe_id = ? ORDER BY sort_order')
+            .bind(r.id)
+            .all<{ type: string; text: string }>()
+        )
+      ),
+      Promise.all(
+        recipeRows.map(r =>
+          env.DB
+            .prepare(
+              'SELECT i.name, ri.quantity FROM recipe_ingredients ri JOIN items i ON ri.item_id = i.id WHERE ri.recipe_id = ? ORDER BY ri.sort_order'
+            )
+            .bind(r.id)
+            .all<{ name: string; quantity: string | null }>()
+        )
+      ),
+    ])
+
+    payload.recipes = recipeRows.map((r, idx) => {
+      const blocks = allBlocks[idx].results
+      const ingredients = allIngredients[idx].results
+
+      const instructions = blocks
+        .map(b => {
+          switch (b.type) {
+            case 'divider': return '---'
+            case 'heading_1': return `# ${b.text}`
+            case 'heading_2': return `## ${b.text}`
+            case 'heading_3': return `### ${b.text}`
+            case 'bulleted_list_item': return `- ${b.text}`
+            default: return b.text
+          }
+        })
+        .join('\n')
+
+      return {
+        name: r.name,
+        type: r.type,
+        url: r.url,
+        instructions,
+        ingredients: ingredients.map(i => ({ name: i.name, quantity: i.quantity })),
+      }
+    })
+  }
+
+  return new Response(JSON.stringify(payload, null, 2), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Disposition': 'attachment; filename="casita-household.json"',
+    },
+  })
+}
+
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }

@@ -8,7 +8,7 @@ import { initiateGoogleOAuth, handleGoogleOAuthCallback, getGoogleAuthStatus, di
 import { listUserCalendars, updateUserCalendars } from './routes/user-calendars'
 import { getHousehold, createHousehold, joinHousehold, generateInvite, revokeInvite, renameHousehold, getHouseholdSettings, updateHouseholdSettings, leaveHousehold, transferOwnership, deleteHousehold, getTodoSettings, updateTodoSettings, updateAreasConfig } from './routes/household'
 import { listConcepts, createConcept, updateConcept, deleteConcept, backfillConceptsRoute } from './routes/concepts-d1'
-import { deleteAccount, exportAccountData, unsubscribe, getCommsPreferences, updateCommsPreferences } from './routes/account'
+import { deleteAccount, exportAccountData, exportHouseholdImportData, unsubscribe, getCommsPreferences, updateCommsPreferences } from './routes/account'
 import { getMe, updateMe } from './routes/me'
 import { importData } from './routes/import-d1'
 import { verifyClerkToken, getClerkClient } from './auth/clerk'
@@ -157,6 +157,7 @@ const routes: Array<[string, URLPattern, AuthHandler]> = [
   ['POST',   new URLPattern({ pathname: '/household/invite',            search: '*' }), generateInvite],
   ['DELETE', new URLPattern({ pathname: '/household/invite',            search: '*' }), revokeInvite],
   ['PATCH',  new URLPattern({ pathname: '/household/owner',             search: '*' }), transferOwnership],
+  ['GET',    new URLPattern({ pathname: '/household/export',             search: '*' }), exportHouseholdImportData],
   ['GET',    new URLPattern({ pathname: '/household/settings',          search: '*' }), getHouseholdSettings],
   ['PATCH',  new URLPattern({ pathname: '/household/settings',          search: '*' }), updateHouseholdSettings],
   ['GET',    new URLPattern({ pathname: '/household/todo-settings',    search: '*' }), getTodoSettings],
