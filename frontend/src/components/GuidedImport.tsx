@@ -6,13 +6,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { useImport } from '../api/import'
 import type { ImportBody } from '../api/import'
 
-// ── LLM prompt template ───────────────────────────────────────────────────────
+// ── Format guide ──────────────────────────────────────────────────────────────
 
-const LLM_PROMPT = `You are helping me set up a household management app called Casita.
-
-Please read everything I give you — it can be plain text, a CSV, a pasted spreadsheet, or notes — and output ONLY a single valid JSON object. No markdown fences, no commentary.
-
-Use this exact structure (omit any key whose array is empty):
+const FORMAT_GUIDE = `Convert your data to this JSON format. Omit any key whose array is empty.
 
 {
   "items": [
@@ -42,10 +38,7 @@ Rules:
 - Every entry must have a non-empty "name".
 - Set onShoppingList to true only if the item needs to be bought right now.
 - For recipes, preserve headings and steps using markdown format.
-- Do not invent data — only convert what I give you below.
-
-My data:
-[PASTE YOUR GROCERY LIST, RECIPES, TO-DOS, CSV, OR SPREADSHEET DATA HERE]`
+- Do not invent data — only include what you provide below.`
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -100,7 +93,7 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
   }
 
   function handleCopyPrompt() {
-    navigator.clipboard.writeText(LLM_PROMPT).catch(() => {})
+    navigator.clipboard.writeText(FORMAT_GUIDE).catch(() => {})
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -224,15 +217,15 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
       <div>
         <h2 className="text-base font-semibold">Import your existing data</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Use an AI assistant to convert your grocery list, recipes, to-dos, or even a CSV or
-          spreadsheet into the format Casita needs.
+          Use this format guide to convert your grocery list, recipes, or to-dos into the JSON
+          format Casita needs.
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium">1. Copy this prompt</p>
+        <p className="text-sm font-medium">1. Copy the format guide</p>
         <pre className="overflow-auto max-h-48 text-xs font-mono bg-muted rounded-lg p-3 whitespace-pre-wrap">
-          {LLM_PROMPT}
+          {FORMAT_GUIDE}
         </pre>
         <Button
           variant="outline"
@@ -248,14 +241,14 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
           ) : (
             <>
               <Copy className="size-3.5" />
-              Copy prompt
+              Copy format guide
             </>
           )}
         </Button>
       </div>
 
       <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium">2. Paste the JSON your AI returned</p>
+        <p className="text-sm font-medium">2. Paste the formatted JSON</p>
         <Textarea
           rows={6}
           placeholder='{ "items": [...], "recipes": [...], "todos": [...] }'
