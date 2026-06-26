@@ -195,7 +195,10 @@ function SignInPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div>
-        <SignIn routing="path" path="/sign-in" />
+        {Capacitor.getPlatform() === 'ios'
+          ? <SignIn routing="hash" />
+          : <SignIn routing="path" path="/sign-in" />
+        }
         <LanguageSelector />
       </div>
     </div>
@@ -210,7 +213,10 @@ function SignUpPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div>
-        <SignUp routing="path" path="/sign-up" />
+        {Capacitor.getPlatform() === 'ios'
+          ? <SignUp routing="hash" />
+          : <SignUp routing="path" path="/sign-up" />
+        }
         <LanguageSelector />
       </div>
     </div>

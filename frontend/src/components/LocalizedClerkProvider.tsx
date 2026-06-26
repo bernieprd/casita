@@ -1,7 +1,13 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { ClerkProvider } from '@clerk/clerk-react'
+import { Capacitor } from '@capacitor/core'
 import i18n from '../i18n'
 import { normalizeLocale, getClerkLocalization } from '../lib/clerkLocalizations'
+
+// On iOS Capacitor the origin is capacitor://localhost, which Clerk rejects as
+// an invalid scheme when resolving relative signInUrl/signUpUrl. We omit those
+// props on iOS and use hash-based routing in the SignIn/SignUp components instead.
+const isNativeIOS = Capacitor.getPlatform() === 'ios'
 
 export function LocalizedClerkProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState(() => normalizeLocale(i18n.language))
@@ -16,8 +22,10 @@ export function LocalizedClerkProvider({ children }: { children: ReactNode }) {
     <ClerkProvider
       key={locale}
       publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string}
-      signInUrl="/sign-in"
-      signUpUrl="/sign-up"
+      {...(!isNativeIOS && {
+        signInUrl: '/sign-in',
+        signUpUrl: '/sign-up',
+      })}
       signInFallbackRedirectUrl="/"
       signUpFallbackRedirectUrl="/household/setup"
       localization={getClerkLocalization(locale)}
