@@ -160,7 +160,7 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
     if (recipeCount > 0)
       categories.push({ label: t('guidedImport.categoryRecipes'), count: recipeCount, names: (parsed.recipes ?? []).map(r => r.name) })
     if (todoCount > 0)
-      categories.push({ label: t('guidedImport.categoryTodos'), count: todoCount, names: (parsed.todos ?? []).map(t => t.name) })
+      categories.push({ label: t('guidedImport.categoryTodos'), count: todoCount, names: (parsed.todos ?? []).map(todo => todo.name) })
 
     return (
       <div className="flex flex-col gap-5">
