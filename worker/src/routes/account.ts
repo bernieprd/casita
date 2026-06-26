@@ -196,12 +196,12 @@ export async function exportHouseholdImportData(req: Request, env: Env, ctx: Req
 
   const householdId = ctx.householdId
 
-  const [rawItems, rawRecipes, rawTodos] = await Promise.all([
+  const [rawItems, rawRecipes, rawTodos, rawSupermarkets] = await Promise.all([
     include.includes('items')
       ? env.DB
-          .prepare('SELECT name, category, on_shopping_list FROM items WHERE household_id = ?')
+          .prepare('SELECT id, name, category, on_shopping_list FROM items WHERE household_id = ?')
           .bind(householdId)
-          .all<{ name: string; category: string | null; on_shopping_list: number }>()
+          .all<{ id: string; name: string; category: string | null; on_shopping_list: number }>()
       : null,
     include.includes('recipes')
       ? env.DB
@@ -211,14 +211,44 @@ export async function exportHouseholdImportData(req: Request, env: Env, ctx: Req
       : null,
     include.includes('todos')
       ? env.DB
-          .prepare('SELECT name, priority, due FROM todos WHERE household_id = ?')
+          .prepare(`SELECT t.name, t.status, t.priority, t.due,
+                           t.notes, t.url, t.frequency, t.frequency_interval, t.frequency_days,
+                           c.name AS category_name
+                    FROM todos t
+                    LEFT JOIN household_todo_categories c
+                      ON t.category_id = c.id AND c.household_id = t.household_id
+                    WHERE t.household_id = ?`)
           .bind(householdId)
-          .all<{ name: string; priority: string | null; due: string | null }>()
+          .all<{
+            name: string; status: string; priority: string | null; due: string | null
+            notes: string | null; url: string | null
+            frequency: string | null; frequency_interval: number | null; frequency_days: string | null
+            category_name: string | null
+          }>()
+      : null,
+    include.includes('items')
+      ? env.DB
+          .prepare(`SELECT s.item_id, s.supermarket
+                    FROM item_supermarkets s
+                    JOIN items i ON s.item_id = i.id
+                    WHERE i.household_id = ?`)
+          .bind(householdId)
+          .all<{ item_id: string; supermarket: string }>()
       : null,
   ])
 
+  const supermarketsByItemId = new Map<string, string[]>()
+  if (rawSupermarkets) {
+    for (const row of rawSupermarkets.results) {
+      const list = supermarketsByItemId.get(row.item_id) ?? []
+      list.push(row.supermarket)
+      supermarketsByItemId.set(row.item_id, list)
+    }
+  }
+
   const payload: {
-    items?: Array<{ name: string; category: string | null; onShoppingList: boolean }>
+    version: number
+    items?: Array<{ name: string; category: string | null; onShoppingList: boolean; supermarkets: string[] }>
     recipes?: Array<{
       name: string
       type: string | null
@@ -226,22 +256,35 @@ export async function exportHouseholdImportData(req: Request, env: Env, ctx: Req
       instructions: string
       ingredients: Array<{ name: string; quantity: string | null }>
     }>
-    todos?: Array<{ name: string; priority: string | null; due: string | null }>
-  } = {}
+    todos?: Array<{
+      name: string; status: string; priority: string | null; due: string | null
+      notes: string | null; url: string | null
+      frequency: string | null; frequency_interval: number; frequency_days: string | null
+      category: string | null
+    }>
+  } = { version: 1 }
 
   if (rawItems) {
     payload.items = rawItems.results.map(r => ({
       name: r.name,
       category: r.category,
       onShoppingList: r.on_shopping_list === 1,
+      supermarkets: supermarketsByItemId.get(r.id) ?? [],
     }))
   }
 
   if (rawTodos) {
     payload.todos = rawTodos.results.map(r => ({
       name: r.name,
+      status: r.status,
       priority: r.priority,
       due: r.due,
+      notes: r.notes,
+      url: r.url,
+      frequency: r.frequency,
+      frequency_interval: r.frequency_interval ?? 1,
+      frequency_days: r.frequency_days,
+      category: r.category_name,
     }))
   }
 
