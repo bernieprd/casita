@@ -38,7 +38,7 @@ Rules:
 - Every entry must have a non-empty "name".
 - Set onShoppingList to true only if the item needs to be bought right now.
 - For recipes, preserve headings and steps using markdown format.
-- Do not invent data — only include what you provide below.`
+- Do not invent data — only include data from your source.`
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

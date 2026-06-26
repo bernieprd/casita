@@ -29,7 +29,7 @@ export async function importData(req: Request, env: Env, ctx: RequestContext): P
   if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   // Body size guard — read the actual bytes so chunked/no Content-Length requests
-  // are also covered. 100 000 bytes ≈ 100 KB, plenty for any valid import payload.
+  // are also covered. 200 000 bytes ≈ 200 KB, plenty for any valid import payload.
   const bodyText = await req.text()
   if (bodyText.length > 200_000) {
     return Response.json({ error: 'ERR_PAYLOAD_TOO_LARGE' }, { status: 400 })

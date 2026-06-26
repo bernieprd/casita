@@ -292,32 +292,33 @@ export async function exportHouseholdImportData(req: Request, env: Env, ctx: Req
     const recipeRows = rawRecipes.results
 
     const recipeIds = recipeRows.map(r => r.id)
-    const ph = recipeIds.map(() => '?').join(', ')
-
-    const [blocksResult, ingredientsResult] = recipeIds.length > 0
-      ? await Promise.all([
-          env.DB
-            .prepare(`SELECT recipe_id, type, text FROM recipe_blocks WHERE recipe_id IN (${ph}) ORDER BY recipe_id, sort_order`)
-            .bind(...recipeIds)
-            .all<{ recipe_id: string; type: string; text: string }>(),
-          env.DB
-            .prepare(`SELECT ri.recipe_id, i.name, ri.quantity FROM recipe_ingredients ri JOIN items i ON ri.item_id = i.id WHERE ri.recipe_id IN (${ph}) ORDER BY ri.recipe_id, ri.sort_order`)
-            .bind(...recipeIds)
-            .all<{ recipe_id: string; name: string; quantity: string | null }>(),
-        ])
-      : [{ results: [] }, { results: [] }]
 
     const blocksByRecipeId = new Map<string, { type: string; text: string }[]>()
-    for (const b of blocksResult.results) {
-      const arr = blocksByRecipeId.get(b.recipe_id) ?? []
-      arr.push(b)
-      blocksByRecipeId.set(b.recipe_id, arr)
-    }
     const ingredientsByRecipeId = new Map<string, { name: string; quantity: string | null }[]>()
-    for (const i of ingredientsResult.results) {
-      const arr = ingredientsByRecipeId.get(i.recipe_id) ?? []
-      arr.push(i)
-      ingredientsByRecipeId.set(i.recipe_id, arr)
+
+    for (let i = 0; i < recipeIds.length; i += 100) {
+      const chunk = recipeIds.slice(i, i + 100)
+      const ph = chunk.map(() => '?').join(', ')
+      const [blocksResult, ingredientsResult] = await Promise.all([
+        env.DB
+          .prepare(`SELECT recipe_id, type, text FROM recipe_blocks WHERE recipe_id IN (${ph}) ORDER BY recipe_id, sort_order`)
+          .bind(...chunk)
+          .all<{ recipe_id: string; type: string; text: string }>(),
+        env.DB
+          .prepare(`SELECT ri.recipe_id, i.name, ri.quantity FROM recipe_ingredients ri JOIN items i ON ri.item_id = i.id WHERE ri.recipe_id IN (${ph}) ORDER BY ri.recipe_id, ri.sort_order`)
+          .bind(...chunk)
+          .all<{ recipe_id: string; name: string; quantity: string | null }>(),
+      ])
+      for (const b of blocksResult.results) {
+        const arr = blocksByRecipeId.get(b.recipe_id) ?? []
+        arr.push(b)
+        blocksByRecipeId.set(b.recipe_id, arr)
+      }
+      for (const ing of ingredientsResult.results) {
+        const arr = ingredientsByRecipeId.get(ing.recipe_id) ?? []
+        arr.push(ing)
+        ingredientsByRecipeId.set(ing.recipe_id, arr)
+      }
     }
 
     payload.recipes = recipeRows.map(r => {
