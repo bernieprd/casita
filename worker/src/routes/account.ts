@@ -259,7 +259,7 @@ export async function exportHouseholdImportData(req: Request, env: Env, ctx: Req
     todos?: Array<{
       name: string; status: string; priority: string | null; due: string | null
       notes: string | null; url: string | null
-      frequency: string | null; frequency_interval: number; frequency_days: string | null
+      frequency: string | null; frequency_interval: number | null; frequency_days: string | null
       category: string | null
     }>
   } = { version: 1 }
@@ -282,7 +282,7 @@ export async function exportHouseholdImportData(req: Request, env: Env, ctx: Req
       notes: r.notes,
       url: r.url,
       frequency: r.frequency,
-      frequency_interval: r.frequency_interval ?? 1,
+      frequency_interval: r.frequency != null ? (r.frequency_interval ?? 1) : null,
       frequency_days: r.frequency_days,
       category: r.category_name,
     }))
@@ -291,30 +291,38 @@ export async function exportHouseholdImportData(req: Request, env: Env, ctx: Req
   if (rawRecipes) {
     const recipeRows = rawRecipes.results
 
-    const [allBlocks, allIngredients] = await Promise.all([
-      Promise.all(
-        recipeRows.map(r =>
-          env.DB
-            .prepare('SELECT type, text FROM recipe_blocks WHERE recipe_id = ? ORDER BY sort_order')
-            .bind(r.id)
-            .all<{ type: string; text: string }>()
-        )
-      ),
-      Promise.all(
-        recipeRows.map(r =>
-          env.DB
-            .prepare(
-              'SELECT i.name, ri.quantity FROM recipe_ingredients ri JOIN items i ON ri.item_id = i.id WHERE ri.recipe_id = ? ORDER BY ri.sort_order'
-            )
-            .bind(r.id)
-            .all<{ name: string; quantity: string | null }>()
-        )
-      ),
-    ])
+    const recipeIds = recipeRows.map(r => r.id)
+    const ph = recipeIds.map(() => '?').join(', ')
 
-    payload.recipes = recipeRows.map((r, idx) => {
-      const blocks = allBlocks[idx].results
-      const ingredients = allIngredients[idx].results
+    const [blocksResult, ingredientsResult] = recipeIds.length > 0
+      ? await Promise.all([
+          env.DB
+            .prepare(`SELECT recipe_id, type, text FROM recipe_blocks WHERE recipe_id IN (${ph}) ORDER BY recipe_id, sort_order`)
+            .bind(...recipeIds)
+            .all<{ recipe_id: string; type: string; text: string }>(),
+          env.DB
+            .prepare(`SELECT ri.recipe_id, i.name, ri.quantity FROM recipe_ingredients ri JOIN items i ON ri.item_id = i.id WHERE ri.recipe_id IN (${ph}) ORDER BY ri.recipe_id, ri.sort_order`)
+            .bind(...recipeIds)
+            .all<{ recipe_id: string; name: string; quantity: string | null }>(),
+        ])
+      : [{ results: [] }, { results: [] }]
+
+    const blocksByRecipeId = new Map<string, { type: string; text: string }[]>()
+    for (const b of blocksResult.results) {
+      const arr = blocksByRecipeId.get(b.recipe_id) ?? []
+      arr.push(b)
+      blocksByRecipeId.set(b.recipe_id, arr)
+    }
+    const ingredientsByRecipeId = new Map<string, { name: string; quantity: string | null }[]>()
+    for (const i of ingredientsResult.results) {
+      const arr = ingredientsByRecipeId.get(i.recipe_id) ?? []
+      arr.push(i)
+      ingredientsByRecipeId.set(i.recipe_id, arr)
+    }
+
+    payload.recipes = recipeRows.map(r => {
+      const blocks = blocksByRecipeId.get(r.id) ?? []
+      const ingredients = ingredientsByRecipeId.get(r.id) ?? []
 
       const instructions = blocks
         .map(b => {

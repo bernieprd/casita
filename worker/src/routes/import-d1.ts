@@ -160,12 +160,18 @@ export async function importData(req: Request, env: Env, ctx: RequestContext): P
         ),
       ]
       if (namesToCreate.length > 0) {
-        const createStmts = namesToCreate.map(catName => {
+        const { results: maxRow } = await env.DB
+          .prepare('SELECT COALESCE(MAX(sort_order), -1) as max_sort FROM household_todo_categories WHERE household_id = ?')
+          .bind(householdId)
+          .all<{ max_sort: number }>()
+        const startSortOrder = (maxRow[0]?.max_sort ?? -1) + 1
+
+        const createStmts = namesToCreate.map((catName, idx) => {
           const newId = crypto.randomUUID()
           categoryIdByName.set(catName.toLowerCase(), newId)
           return env.DB
             .prepare('INSERT OR IGNORE INTO household_todo_categories (id, household_id, name, sort_order) VALUES (?, ?, ?, ?)')
-            .bind(newId, householdId, catName, 0)
+            .bind(newId, householdId, catName, startSortOrder + idx)
         })
         await env.DB.batch(createStmts)
       }

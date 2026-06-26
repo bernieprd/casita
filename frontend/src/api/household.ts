@@ -179,7 +179,7 @@ export function useExportHousehold() {
       a.href = url
       a.download = 'casita-household.json'
       a.click()
-      URL.revokeObjectURL(url)
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
     },
   })
 }

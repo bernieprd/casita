@@ -435,7 +435,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
 
       {/* Export data */}
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-        Export data
+        {t('settings.household.exportData')}
       </p>
       <div className="flex flex-col gap-2 mb-3">
         <div className="flex items-center gap-2">
@@ -445,7 +445,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
             onCheckedChange={() => toggleExportItem('items')}
           />
           <Label htmlFor="export-items" className="text-sm font-normal cursor-pointer">
-            Shopping items
+            {t('settings.household.exportShoppingItems')}
           </Label>
         </div>
         <div className="flex items-center gap-2">
@@ -455,7 +455,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
             onCheckedChange={() => toggleExportItem('recipes')}
           />
           <Label htmlFor="export-recipes" className="text-sm font-normal cursor-pointer">
-            Recipes
+            {t('settings.household.exportRecipes')}
           </Label>
         </div>
         <div className="flex items-center gap-2">
@@ -465,12 +465,12 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
             onCheckedChange={() => toggleExportItem('todos')}
           />
           <Label htmlFor="export-todos" className="text-sm font-normal cursor-pointer">
-            To-dos
+            {t('settings.household.exportTodos')}
           </Label>
         </div>
       </div>
       <p className="text-xs text-muted-foreground mb-3">
-        Download as JSON to import into another household via Settings → Import data.
+        {t('settings.household.exportDescription')}
       </p>
       <Button
         variant="default"
@@ -478,11 +478,11 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
         onClick={() =>
           exportMutation.mutate(
             { include: exportSelected },
-            { onError: () => toast.error('Failed to export household data.') }
+            { onError: () => toast.error(t('settings.household.exportError')) }
           )
         }
       >
-        Download JSON
+        {t('settings.household.downloadJson')}
       </Button>
 
       <Separator className="my-4" />
