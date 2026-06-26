@@ -510,7 +510,9 @@
     "e18_title": "Sincronizzazione multi-account e nuove viste",
     "e18_desc": "Collega più account Google (personale + lavoro) da Impostazioni → Calendario. Le nuove viste settimana e mese ti permettono di vedere il programma a colpo d'occhio — passa tra Agenda, Settimana e Mese con il selettore in cima alla scheda Calendario.",
     "e19_title": "Aree e schede — rendilo tuo",
-    "e19_desc": "I proprietari della famiglia possono abilitare o disabilitare le aree per tutti. Ogni membro può aggiungere fino a tre aree direttamente alla propria barra delle schede, e tutto ciò che non è aggiunto rimane a portata di tap. Personalizza da Impostazioni → Aree e schede."
+    "e19_desc": "I proprietari della famiglia possono abilitare o disabilitare le aree per tutti. Ogni membro può aggiungere fino a tre aree direttamente alla propria barra delle schede, e tutto ciò che non è aggiunto rimane a portata di tap. Personalizza da Impostazioni → Aree e schede.",
+    "e20_title": "Esportazione dei dati della famiglia più completa",
+    "e20_desc": "L'esportazione della famiglia ora preserva tutti i dettagli alla reimportazione — gli articoli della lista della spesa mantengono i loro supermercati assegnati, e i da fare portano con sé note, URL, impostazioni di ricorrenza e categorie. Qualsiasi categoria non ancora presente nella famiglia di destinazione viene creata automaticamente."
   },
   "nav": {
     "settings": "Impostazioni",

@@ -510,7 +510,9 @@
     "e18_title": "Multi-account calendar sync & new views",
     "e18_desc": "Connect multiple Google accounts (personal + work) from Settings → Calendar. New week and month views let you see your schedule at a glance — switch between Agenda, Week, and Month with the toggle at the top of the Calendar tab.",
     "e19_title": "Areas & Tabs — make it yours",
-    "e19_desc": "Household owners can now enable or disable areas for everyone. Each member can then pin up to three areas directly to their tab bar, and anything not pinned stays a tap away. Customise from Settings → Areas & Tabs."
+    "e19_desc": "Household owners can now enable or disable areas for everyone. Each member can then pin up to three areas directly to their tab bar, and anything not pinned stays a tap away. Customise from Settings → Areas & Tabs.",
+    "e20_title": "Fuller household data export",
+    "e20_desc": "Exporting your household now preserves full detail on re-import — shopping items keep their supermarket assignments, and to-dos carry over their notes, URLs, recurrence settings, and categories. Any category that doesn't exist yet in the target household is created automatically."
   },
   "nav": {
     "settings": "Settings",

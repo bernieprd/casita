@@ -510,7 +510,9 @@
     "e18_title": "Sincronización con múltiples cuentas y nuevas vistas",
     "e18_desc": "Conecta varias cuentas de Google (personal + trabajo) desde Ajustes → Calendario. Las nuevas vistas de semana y mes te permiten ver tu agenda de un vistazo — cambia entre Agenda, Semana y Mes con el selector en la parte superior de la pestaña Calendario.",
     "e19_title": "Áreas y pestañas — personalízalo",
-    "e19_desc": "Los propietarios del hogar pueden activar o desactivar áreas para todos. Cada miembro puede fijar hasta tres áreas directamente en su barra de pestañas, y todo lo que no esté fijado queda a un toque. Personaliza desde Ajustes → Áreas y pestañas."
+    "e19_desc": "Los propietarios del hogar pueden activar o desactivar áreas para todos. Cada miembro puede fijar hasta tres áreas directamente en su barra de pestañas, y todo lo que no esté fijado queda a un toque. Personaliza desde Ajustes → Áreas y pestañas.",
+    "e20_title": "Exportación de datos del hogar más completa",
+    "e20_desc": "Al exportar tu hogar ahora se conservan todos los detalles al volver a importar — los artículos de la lista de la compra mantienen sus supermercados asignados, y las tareas trasladan sus notas, URLs, configuración de recurrencia y categorías. Cualquier categoría que aún no exista en el hogar de destino se crea automáticamente."
   },
   "nav": {
     "settings": "Configuración",
