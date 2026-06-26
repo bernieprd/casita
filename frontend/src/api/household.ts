@@ -167,3 +167,19 @@ export function useUpdateAreasConfig() {
     },
   })
 }
+
+export type ExportInclude = 'items' | 'recipes' | 'todos'
+
+export function useExportHousehold() {
+  return useMutation({
+    mutationFn: async ({ include }: { include: ExportInclude[] }) => {
+      const blob = await api.blob(`/household/export?include=${include.join(',')}`)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'casita-household.json'
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    },
+  })
+}

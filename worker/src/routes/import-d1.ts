@@ -9,8 +9,13 @@ function textToBlock(line: string): { type: string; text: string } {
   return { type: 'paragraph', text: line }
 }
 
-type ImportItem = { name: string; category?: string | null; onShoppingList?: boolean }
-type ImportTodo = { name: string; priority?: string | null; due?: string | null }
+type ImportItem = { name: string; category?: string | null; onShoppingList?: boolean; supermarkets?: string[] }
+type ImportTodo = {
+  name: string; priority?: string | null; due?: string | null
+  status?: string | null; notes?: string | null; url?: string | null
+  frequency?: string | null; frequency_interval?: number | null
+  frequency_days?: string | null; category?: string | null
+}
 type ImportIngredient = { name: string; quantity?: string | null }
 type ImportRecipe = {
   name: string
@@ -24,14 +29,14 @@ export async function importData(req: Request, env: Env, ctx: RequestContext): P
   if (!ctx.householdId) return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
 
   // Body size guard — read the actual bytes so chunked/no Content-Length requests
-  // are also covered. 100 000 bytes ≈ 100 KB, plenty for any valid import payload.
+  // are also covered. 200 000 bytes ≈ 200 KB, plenty for any valid import payload.
   const bodyText = await req.text()
-  if (bodyText.length > 100_000) {
+  if (bodyText.length > 200_000) {
     return Response.json({ error: 'ERR_PAYLOAD_TOO_LARGE' }, { status: 400 })
   }
-  let body: { items?: ImportItem[]; recipes?: ImportRecipe[]; todos?: ImportTodo[] }
+  let body: { version?: number; items?: ImportItem[]; recipes?: ImportRecipe[]; todos?: ImportTodo[] }
   try {
-    body = JSON.parse(bodyText) as { items?: ImportItem[]; recipes?: ImportRecipe[]; todos?: ImportTodo[] }
+    body = JSON.parse(bodyText) as { version?: number; items?: ImportItem[]; recipes?: ImportRecipe[]; todos?: ImportTodo[] }
   } catch {
     return Response.json({ error: 'ERR_INVALID_JSON' }, { status: 400 })
   }
@@ -106,6 +111,25 @@ export async function importData(req: Request, env: Env, ctx: RequestContext): P
       await env.DB.batch(stmts)
       importedItems += chunk.length
     }
+
+    // Insert supermarket associations for newly created items
+    const smRows: Array<{ itemId: string; supermarket: string }> = []
+    for (const item of toInsert) {
+      if (!Array.isArray(item.supermarkets)) continue
+      for (const s of item.supermarkets) {
+        if (typeof s === 'string' && s.trim() !== '')
+          smRows.push({ itemId: item._id, supermarket: s.trim() })
+      }
+    }
+    for (let i = 0; i < smRows.length; i += 100) {
+      const chunk = smRows.slice(i, i + 100)
+      await env.DB.batch(
+        chunk.map(r =>
+          env.DB.prepare('INSERT OR IGNORE INTO item_supermarkets (item_id, supermarket) VALUES (?, ?)')
+            .bind(r.itemId, r.supermarket)
+        )
+      )
+    }
   }
 
   // ── Todos ──────────────────────────────────────────────────────────────────
@@ -117,6 +141,43 @@ export async function importData(req: Request, env: Env, ctx: RequestContext): P
       toInsert.push(todo)
     }
 
+    // Resolve todo categories: fetch existing, create any new ones
+    const categoryIdByName = new Map<string, string>()
+    {
+      const { results: existingCats } = await env.DB
+        .prepare('SELECT id, name FROM household_todo_categories WHERE household_id = ?')
+        .bind(householdId)
+        .all<{ id: string; name: string }>()
+      for (const c of existingCats) {
+        categoryIdByName.set(c.name.toLowerCase(), c.id)
+      }
+
+      const namesToCreate = [
+        ...new Set(
+          toInsert
+            .map(t => (typeof t.category === 'string' ? t.category.trim() : ''))
+            .filter(n => n !== '' && !categoryIdByName.has(n.toLowerCase()))
+        ),
+      ]
+      if (namesToCreate.length > 0) {
+        const { results: maxRow } = await env.DB
+          .prepare('SELECT COALESCE(MAX(sort_order), -1) as max_sort FROM household_todo_categories WHERE household_id = ?')
+          .bind(householdId)
+          .all<{ max_sort: number }>()
+        const startSortOrder = (maxRow[0]?.max_sort ?? -1) + 1
+
+        const createStmts = namesToCreate.map((catName, idx) => {
+          const newId = crypto.randomUUID()
+          categoryIdByName.set(catName.toLowerCase(), newId)
+          return env.DB
+            .prepare('INSERT OR IGNORE INTO household_todo_categories (id, household_id, name, sort_order) VALUES (?, ?, ?, ?)')
+            .bind(newId, householdId, catName, startSortOrder + idx)
+        })
+        await env.DB.batch(createStmts)
+      }
+    }
+
+    const validStatuses = ['Todo', 'In Progress', 'Done']
     for (let i = 0; i < toInsert.length; i += 100) {
       const chunk = toInsert.slice(i, i + 100)
       const stmts = chunk.map(todo => {
@@ -126,14 +187,34 @@ export async function importData(req: Request, env: Env, ctx: RequestContext): P
         const due = typeof todo.due === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(todo.due)
           ? todo.due
           : null
+        const status = typeof todo.status === 'string' && validStatuses.includes(todo.status)
+          ? todo.status
+          : 'Todo'
+        const notes = typeof todo.notes === 'string' ? todo.notes : null
+        const url = typeof todo.url === 'string' ? todo.url : null
+        const frequency = typeof todo.frequency === 'string' ? todo.frequency : null
+        const frequencyInterval = typeof todo.frequency_interval === 'number' && todo.frequency_interval >= 1
+          ? todo.frequency_interval
+          : 1
+        const frequencyDays = typeof todo.frequency_days === 'string' ? todo.frequency_days : null
+        const catKey = typeof todo.category === 'string' ? todo.category.trim().toLowerCase() : ''
+        const categoryId = catKey !== '' ? (categoryIdByName.get(catKey) ?? null) : null
+
         return env.DB.prepare(
-          'INSERT INTO todos (id, household_id, name, status, priority, due, created_at, updated_at) VALUES (?, ?, ?, \'Todo\', ?, ?, ?, ?)'
+          'INSERT INTO todos (id, household_id, name, status, priority, due, notes, url, frequency, frequency_interval, frequency_days, category_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         ).bind(
           crypto.randomUUID(),
           householdId,
           todo.name.trim(),
+          status,
           priority,
           due,
+          notes,
+          url,
+          frequency,
+          frequencyInterval,
+          frequencyDays,
+          categoryId,
           now,
           now,
         )

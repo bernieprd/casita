@@ -1,18 +1,16 @@
 import { useState } from 'react'
 import { Check, Copy, CheckCheck } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useImport } from '../api/import'
 import type { ImportBody } from '../api/import'
 
-// ── LLM prompt template ───────────────────────────────────────────────────────
-
-const LLM_PROMPT = `You are helping me set up a household management app called Casita.
-
-Please read everything I give you — it can be plain text, a CSV, a pasted spreadsheet, or notes — and output ONLY a single valid JSON object. No markdown fences, no commentary.
-
-Use this exact structure (omit any key whose array is empty):
+// JSON schema keys must stay in English — the importer parses them by name.
+// Only the surrounding prose is localized.
+function buildFormatGuide(intro: string, rules: string): string {
+  return `${intro}
 
 {
   "items": [
@@ -38,14 +36,8 @@ Use this exact structure (omit any key whose array is empty):
   ]
 }
 
-Rules:
-- Every entry must have a non-empty "name".
-- Set onShoppingList to true only if the item needs to be bought right now.
-- For recipes, preserve headings and steps using markdown format.
-- Do not invent data — only convert what I give you below.
-
-My data:
-[PASTE YOUR GROCERY LIST, RECIPES, TO-DOS, CSV, OR SPREADSHEET DATA HERE]`
+${rules}`
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -59,6 +51,7 @@ type Step = 'prompt' | 'preview' | 'importing'
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
+  const { t } = useTranslation()
   const [step, setStep] = useState<Step>('prompt')
   const [jsonText, setJsonText] = useState('')
   const [parseError, setParseError] = useState<string | null>(null)
@@ -66,6 +59,11 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
   const [copied, setCopied] = useState(false)
 
   const importMutation = useImport()
+
+  const FORMAT_GUIDE = buildFormatGuide(
+    t('guidedImport.formatGuideIntro'),
+    t('guidedImport.formatGuideRules'),
+  )
 
   function handleJsonChange(value: string) {
     setJsonText(value)
@@ -87,7 +85,7 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
         hasInvalidEntry(result.todos) ||
         hasInvalidEntry(result.recipes)
       ) {
-        setParseError('Each entry must have a non-empty "name" field.')
+        setParseError(t('guidedImport.invalidName'))
         setParsed(null)
         return
       }
@@ -100,7 +98,7 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
   }
 
   function handleCopyPrompt() {
-    navigator.clipboard.writeText(LLM_PROMPT).catch(() => {})
+    navigator.clipboard.writeText(FORMAT_GUIDE).catch(() => {})
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -121,18 +119,18 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
       onSuccess: (result) => {
         const { items, recipes, todos } = result.imported
         const parts: string[] = []
-        if (items > 0) parts.push(`${items} item${items !== 1 ? 's' : ''}`)
-        if (recipes > 0) parts.push(`${recipes} recipe${recipes !== 1 ? 's' : ''}`)
-        if (todos > 0) parts.push(`${todos} to-do${todos !== 1 ? 's' : ''}`)
-        let message = `Imported ${parts.join(', ')}`
+        if (items > 0) parts.push(t('guidedImport.importedItems', { count: items }))
+        if (recipes > 0) parts.push(t('guidedImport.importedRecipes', { count: recipes }))
+        if (todos > 0) parts.push(t('guidedImport.importedTodos', { count: todos }))
+        let message = t('guidedImport.importedSuccess', { parts: parts.join(', ') })
         if ((result.skipped?.items ?? 0) > 0) {
-          message += ` (${result.skipped!.items} item${result.skipped!.items !== 1 ? 's' : ''} already existed)`
+          message += ` ${t('guidedImport.skippedItems', { count: result.skipped!.items })}`
         }
         toast.success(message)
         onDone()
       },
       onError: () => {
-        toast.error('Import failed. Please try again.')
+        toast.error(t('guidedImport.importFailed'))
         setStep('preview')
       },
     })
@@ -144,7 +142,7 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-12">
         <div className="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        <p className="text-sm text-muted-foreground">Importing your data…</p>
+        <p className="text-sm text-muted-foreground">{t('guidedImport.importing')}</p>
       </div>
     )
   }
@@ -158,16 +156,16 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
 
     const categories: Array<{ label: string; count: number; names: string[] }> = []
     if (itemCount > 0)
-      categories.push({ label: 'items', count: itemCount, names: (parsed.items ?? []).map(i => i.name) })
+      categories.push({ label: t('guidedImport.categoryItems'), count: itemCount, names: (parsed.items ?? []).map(i => i.name) })
     if (recipeCount > 0)
-      categories.push({ label: 'recipes', count: recipeCount, names: (parsed.recipes ?? []).map(r => r.name) })
+      categories.push({ label: t('guidedImport.categoryRecipes'), count: recipeCount, names: (parsed.recipes ?? []).map(r => r.name) })
     if (todoCount > 0)
-      categories.push({ label: 'to-dos', count: todoCount, names: (parsed.todos ?? []).map(t => t.name) })
+      categories.push({ label: t('guidedImport.categoryTodos'), count: todoCount, names: (parsed.todos ?? []).map(todo => todo.name) })
 
     return (
       <div className="flex flex-col gap-5">
         <div>
-          <h2 className="text-base font-semibold">Ready to import</h2>
+          <h2 className="text-base font-semibold">{t('guidedImport.readyToImport')}</h2>
         </div>
 
         <div className="bg-muted rounded-lg p-4 flex flex-col gap-2">
@@ -192,7 +190,7 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
                   <p key={i} className="text-sm text-muted-foreground pl-2">{name}</p>
                 ))}
                 {remaining > 0 && (
-                  <p className="text-xs text-muted-foreground/60 pl-2">+ {remaining} more</p>
+                  <p className="text-xs text-muted-foreground/60 pl-2">{t('guidedImport.more', { count: remaining })}</p>
                 )}
               </div>
             )
@@ -201,14 +199,14 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
 
         <div className="flex flex-col gap-2">
           <Button className="w-full" onClick={handleImport}>
-            Import
+            {t('guidedImport.importButton')}
           </Button>
           <button
             type="button"
             onClick={() => setStep('prompt')}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors text-center"
           >
-            ← Back
+            {t('guidedImport.back')}
           </button>
         </div>
       </div>
@@ -222,17 +220,16 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
   return (
     <div className="flex flex-col gap-5 overflow-y-auto max-h-[70dvh] pr-1">
       <div>
-        <h2 className="text-base font-semibold">Import your existing data</h2>
+        <h2 className="text-base font-semibold">{t('guidedImport.title')}</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Use an AI assistant to convert your grocery list, recipes, to-dos, or even a CSV or
-          spreadsheet into the format Casita needs.
+          {t('guidedImport.description')}
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium">1. Copy this prompt</p>
+        <p className="text-sm font-medium">{t('guidedImport.step1Label')}</p>
         <pre className="overflow-auto max-h-48 text-xs font-mono bg-muted rounded-lg p-3 whitespace-pre-wrap">
-          {LLM_PROMPT}
+          {FORMAT_GUIDE}
         </pre>
         <Button
           variant="outline"
@@ -243,19 +240,19 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
           {copied ? (
             <>
               <CheckCheck className="size-3.5" />
-              Copied!
+              {t('guidedImport.copied')}
             </>
           ) : (
             <>
               <Copy className="size-3.5" />
-              Copy prompt
+              {t('guidedImport.copyGuide')}
             </>
           )}
         </Button>
       </div>
 
       <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium">2. Paste the JSON your AI returned</p>
+        <p className="text-sm font-medium">{t('guidedImport.step2Label')}</p>
         <Textarea
           rows={6}
           placeholder='{ "items": [...], "recipes": [...], "todos": [...] }'
@@ -274,14 +271,14 @@ export default function GuidedImport({ onDone, onSkip }: GuidedImportProps) {
           disabled={!canPreview}
           onClick={() => setStep('preview')}
         >
-          Preview import →
+          {t('guidedImport.previewImport')}
         </Button>
         <button
           type="button"
           onClick={onSkip}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors text-center"
         >
-          Skip for now
+          {t('guidedImport.skipForNow')}
         </button>
       </div>
     </div>

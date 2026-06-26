@@ -14,6 +14,7 @@ interface ChangelogEntry {
 }
 
 const CHANGELOG: ChangelogEntry[] = [
+  { monthKey: 'month_june_2026', entryKey: 'e20' },
   { monthKey: 'month_june_2026', entryKey: 'e19' },
   { monthKey: 'month_june_2026', entryKey: 'e18' },
   { monthKey: 'month_june_2026', entryKey: 'e0' },

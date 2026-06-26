@@ -174,6 +174,188 @@ export async function updateCommsPreferences(req: Request, env: Env, ctx: Reques
   return Response.json({ ok: true })
 }
 
+export async function exportHouseholdImportData(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
+  if (!ctx.householdId) {
+    return Response.json({ error: 'ERR_NO_HOUSEHOLD' }, { status: 403 })
+  }
+
+  const url = new URL(req.url)
+  const includeParam = url.searchParams.get('include')
+  const validSections = ['items', 'recipes', 'todos'] as const
+  type Section = typeof validSections[number]
+
+  let include: Section[]
+  if (!includeParam || includeParam.trim() === '') {
+    include = [...validSections]
+  } else {
+    const parsed = includeParam.split(',').filter((s): s is Section =>
+      (validSections as ReadonlyArray<string>).includes(s)
+    )
+    include = parsed.length > 0 ? parsed : [...validSections]
+  }
+
+  const householdId = ctx.householdId
+
+  const [rawItems, rawRecipes, rawTodos, rawSupermarkets] = await Promise.all([
+    include.includes('items')
+      ? env.DB
+          .prepare('SELECT id, name, category, on_shopping_list FROM items WHERE household_id = ?')
+          .bind(householdId)
+          .all<{ id: string; name: string; category: string | null; on_shopping_list: number }>()
+      : null,
+    include.includes('recipes')
+      ? env.DB
+          .prepare('SELECT id, name, type, url FROM recipes WHERE household_id = ?')
+          .bind(householdId)
+          .all<{ id: string; name: string; type: string | null; url: string | null }>()
+      : null,
+    include.includes('todos')
+      ? env.DB
+          .prepare(`SELECT t.name, t.status, t.priority, t.due,
+                           t.notes, t.url, t.frequency, t.frequency_interval, t.frequency_days,
+                           c.name AS category_name
+                    FROM todos t
+                    LEFT JOIN household_todo_categories c
+                      ON t.category_id = c.id AND c.household_id = t.household_id
+                    WHERE t.household_id = ?`)
+          .bind(householdId)
+          .all<{
+            name: string; status: string; priority: string | null; due: string | null
+            notes: string | null; url: string | null
+            frequency: string | null; frequency_interval: number | null; frequency_days: string | null
+            category_name: string | null
+          }>()
+      : null,
+    include.includes('items')
+      ? env.DB
+          .prepare(`SELECT s.item_id, s.supermarket
+                    FROM item_supermarkets s
+                    JOIN items i ON s.item_id = i.id
+                    WHERE i.household_id = ?`)
+          .bind(householdId)
+          .all<{ item_id: string; supermarket: string }>()
+      : null,
+  ])
+
+  const supermarketsByItemId = new Map<string, string[]>()
+  if (rawSupermarkets) {
+    for (const row of rawSupermarkets.results) {
+      const list = supermarketsByItemId.get(row.item_id) ?? []
+      list.push(row.supermarket)
+      supermarketsByItemId.set(row.item_id, list)
+    }
+  }
+
+  const payload: {
+    version: number
+    items?: Array<{ name: string; category: string | null; onShoppingList: boolean; supermarkets: string[] }>
+    recipes?: Array<{
+      name: string
+      type: string | null
+      url: string | null
+      instructions: string
+      ingredients: Array<{ name: string; quantity: string | null }>
+    }>
+    todos?: Array<{
+      name: string; status: string; priority: string | null; due: string | null
+      notes: string | null; url: string | null
+      frequency: string | null; frequency_interval: number | null; frequency_days: string | null
+      category: string | null
+    }>
+  } = { version: 1 }
+
+  if (rawItems) {
+    payload.items = rawItems.results.map(r => ({
+      name: r.name,
+      category: r.category,
+      onShoppingList: r.on_shopping_list === 1,
+      supermarkets: supermarketsByItemId.get(r.id) ?? [],
+    }))
+  }
+
+  if (rawTodos) {
+    payload.todos = rawTodos.results.map(r => ({
+      name: r.name,
+      status: r.status,
+      priority: r.priority,
+      due: r.due,
+      notes: r.notes,
+      url: r.url,
+      frequency: r.frequency,
+      frequency_interval: r.frequency != null ? (r.frequency_interval ?? 1) : null,
+      frequency_days: r.frequency_days,
+      category: r.category_name,
+    }))
+  }
+
+  if (rawRecipes) {
+    const recipeRows = rawRecipes.results
+
+    const recipeIds = recipeRows.map(r => r.id)
+
+    const blocksByRecipeId = new Map<string, { type: string; text: string }[]>()
+    const ingredientsByRecipeId = new Map<string, { name: string; quantity: string | null }[]>()
+
+    for (let i = 0; i < recipeIds.length; i += 100) {
+      const chunk = recipeIds.slice(i, i + 100)
+      const ph = chunk.map(() => '?').join(', ')
+      const [blocksResult, ingredientsResult] = await Promise.all([
+        env.DB
+          .prepare(`SELECT recipe_id, type, text FROM recipe_blocks WHERE recipe_id IN (${ph}) ORDER BY recipe_id, sort_order`)
+          .bind(...chunk)
+          .all<{ recipe_id: string; type: string; text: string }>(),
+        env.DB
+          .prepare(`SELECT ri.recipe_id, i.name, ri.quantity FROM recipe_ingredients ri JOIN items i ON ri.item_id = i.id WHERE ri.recipe_id IN (${ph}) ORDER BY ri.recipe_id, ri.sort_order`)
+          .bind(...chunk)
+          .all<{ recipe_id: string; name: string; quantity: string | null }>(),
+      ])
+      for (const b of blocksResult.results) {
+        const arr = blocksByRecipeId.get(b.recipe_id) ?? []
+        arr.push(b)
+        blocksByRecipeId.set(b.recipe_id, arr)
+      }
+      for (const ing of ingredientsResult.results) {
+        const arr = ingredientsByRecipeId.get(ing.recipe_id) ?? []
+        arr.push(ing)
+        ingredientsByRecipeId.set(ing.recipe_id, arr)
+      }
+    }
+
+    payload.recipes = recipeRows.map(r => {
+      const blocks = blocksByRecipeId.get(r.id) ?? []
+      const ingredients = ingredientsByRecipeId.get(r.id) ?? []
+
+      const instructions = blocks
+        .map(b => {
+          switch (b.type) {
+            case 'divider': return '---'
+            case 'heading_1': return `# ${b.text}`
+            case 'heading_2': return `## ${b.text}`
+            case 'heading_3': return `### ${b.text}`
+            case 'bulleted_list_item': return `- ${b.text}`
+            default: return b.text
+          }
+        })
+        .join('\n')
+
+      return {
+        name: r.name,
+        type: r.type,
+        url: r.url,
+        instructions,
+        ingredients: ingredients.map(i => ({ name: i.name, quantity: i.quantity })),
+      }
+    })
+  }
+
+  return new Response(JSON.stringify(payload, null, 2), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Disposition': 'attachment; filename="casita-household.json"',
+    },
+  })
+}
+
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
