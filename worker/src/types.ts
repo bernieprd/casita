@@ -71,92 +71,42 @@ export interface GoogleTokens {
   expiresAt: number
 }
 
+export interface ConnectedAccount {
+  provider: 'google'
+  accountEmail: string
+  connectedAt: number
+}
+
 export interface UserCalendar {
   id: string
   name: string
   colorHex: string
   enabled: boolean
   visibility: 'private' | 'household' | 'free-busy'
+  provider: 'google'
+  accountEmail: string
 }
 
 export interface SharedCalendar {
   calendarId: string
   ownerEmail: string
+  accountEmail?: string
   name: string
   colorHex: string
   visibility: 'household' | 'free-busy'
-}
-
-// ── Notion raw types ──────────────────────────────────────────────────────────
-
-export interface NotionPage {
-  id: string
-  object: 'page'
-  archived: boolean
-  cover: NotionCover | null
-  properties: Record<string, NotionProperty>
-}
-
-export type NotionProperty =
-  | { type: 'title'; title: NotionRichText[] }
-  | { type: 'rich_text'; rich_text: NotionRichText[] }
-  | { type: 'select'; select: NotionSelectOption | null }
-  | { type: 'multi_select'; multi_select: NotionSelectOption[] }
-  | { type: 'checkbox'; checkbox: boolean }
-  | { type: 'relation'; relation: Array<{ id: string }> }
-  | { type: 'number'; number: number | null }
-  | { type: 'files'; files: NotionFileRef[] }
-  | { type: 'url'; url: string | null }
-  | { type: 'date'; date: { start: string; end: string | null } | null }
-
-export interface NotionRichText {
-  plain_text: string
-}
-
-export interface NotionSelectOption {
-  name: string
-}
-
-export type NotionCover =
-  | { type: 'external'; external: { url: string } }
-  | { type: 'file'; file: { url: string } }
-
-export type NotionFileRef =
-  | { type: 'external'; name: string; external: { url: string } }
-  | { type: 'file'; name: string; file: { url: string; expiry_time: string } }
-
-export interface NotionQueryResponse {
-  results: NotionPage[]
-  has_more: boolean
-  next_cursor: string | null
-}
-
-export interface NotionBlock {
-  id: string
-  type: string
-  [key: string]: unknown
-}
-
-export interface NotionBlocksResponse {
-  results: NotionBlock[]
-  has_more: boolean
-  next_cursor: string | null
+  provider?: 'google'
 }
 
 // ── Env ───────────────────────────────────────────────────────────────────────
 
 export interface Env {
-  NOTION_TOKEN: string
-  NOTION_SHOPPING_LIST_DB: string
-  NOTION_RECIPES_DB: string
-  NOTION_RECIPE_INGREDIENT_DB: string
-  NOTION_TODOS_DB: string
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   GOOGLE_REDIRECT_URI?: string
   // Set in wrangler.toml [vars] or .dev.vars to override the default.
   ALLOWED_ORIGIN?: string
   APP_BASE_URL?: string
+  WORKER_BASE_URL?: string
   RECIPE_PHOTOS: R2Bucket
   AUTH_KV: KVNamespace
   ALLOWED_EMAILS: string
@@ -165,11 +115,20 @@ export interface Env {
   CLERK_SECRET_KEY: string
   CLERK_JWT_KEY?: string // PEM public key — enables local JWT verification (no network call)
   ADMIN_MIGRATE_SECRET?: string
+  RATE_LIMITER: RateLimit
+  ADMIN_RATE_LIMITER: RateLimit
+  RESEND_API_KEY?: string
+  RESEND_FROM_EMAIL?: string
 }
 
 export const DEFAULT_APP_URL = 'https://dashboard.mycasita.app'
 export function getAppBaseUrl(env: Env): string {
   return env.APP_BASE_URL ?? DEFAULT_APP_URL
+}
+
+export const DEFAULT_WORKER_URL = 'https://casita-worker.bernardoprd.workers.dev'
+export function getWorkerBaseUrl(env: Env): string {
+  return env.WORKER_BASE_URL ?? DEFAULT_WORKER_URL
 }
 
 export interface ConceptItem {
@@ -188,10 +147,3 @@ export interface RequestContext {
   role: 'owner' | 'member' | null
 }
 
-export interface HouseholdNotionConfig {
-  household_id: string
-  shopping_list_db: string
-  recipes_db: string
-  recipe_ingredient_db: string
-  todos_db: string
-}

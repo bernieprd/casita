@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useSettingsBack } from '@/hooks/useSettingsBack'
 import { toast } from 'sonner'
 import { ArrowLeft, Download } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -31,7 +31,7 @@ interface Props {
 
 export default function AccountSettings({ setHeader }: Props) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
+  const goBack = useSettingsBack()
   const { user } = useUser()
   const { logout } = useAuth()
 
@@ -51,7 +51,7 @@ export default function AccountSettings({ setHeader }: Props) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/settings')}
+          onClick={goBack}
           className="-ml-2"
           aria-label={t('common.back')}
         >
@@ -61,7 +61,7 @@ export default function AccountSettings({ setHeader }: Props) {
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader, t])
+  }, [goBack, setHeader, t])
 
   return (
     <div className="p-4">

@@ -37,18 +37,30 @@ export async function getItems(req: Request, env: Env, ctx: RequestContext): Pro
   const url = new URL(req.url)
   const shopping = url.searchParams.get('shopping')
 
-  const query = shopping === 'true'
-    ? 'SELECT * FROM items WHERE household_id = ? AND on_shopping_list = 1'
-    : 'SELECT * FROM items WHERE household_id = ?'
+  const baseFilter = shopping === 'true'
+    ? 'i.household_id = ? AND i.on_shopping_list = 1'
+    : 'i.household_id = ?'
 
-  const { results } = await env.DB.prepare(query).bind(ctx.householdId).all<ItemRow>()
+  // Single LEFT JOIN avoids a second round-trip and has no bound-parameter limit
+  // (the old IN (?, ?, ...) approach broke when households exceeded 100 items)
+  type JoinRow = ItemRow & { supermarket: string | null }
+  const { results } = await env.DB
+    .prepare(`SELECT i.*, sm.supermarket FROM items i LEFT JOIN item_supermarkets sm ON sm.item_id = i.id WHERE ${baseFilter}`)
+    .bind(ctx.householdId)
+    .all<JoinRow>()
 
-  const items = await Promise.all(results.map(async row => {
-    const sm = await env.DB.prepare('SELECT supermarket FROM item_supermarkets WHERE item_id = ?').bind(row.id).all<{ supermarket: string }>()
-    return rowToItem(row, sm.results.map(r => r.supermarket))
-  }))
+  const itemMap = new Map<string, { row: ItemRow; supermarkets: string[] }>()
+  for (const row of results) {
+    if (!itemMap.has(row.id)) {
+      itemMap.set(row.id, { row, supermarkets: [] })
+    }
+    if (row.supermarket) {
+      itemMap.get(row.id)!.supermarkets.push(row.supermarket)
+    }
+  }
 
-  return Response.json(items)
+  const items = [...itemMap.values()].map(({ row, supermarkets }) => rowToItem(row, supermarkets))
+  return Response.json(items, { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } })
 }
 
 export async function createItem(req: Request, env: Env, ctx: RequestContext): Promise<Response> {
@@ -60,6 +72,8 @@ export async function createItem(req: Request, env: Env, ctx: RequestContext): P
     supermarkets?: string[]
     onShoppingList?: boolean
   }>()
+
+  if (!body.name || body.name.trim().length === 0 || body.name.length > 500) return Response.json({ error: 'ERR_INVALID_NAME' }, { status: 400 })
 
   const id = crypto.randomUUID()
   const now = Date.now()
@@ -90,6 +104,8 @@ export async function updateItem(req: Request, env: Env, ctx: RequestContext, id
     supermarkets?: string[]
     onShoppingList?: boolean
   }>()
+
+  if ('name' in body && (!body.name || body.name.trim().length === 0 || body.name.length > 500)) return Response.json({ error: 'ERR_INVALID_NAME' }, { status: 400 })
 
   const fields: string[] = ['updated_at = ?']
   const values: unknown[] = [Date.now()]

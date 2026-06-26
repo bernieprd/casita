@@ -281,7 +281,11 @@
     "newDescription": "Añade un nuevo artículo a tu inventario.",
     "namePlaceholder": "Nombre",
     "categoryPlaceholder": "Categoría",
-    "supermarketsPlaceholder": "Supermercados (separados por coma o Enter)"
+    "supermarketsPlaceholder": "Supermercados (separados por coma o Enter)",
+    "deleteItem": "Eliminar artículo",
+    "supermarketsSearch": "Buscar supermercados…",
+    "addSupermarket": "+ Añadir \"{{name}}\"",
+    "noSupermarketsFound": "No se encontraron supermercados."
   },
   "settings": {
     "menu": {
@@ -311,7 +315,19 @@
       "privacyPolicy": "Política de privacidad",
       "termsOfService": "Términos de servicio",
       "supportText": "¡Apoya el desarrollo de Casita con un café! ¿Tienes una solicitud de función o comentarios? Envíanoslos — nos encantaría escucharte y lo tendremos en cuenta.",
-      "buyACoffee": "Invítanos a un café ☕"
+      "buyACoffee": "Invítanos a un café ☕",
+      "areasAndTabs": "Áreas y pestañas",
+      "areasAndTabsDescription": "Activar áreas, fijar pestañas",
+      "notifications": "Notificaciones",
+      "notificationsDescription": "Gestionar preferencias de correo"
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "emailSection": "Correo electrónico",
+      "toggleLabel": "Notificaciones por correo",
+      "toggleDescription": "Recibe novedades y resúmenes del hogar",
+      "offMessage": "Las notificaciones por correo están desactivadas. No recibirás ningún correo de Casita.",
+      "saveError": "Error al guardar las preferencias"
     },
     "account": {
       "title": "Cuenta",
@@ -367,8 +383,12 @@
       "connectSuccess": "Google Calendar conectado correctamente.",
       "connectError": "Error al conectar Google Calendar. Por favor, inténtalo de nuevo.",
       "connectGoogleCalendar": "Conectar Google Calendar",
+      "addGoogleAccount": "Añadir cuenta de Google",
+      "googleCalendar": "Google Calendar",
       "connectDialogTitle": "Conectar Google Calendar",
       "connectDialogDescription": "Casita leerá los eventos de tu calendario. Tú eliges qué calendarios son visibles para tu hogar.",
+      "disconnectTitle": "¿Desconectar cuenta?",
+      "disconnectDescription": "Los eventos de {{email}} ya no aparecerán en tu calendario.",
       "failedToLoad": "Error al cargar los calendarios. Intenta reconectar.",
       "visibilityPrivate": "Privado — solo yo",
       "visibilityHousehold": "Hogar — eventos completos",
@@ -400,6 +420,22 @@
       "help": "Los tipos te ayudan a filtrar y navegar por tu colección de recetas.",
       "types": "Tipos",
       "addType": "Añadir un tipo"
+    },
+    "areas": {
+      "title": "Áreas y pestañas",
+      "ownerSection": "Áreas del hogar",
+      "ownerSectionDescription": "Las áreas desactivadas se ocultan para todos los miembros.",
+      "calendar": "Calendario",
+      "todos": "Tareas",
+      "shopping": "Compras",
+      "recipes": "Recetas",
+      "userSection": "Tus pestañas",
+      "userSectionDescription": "Solo visible para ti. Los cambios no afectan a otros miembros.",
+      "pinTab": "Fijar en la barra de pestañas",
+      "maxTabsNote": "Puedes fijar hasta 3 áreas en tu barra de pestañas.",
+      "pinnedTabsLabel": "Fijadas",
+      "notPinnedTabsLabel": "No fijadas",
+      "noAreasEnabled": "No hay áreas habilitadas actualmente."
     }
   },
   "household": {
@@ -421,7 +457,16 @@
     "couldNotDelete": "No se pudo eliminar «{{name}}»"
   },
   "calendar": {
-    "allDay": "Todo el día"
+    "allDay": "Todo el día",
+    "viewAgenda": "Agenda",
+    "viewWeek": "Semana",
+    "viewMonth": "Mes",
+    "moreEvents": "+{{count}} más",
+    "emptyTitle": "No hay nada próximo",
+    "emptySubtitle": "Disfruta de la tranquilidad",
+    "connectPromptSee": "Conecta Google Calendar en <a>Ajustes</a> para ver tus eventos",
+    "connectPromptAdd": "Conecta Google Calendar en <a>Ajustes</a> para añadir tus propios eventos",
+    "noCalendarsSelected": "Sin calendarios seleccionados — <a>elige cuáles mostrar</a>"
   },
   "changelog": {
     "month_june_2026": "Junio 2026",
@@ -462,8 +507,12 @@
     "e16_desc": "Conecta tu Google Calendar para ver los eventos junto a las tareas del hogar.",
     "e17_title": "Rediseño de configuración",
     "e17_desc": "Las páginas de configuración han sido reorganizadas con un diseño más limpio.",
-    "e18_title": "App para Android e iOS",
-    "e18_desc": "Casita ahora puede empaquetarse como app nativa para Android e iOS mediante Capacitor. La PWA también recibió mejoras: color de tema consistente, mejores iconos (maskable, 64px), accesos directos en la pantalla de inicio para Compras, Tareas y Recetas, y barra de estado de borde a borde en iOS."
+    "e18_title": "Sincronización con múltiples cuentas y nuevas vistas",
+    "e18_desc": "Conecta varias cuentas de Google (personal + trabajo) desde Ajustes → Calendario. Las nuevas vistas de semana y mes te permiten ver tu agenda de un vistazo — cambia entre Agenda, Semana y Mes con el selector en la parte superior de la pestaña Calendario.",
+    "e19_title": "Áreas y pestañas — personalízalo",
+    "e19_desc": "Los propietarios del hogar pueden activar o desactivar áreas para todos. Cada miembro puede fijar hasta tres áreas directamente en su barra de pestañas, y todo lo que no esté fijado queda a un toque. Personaliza desde Ajustes → Áreas y pestañas.",
+    "e20_title": "App para Android e iOS",
+    "e20_desc": "Casita ahora puede empaquetarse como app nativa para Android e iOS mediante Capacitor. La PWA también recibió mejoras: color de tema consistente, mejores iconos (maskable, 64px), accesos directos en la pantalla de inicio para Compras, Tareas y Recetas, y barra de estado de borde a borde en iOS."
   },
   "nav": {
     "settings": "Configuración",
@@ -472,6 +521,7 @@
     "todos": "Tareas",
     "shopping": "Compras",
     "recipes": "Recetas",
+    "menu": "Menú",
     "updateAvailable": "Actualización disponible",
     "reload": "Recargar",
     "offline": "Sin conexión — mostrando datos guardados",
@@ -482,5 +532,45 @@
     "errorTitle": "Algo salió mal",
     "errorUnexpected": "Error inesperado",
     "tryAgain": "Intentar de nuevo"
+  },
+  "onboarding": {
+    "back": "Atrás",
+    "next": "Siguiente",
+    "letsGo": "¡Empezamos!",
+    "slides": {
+      "welcome": {
+        "title": "Bienvenido a {{name}}",
+        "description": "Tu hogar en un solo lugar — tareas, compras, recetas y eventos, todo compartido con todos en casa."
+      },
+      "calendar": {
+        "title": "Calendario",
+        "description": "Ve lo que viene — añade eventos, conecta Google Calendar y mantén a tu hogar sincronizado."
+      },
+      "todos": {
+        "title": "Tareas",
+        "description": "Gestiona las tareas del hogar, asígnalas a los miembros y establece prioridades y fechas."
+      },
+      "shopping": {
+        "title": "Compras",
+        "description": "Crea una lista de la compra compartida, organízala por tienda y marca los artículos juntos."
+      },
+      "recipes": {
+        "title": "Recetas",
+        "description": "Guarda tus recetas favoritas, planifica qué cocinar y convierte los ingredientes en artículos de la lista."
+      }
+    },
+    "preview": {
+      "milkItem": "Leche",
+      "eggsItem": "Huevos",
+      "breadItem": "Pan",
+      "tagDinner": "Cena",
+      "tagLunch": "Almuerzo",
+      "tagBreakfast": "Desayuno",
+      "todoFixTap": "Arreglar el grifo del baño",
+      "todoBuyGroceries": "Hacer la compra",
+      "todoCallInsurance": "Llamar al seguro",
+      "eventDoctor": "Cita médica",
+      "eventFamilyDinner": "Cena familiar"
+    }
   }
 }

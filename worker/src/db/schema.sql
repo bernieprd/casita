@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS households (
   name        TEXT NOT NULL,
   invite_code   TEXT UNIQUE,         -- nullable = invites disabled
   created_at    INTEGER NOT NULL,    -- Unix ms
-  todo_workflow TEXT NOT NULL DEFAULT 'simple'
+  todo_workflow TEXT NOT NULL DEFAULT 'simple',
+  areas_config  TEXT DEFAULT NULL    -- JSON; NULL means all areas enabled (backwards-compatible)
 );
 
 CREATE TABLE IF NOT EXISTS household_members (
@@ -13,24 +14,23 @@ CREATE TABLE IF NOT EXISTS household_members (
   email         TEXT,
   joined_at     INTEGER NOT NULL,
   locale        TEXT NOT NULL DEFAULT 'en',
+  tab_config         TEXT DEFAULT NULL,        -- JSON TabConfig; NULL → default pinned tabs
   PRIMARY KEY (household_id, clerk_user_id)
 );
 CREATE INDEX IF NOT EXISTS hm_clerk_user_id ON household_members(clerk_user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS hm_unique_user ON household_members(clerk_user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS hm_email ON household_members(email);
+CREATE INDEX IF NOT EXISTS hm_household_id  ON household_members(household_id);
 
--- Replaces hardcoded env.NOTION_*_DB vars; one row per household
-CREATE TABLE IF NOT EXISTS household_notion_config (
-  household_id         TEXT PRIMARY KEY REFERENCES households(id),
-  shopping_list_db     TEXT NOT NULL,
-  recipes_db           TEXT NOT NULL,
-  recipe_ingredient_db TEXT NOT NULL,
-  todos_db             TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS user_comms_prefs (
+  clerk_user_id               TEXT PRIMARY KEY,
+  email_notifications_enabled INTEGER NOT NULL DEFAULT 0,
+  email_frequency             TEXT NOT NULL DEFAULT 'off',
+  unsubscribe_token           TEXT
 );
 
 -- Seed (run after both users log in once and you have their Clerk user IDs):
 -- INSERT INTO households VALUES ('hh-home', 'Home', NULL, unixepoch() * 1000);
--- INSERT INTO household_notion_config VALUES ('hh-home', '<shopping_db>', '<recipes_db>', '<ingredient_db>', '<todos_db>');
 -- INSERT INTO household_members VALUES ('hh-home', '<bernardo_clerk_id>', 'owner', unixepoch() * 1000);
 -- INSERT INTO household_members VALUES ('hh-home', '<cesar_clerk_id>', 'member', unixepoch() * 1000);
 
@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS item_supermarkets (
   supermarket TEXT NOT NULL,
   PRIMARY KEY (item_id, supermarket)
 );
+CREATE INDEX IF NOT EXISTS is_item_id ON item_supermarkets(item_id);
 
 -- ── Recipes ───────────────────────────────────────────────────────────────────
 
@@ -64,9 +65,10 @@ CREATE TABLE IF NOT EXISTS recipes (
   day             TEXT,
   url             TEXT,
   cover_photo_url TEXT,
-  share_token     TEXT UNIQUE,
-  created_at      INTEGER NOT NULL,
-  updated_at      INTEGER NOT NULL
+  share_token            TEXT UNIQUE,
+  share_token_expires_at INTEGER,         -- Unix ms; NULL = legacy token (no expiry)
+  created_at             INTEGER NOT NULL,
+  updated_at             INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS recipes_household   ON recipes(household_id);
 CREATE INDEX IF NOT EXISTS recipes_share_token ON recipes(share_token);
@@ -104,7 +106,8 @@ CREATE TABLE IF NOT EXISTS household_recipe_types (
   sort_order   INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (household_id, id)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS hrt_name ON household_recipe_types(household_id, name);
+CREATE UNIQUE INDEX IF NOT EXISTS hrt_name        ON household_recipe_types(household_id, name);
+CREATE INDEX IF NOT EXISTS hrt_household_id ON household_recipe_types(household_id);
 
 CREATE TABLE IF NOT EXISTS household_categories (
   id           TEXT NOT NULL,
@@ -122,7 +125,8 @@ CREATE TABLE IF NOT EXISTS household_supermarkets (
   sort_order   INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (household_id, id)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS hs_name ON household_supermarkets(household_id, name);
+CREATE UNIQUE INDEX IF NOT EXISTS hs_name        ON household_supermarkets(household_id, name);
+CREATE INDEX IF NOT EXISTS hs_household_id  ON household_supermarkets(household_id);
 
 -- ── Todos ─────────────────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useSettingsBack } from '@/hooks/useSettingsBack'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ArrowLeft, Pencil, Copy, Sun, SunMoon, Moon } from 'lucide-react'
@@ -50,7 +50,7 @@ interface Props {
 
 export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSaving, setHeader }: Props) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
+  const goBack = useSettingsBack()
   const { user } = useUser()
   const isDark = themePrefs.colorScheme === 'dark' || (themePrefs.colorScheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
   const { refreshHousehold } = useHousehold()
@@ -83,7 +83,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/settings')}
+          onClick={goBack}
           className="-ml-2"
           aria-label={t('common.back')}
         >
@@ -93,7 +93,7 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
       </>
     )
     return () => setHeader(null)
-  }, [navigate, setHeader, t])
+  }, [goBack, setHeader, t])
 
   function handleRenameOpen() {
     setNameInput(householdData?.householdName ?? '')
@@ -278,7 +278,6 @@ export default function HouseholdSettings({ themePrefs, setThemePrefs, themeSavi
       </AlertDialog>
 
       <Separator className="my-4" />
-
 
       <div className="flex flex-col gap-5">
 

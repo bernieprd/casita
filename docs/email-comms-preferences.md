@@ -1,0 +1,213 @@
+# Email Communications Preferences
+
+## Goal
+
+Enable users to opt into email notifications and deliver a small set of high-value emails: a welcome message, a weekly todo digest, and an onboarding drip series. The work is split into phased waves so each wave ships something real and independently valuable.
+
+---
+
+## Email provider comparison
+
+All options below work from a Cloudflare Worker via the fetch API. "Workers compatibility" refers to how naturally the provider integrates without a heavy SDK.
+
+| Provider | Free tier | ~10k/mo cost | Workers fit | Best for |
+|---|---|---|---|---|
+| **Resend** | 3k/mo (100/day) | ~$20 | Excellent — REST-only, built for edge | V1 default |
+| **Brevo** | 9k/mo (300/day) | ~$22 | Good — REST API | Highest free headroom |
+| **SendGrid** | 3k/mo (100/day) | ~$20 | Good — REST API | Established deliverability |
+| **Mailgun** | 5k/mo (card req.) | ~$30 | Excellent — clean REST API | Flexibility at scale |
+| **Postmark** | 100/mo only | $15 (25k plan) | Excellent — simple REST | Best deliverability |
+| **AWS SES** | 62k/mo (yr 1) | ~$1 | Poor — heavy SDK, SigV4 auth | Cost at high volume |
+
+### Detail breakdown
+
+**Resend** *(recommended for V1)*
+- Pros: Designed for serverless/edge, minimal setup, simple REST API, good DX, fast domain verification
+- Cons: Newest entrant (less track record), 100/day free cap is tight if growth is fast
+- Notes: `RESEND_API_KEY` secret + a single `fetch` call — no SDK needed in the worker
+
+**Brevo** *(best free tier)*
+- Pros: 300 emails/day free is the highest of any provider, includes basic CRM features, GDPR-friendly EU infrastructure
+- Cons: Less developer-focused docs, slower API response times, EU-first means slightly higher latency from Cloudflare US PoPs
+- Notes: Good fallback if Resend's free tier becomes a constraint before V2 is ready
+
+**SendGrid** *(established choice)*
+- Pros: Industry standard, excellent deliverability reputation, large ecosystem, strong analytics dashboard
+- Cons: Twilio acquisition degraded DX somewhat, pricing tiers are confusing, legacy UI
+- Notes: REST API works fine from Workers; avoid the Node SDK
+
+**Mailgun** *(scale-friendly)*
+- Pros: Very flexible API, good developer docs, cost-effective at higher volumes
+- Cons: Requires a credit card even for the free tier, onboarding is less streamlined than Resend
+- Notes: Worth revisiting at V2/V3 if send volume grows
+
+**Postmark** *(deliverability-first)*
+- Pros: Laser-focused on transactional mail (no marketing bleed), exceptional inbox rates, transparent flat-rate pricing
+- Cons: Only 100 emails/month free — essentially no free tier; more expensive per email than others
+- Notes: Worth considering if deliverability issues arise with the chosen provider
+
+**AWS SES** *(cheapest at scale)*
+- Pros: ~$0.10 per 1k emails — unbeatable price at volume, rock-solid infrastructure
+- Cons: Requires SigV4 request signing (complex from a Worker without the AWS SDK), IAM setup overhead, not beginner-friendly
+- Notes: Only worth the complexity if sending hundreds of thousands of emails/month
+
+### Decision for this project
+
+**Resend** for V1. Reasons: zero-friction setup, native fetch API (no SDK bloat in the Worker bundle), sufficient free tier for early users, and straightforward domain verification. Revisit **Mailgun** or **AWS SES** if monthly volume exceeds ~50k emails.
+
+---
+
+## Long-term roadmap
+
+| Phase | Scope |
+|---|---|
+| **V1** | Prefs UI + DB, Resend wired up, welcome email, unsubscribe |
+| **V2** | Weekly todo digest via Cloudflare Cron Trigger |
+| **V3** | Onboarding drip (3–5 emails via Cloudflare Queue) |
+| **V4** | Per-category toggles (tips series, reminders, household updates) |
+| **V5** | Household-level vs. member-level prefs, admin defaults |
+
+---
+
+## V1 — Prove the pipe
+
+### 1. Database migration
+
+Add to `household_members`:
+
+```sql
+ALTER TABLE household_members
+  ADD COLUMN email_notifications_enabled INTEGER NOT NULL DEFAULT 1,
+  ADD COLUMN email_frequency TEXT NOT NULL DEFAULT 'instant',
+  ADD COLUMN unsubscribe_token TEXT;
+```
+
+- `email_frequency`: `'instant' | 'off'` (V1); `'weekly'` added in V2
+- `unsubscribe_token`: a random UUID generated on first email send, used for one-click unsubscribe without auth
+
+Migration file: `worker/src/db/migrations/NNN_email_comms_prefs.sql` (replace NNN with next sequence number).
+
+Update `worker/src/db/schema.sql` with the same columns.
+
+### 2. Worker — comms preferences endpoint
+
+`PATCH /account/comms-preferences`
+
+Request body:
+```ts
+{
+  emailNotificationsEnabled: boolean;
+  emailFrequency: 'instant' | 'off';  // V1; 'weekly' added in V2
+}
+```
+
+- Validates the caller is authenticated (Clerk JWT).
+- Updates `household_members` for the current user's `clerk_id`.
+- Returns `200 { success: true }`.
+
+### 3. Settings UI — Notifications section
+
+Add `NotificationsSettings.tsx` in `frontend/src/components/settings/` and wire it into `SettingsMenu.tsx` + the settings router.
+
+UI:
+- **Email notifications** toggle (maps to `emailNotificationsEnabled`)
+- **Frequency** radio/select — "Weekly digest" / "Off" (keep it simple for v1; "Immediate" can be added when we have real immediate triggers)
+- Short helper text explaining what emails they'll receive
+- Backed by a TanStack Query mutation hitting `PATCH /account/comms-preferences`
+
+### 4. Email provider — Resend
+
+- Add Resend to `worker/`: `pnpm add resend` inside `worker/`
+- Store `RESEND_API_KEY` as a Cloudflare Worker secret (`wrangler secret put RESEND_API_KEY`)
+- Add `RESEND_FROM_EMAIL` to `wrangler.toml` vars (e.g. `hello@casita.app`)
+- Create `worker/src/email/resend.ts` — thin wrapper: `sendEmail({ to, subject, html })` that calls the Resend API
+
+Verify the sender domain in the Resend dashboard before any sends.
+
+### 5. Welcome email
+
+Trigger: when a new `household_members` row is created (user signs up or is invited and accepts).
+
+- Fire-and-forget: call `sendEmail` from the household creation/accept handler
+- Always send — this is a transactional email, not gated by `email_notifications_enabled`
+- Content: brief welcome, 2–3 bullet points on what Casita does, link to the app
+- Keep it plain HTML for now — no fancy templating needed in v1
+
+### 6. Unsubscribe endpoint
+
+`GET /account/unsubscribe?token=<token>`
+
+- Looks up `household_members` by `unsubscribe_token`
+- Sets `email_notifications_enabled = 0` and `email_frequency = 'off'`
+- Returns a simple HTML page: "You've been unsubscribed. [Manage your preferences]"
+- No auth required — the token is the credential
+
+Every outbound email must include a footer with this link. CAN-SPAM / GDPR compliance from day one.
+
+---
+
+## V2 — Weekly todo digest
+
+Trigger: Cloudflare Cron Trigger, runs every Monday morning (configurable in `wrangler.toml`).
+
+Logic:
+1. Query all `household_members` where `email_notifications_enabled = 1` and `email_frequency = 'weekly'`
+2. For each user, query their open/overdue todos
+3. If they have no open todos, skip (don't send empty digests)
+4. Send digest email: list of todos grouped by household, with deep links into the PWA
+
+Add `scheduled` handler to the worker export.
+
+---
+
+## V3 — Onboarding drip
+
+Use Cloudflare Queues to schedule delayed sends after signup.
+
+Drip schedule (approximate):
+| Delay | Subject |
+|---|---|
+| Immediate | Welcome (same as V1 welcome email — keep consistent) |
+| Day 2 | "Your first shopping list" — how Shopping + Recipes connect |
+| Day 5 | "Keep the household in sync" — invite a household member |
+| Day 10 | "Never forget a to-do" — recurring todos, priorities |
+| Day 14 | "Power features" — Concepts/tags, Google Calendar |
+
+On signup, enqueue 4 delayed messages (day 2–14; day 0 is the welcome email).
+Each queue message contains `{ userId, emailType }`.
+Queue consumer checks current opt-in status before sending — respects late unsubscribes.
+
+---
+
+## V4 — Per-category toggles
+
+Extend `comms_preferences` JSON column (or individual columns) to track:
+
+```ts
+{
+  welcome: boolean;       // onboarding drip
+  reminders: boolean;     // todo digest
+  tips: boolean;          // learning series
+  householdUpdates: boolean; // member joins, ownership transfers
+}
+```
+
+Update Settings UI with granular toggles per category.
+
+---
+
+## V5 — Household-level defaults
+
+Household owner can set default prefs for new members.
+Each member can still override their own prefs.
+Admin-level endpoint: `PATCH /household/comms-defaults`.
+
+---
+
+## Key decisions / constraints
+
+- **Resend** is the chosen provider — native fetch API, great Cloudflare Workers support, generous free tier.
+- **No email templating library** for v1 — raw HTML strings in the worker are fine. Introduce React Email or similar only if the volume of email types justifies it.
+- **Unsubscribe token** is generated lazily on first send (not at account creation) to avoid unnecessary DB writes for users who never receive email.
+- **Never send digest/marketing emails to users with `email_notifications_enabled = 0`** — check this in every non-transactional send path. The welcome email is exempt: it's transactional and always sends.
+- All emails must include an unsubscribe footer link and a physical mailing address (CAN-SPAM requirement).

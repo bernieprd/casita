@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import type { ThemePrefs } from '@/lib/theme'
-import SettingsMenu from './SettingsMenu'
 import AccountSettings from './AccountSettings'
 import HouseholdSettings from './HouseholdSettings'
 import CalendarSettings from './CalendarSettings'
@@ -10,6 +9,8 @@ import RecipesSettings from './RecipesSettings'
 import TodosSettings from './TodosSettings'
 import ChangelogSettings from './ChangelogSettings'
 import ImportSettings from './ImportSettings'
+import AreasSettings from './AreasSettings'
+import NotificationsSettings from './NotificationsSettings'
 
 interface Props {
   themePrefs: ThemePrefs
@@ -21,16 +22,18 @@ interface Props {
 export default function SettingsLayout({ themePrefs, setThemePrefs, themeSaving, setHeader }: Props) {
   return (
     <Routes>
-      <Route index element={<SettingsMenu />} />
-      <Route path="account"   element={<AccountSettings setHeader={setHeader} />} />
+      <Route index element={<Navigate to="/menu" replace />} />
+      <Route path="account"        element={<AccountSettings setHeader={setHeader} />} />
+      <Route path="notifications"  element={<NotificationsSettings setHeader={setHeader} />} />
       <Route path="household" element={<HouseholdSettings themePrefs={themePrefs} setThemePrefs={setThemePrefs} themeSaving={themeSaving} setHeader={setHeader} />} />
+      <Route path="areas"     element={<AreasSettings     setHeader={setHeader} />} />
       <Route path="calendar"  element={<CalendarSettings  setHeader={setHeader} />} />
       <Route path="shopping"  element={<ShoppingSettings  setHeader={setHeader} />} />
       <Route path="recipes"   element={<RecipesSettings   setHeader={setHeader} />} />
       <Route path="todos"     element={<TodosSettings     setHeader={setHeader} />} />
       <Route path="changelog"  element={<ChangelogSettings  setHeader={setHeader} />} />
       <Route path="import"    element={<ImportSettings     setHeader={setHeader} />} />
-      <Route path="*"         element={<Navigate to="/settings" replace />} />
+      <Route path="*"         element={<Navigate to="/menu" replace />} />
     </Routes>
   )
 }

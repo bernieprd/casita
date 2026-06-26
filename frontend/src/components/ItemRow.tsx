@@ -33,7 +33,7 @@ type RecipeVariant = {
   name: string
   subtitle?: string
   onShoppingList: boolean
-  onToggle: () => void
+  onToggle?: () => void
 }
 
 type TodoVariant = {
@@ -141,19 +141,22 @@ export function ItemRow(props: ItemRowProps) {
           <p className="text-xs text-muted-foreground">{props.subtitle}</p>
         )}
       </div>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        className="shrink-0 text-muted-foreground"
-        aria-label={props.onShoppingList
-          ? t('items.removeFromList', { name: props.name })
-          : t('items.addToList', { name: props.name })}
-        onClick={props.onToggle}
-      >
-        {props.onShoppingList
-          ? <Check className="size-4" />
-          : <ShoppingCart className="size-4" />}
-      </Button>
+      {props.onToggle && (
+        <Button
+          data-testid="shopping-toggle"
+          variant="ghost"
+          size="icon-sm"
+          className="shrink-0 text-muted-foreground"
+          aria-label={props.onShoppingList
+            ? t('items.removeFromList', { name: props.name })
+            : t('items.addToList', { name: props.name })}
+          onClick={props.onToggle}
+        >
+          {props.onShoppingList
+            ? <Check className="size-4" />
+            : <ShoppingCart className="size-4" />}
+        </Button>
+      )}
     </div>
   )
 }
